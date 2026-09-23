@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarketLink - Nền Tảng Đặt Trước Nông Sản Địa Phương</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Background glow shapes -->
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="navbar">
+            <div class="brand">
+                <div class="logo-icon">🌿</div>
+                <div>
+                    <div class="brand-title">Market<span class="highlight">Link</span></div>
+                    <div class="brand-subtitle">Pre-reservation & Pay-at-pickup</div>
+                </div>
+            </div>
+
+            <div class="server-status-pill">
+                <span class="status-dot" id="server-status-dot"></span>
+                <span id="server-status-text">Đang kiểm tra kết nối...</span>
+            </div>
+
+            <div class="header-actions">
+                <div class="base-url-wrapper">
+                    <span class="url-label">API:</span>
+                    <input type="text" id="base-url-input" value="http://localhost:8081" title="Địa chỉ API backend">
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <main class="main-layout">
+            <!-- Left Column: Auth & User Actions -->
+            <section class="panel-left">
+                <!-- Navigation Tabs -->
+                <div class="tabs-nav" id="auth-tabs">
+                    <button class="tab-btn active" id="tab-btn-login" onclick="switchTab('login')">
+                        <span class="tab-icon">🔑</span> Đăng Nhập
+                    </button>
+                    <button class="tab-btn" id="tab-btn-register" onclick="switchTab('register')">
+                        <span class="tab-icon">📝</span> Đăng Ký
+                    </button>
+                    <button class="tab-btn" id="tab-btn-profile" onclick="switchTab('profile')">
+                        <span class="tab-icon">👤</span> Hồ Sơ Cá Nhân
+                        <span class="badge-dot" id="auth-logged-dot" style="display: none;"></span>
+                    </button>
+                </div>
+
+                <!-- Form Card Container -->
+                <div class="card glass-card">
+                    <!-- Tab 1: Login Form -->
+                    <div class="tab-content active" id="tab-login">
+                        <div class="card-header">
+                            <h2 class="card-title">Đăng Nhập Tài Khoản</h2>
+                            <p class="card-desc">Xác thực tài khoản để nhận JWT Token và kiểm tra phân quyền</p>
+                        </div>
+
+                        <form id="form-login" onsubmit="handleLogin(event)">
+                            <div class="form-group">
+                                <label for="login-email">Email:</label>
+                                <div class="input-with-icon">
+                                    <span class="input-icon">✉️</span>
+                                    <input type="email" id="login-email" required placeholder="farmer@marketlink.vn" value="farmer@marketlink.vn">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="login-password">Mật khẩu:</label>
+                                <div class="input-with-icon">
+                                    <span class="input-icon">🔒</span>
+                                    <input type="password" id="login-password" required placeholder="Nhập mật khẩu" value="Farmer@123">
+                                </div>
+                            </div>
+
+                            <div class="quick-accounts">
+                                <span class="quick-label">Tài khoản có sẵn:</span>
+                                <button type="button" class="btn-chip" onclick="fillLoginForm('farmer@marketlink.vn', 'Farmer@123')">🌾 Nông Dân mẫu</button>
+                                <button type="button" class="btn-chip" onclick="fillLoginForm('customer@gmail.com', 'Customer@123')">🛒 Khách Hàng mẫu</button>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" id="btn-submit-login">
+                                <span class="btn-text">Đăng Nhập Ngay</span>
+                                <span class="spinner" style="display: none;"></span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Tab 2: Register Form -->
+                    <div class="tab-content" id="tab-register">
+                        <div class="card-header">
+                            <h2 class="card-title">Tạo Tài Khoản Mới</h2>
+                            <p class="card-desc">Khởi tạo vai trò Nông dân (FARMER) hoặc Khách hàng (CUSTOMER)</p>
+                        </div>
+
+                        <form id="form-register" onsubmit="handleRegister(event)">
+                            <!-- Role Selection Cards -->
+                            <div class="form-group">
+                                <label>Bạn tham gia với vai trò gì?</label>
+                                <div class="role-selector">
+                                    <label class="role-card active" id="role-card-farmer">
+                                        <input type="radio" name="register-role" value="FARMER" checked onchange="handleRoleChange('FARMER')">
+                                        <div class="role-icon">🌾</div>
+                                        <div class="role-info">
+                                            <div class="role-title">Nông Dân (FARMER)</div>
+                                            <div class="role-desc">Mở sạp, đăng bán nông sản sạch & quản lý đơn</div>
+                                        </div>
+                                    </label>
+
+                                    <label class="role-card" id="role-card-customer">
+                                        <input type="radio" name="register-role" value="CUSTOMER" onchange="handleRoleChange('CUSTOMER')">
+                                        <div class="role-icon">🛒</div>
+                                        <div class="role-info">
+                                            <div class="role-title">Khách Hàng (CUSTOMER)</div>
+                                            <div class="role-desc">Đặt trước giữ chỗ, nhận tại sạp & thanh toán</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="reg-fullname">Họ và tên:</label>
+                                    <input type="text" id="reg-fullname" required placeholder="Ví dụ: Nguyễn Văn A">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reg-phone">Số điện thoại:</label>
+                                    <input type="tel" id="reg-phone" required placeholder="0912345678">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="reg-email">Email:</label>
+                                    <input type="email" id="reg-email" required placeholder="email@marketlink.vn">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reg-password">Mật khẩu:</label>
+                                    <input type="password" id="reg-password" required placeholder="Tối thiểu 6 ký tự">
+                                </div>
+                            </div>
+
+                            <!-- Farmer Exclusive Fields -->
+                            <div id="farmer-fields" class="extra-fields-box">
+                                <div class="extra-fields-title">🌿 Thông tin sạp nông dân:</div>
+                                <div class="form-group">
+                                    <label for="reg-stall-name">Tên sạp / Doanh nghiệp:</label>
+                                    <input type="text" id="reg-stall-name" placeholder="Sạp Rau Sạch Ba Đình">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reg-farm-address">Địa chỉ vườn / nông trại:</label>
+                                    <input type="text" id="reg-farm-address" placeholder="Đông Anh, Hà Nội">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" id="btn-submit-register">
+                                <span class="btn-text">Hoàn Tất Đăng Ký</span>
+                                <span class="spinner" style="display: none;"></span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Tab 3: Profile & KYC Details -->
+                    <div class="tab-content" id="tab-profile">
+                        <div class="card-header">
+                            <h2 class="card-title">Hồ Sơ Đã Xác Thực</h2>
+                            <p class="card-desc">Dữ liệu lấy từ API <code>/api/auth/me</code> thông qua giải mã JWT Bearer</p>
+                        </div>
+
+                        <div id="profile-unauth-view" class="empty-state">
+                            <div class="empty-icon">🔒</div>
+                            <p>Bạn chưa đăng nhập hoặc chưa có Token hợp lệ.</p>
+                            <button class="btn btn-secondary" onclick="switchTab('login')">Đi tới Đăng Nhập</button>
+                        </div>
+
+                        <div id="profile-auth-view" style="display: none;">
+                            <div class="profile-header-card">
+                                <div class="profile-avatar" id="prof-avatar">U</div>
+                                <div class="profile-meta">
+                                    <h3 id="prof-fullname">Chưa tải...</h3>
+                                    <div class="profile-email" id="prof-email">user@domain.com</div>
+                                    <div class="badges-row">
+                                        <span class="badge badge-role" id="prof-role">ROLE</span>
+                                        <span class="badge badge-kyc" id="prof-kyc">KYC: UNVERIFIED</span>
+                                        <span class="badge badge-status" id="prof-status">ACTIVE</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Detailed info rows -->
+                            <div class="profile-details-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Mã ID Người dùng:</span>
+                                    <span class="detail-val" id="prof-id">--</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Số điện thoại:</span>
+                                    <span class="detail-val" id="prof-phone">--</span>
+                                </div>
+                                <div class="detail-item full-width" id="prof-extra-row">
+                                    <!-- Dynamic farmer/customer info rendered here -->
+                                </div>
+                            </div>
+
+                            <div class="profile-actions">
+                                <button class="btn btn-secondary" onclick="refreshProfile()">
+                                    🔄 Tải lại Profile (/me)
+                                </button>
+                                <button class="btn btn-danger" onclick="handleLogout()">
+                                    🚪 Đăng Xuất
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Actions Panel -->
+                <div class="card glass-card test-suite-card">
+                    <div class="card-header">
+                        <h3 class="card-title">🧪 Phím Tắt Thử Nghiệm Bảo Mật (Security Test Suite)</h3>
+                        <p class="card-desc">Gửi trực tiếp các kịch bản kiểm tra bảo mật tới backend</p>
+                    </div>
+
+                    <div class="test-buttons-grid">
+                        <button class="test-btn" onclick="testNoToken()">
+                            <span class="test-icon">🚫</span>
+                            <div class="test-btn-content">
+                                <strong>Không Token</strong>
+                                <span>Kỳ vọng: 401 Unauthorized</span>
+                            </div>
+                        </button>
+
+                        <button class="test-btn" onclick="testTamperedToken()">
+                            <span class="test-icon">⚠️</span>
+                            <div class="test-btn-content">
+                                <strong>Token Giả Mạo</strong>
+                                <span>Kỳ vọng: 401 Signature Mismatch</span>
+                            </div>
+                        </button>
+
+                        <button class="test-btn" onclick="testValidToken()">
+                            <span class="test-icon">✅</span>
+                            <div class="test-btn-content">
+                                <strong>Token Hợp Lệ</strong>
+                                <span>Kỳ vọng: 200 OK Profile</span>
+                            </div>
+                        </button>
+
+                        <button class="test-btn" onclick="testCategories()">
+                            <span class="test-icon">📦</span>
+                            <div class="test-btn-content">
+                                <strong>API Công Khai</strong>
+                                <span>Xem danh mục (5 items)</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Column: Live JWT Inspector & Request Console -->
+            <section class="panel-right">
+                <!-- JWT Inspector Card -->
+                <div class="card glass-card jwt-card">
+                    <div class="card-header space-between">
+                        <div>
+                            <h3 class="card-title">🔍 Trình Soi JWT (Live Token Inspector)</h3>
+                            <p class="card-desc">Phân tích chuỗi JWT Token hiện tại</p>
+                        </div>
+                        <button class="btn-copy" onclick="copyToken()" title="Sao chép Token">📋 Sao Chép</button>
+                    </div>
+
+                    <!-- Token String Preview -->
+                    <div class="jwt-string-box" id="jwt-raw-box">
+                        <span class="jwt-placeholder">Chưa có JWT Token. Hãy Đăng nhập hoặc Đăng ký để nhận Token.</span>
+                    </div>
+
+                    <!-- Decoded Claims Display -->
+                    <div class="claims-container" id="claims-box" style="display: none;">
+                        <div class="claim-block">
+                            <span class="claim-title">Header (Thuật toán):</span>
+                            <pre class="json-code" id="jwt-header-view"></pre>
+                        </div>
+                        <div class="claim-block">
+                            <span class="claim-title">Payload (Danh tính & Quyền hạn):</span>
+                            <pre class="json-code" id="jwt-payload-view"></pre>
+                        </div>
+                        <div class="expiry-timer-box" id="jwt-timer-box">
+                            <span>⏱️ Thời hạn token: </span>
+                            <strong id="jwt-expires-time">--</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Live Console Log -->
+                <div class="card glass-card console-card">
+                    <div class="card-header space-between">
+                        <div>
+                            <h3 class="card-title">⚡ Nhật Ký API (Live Request Console)</h3>
+                            <p class="card-desc">Chi tiết Request, Response status & payload thực tế</p>
+                        </div>
+                        <button class="btn-clear" onclick="clearConsole()">Xóa Log</button>
+                    </div>
+
+                    <div class="console-body" id="console-logs">
+                        <div class="log-entry log-info">
+                            <span class="log-time">[HỆ THỐNG]</span>
+                            <span class="log-msg">Sẵn sàng nhận lệnh test. Nhấn các nút kiểm thử hoặc gửi form để xem log.</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
