@@ -93,9 +93,9 @@ public class UserService {
                     var lat = request.getLatitude() != null ? request.getLatitude() : existingProfile.getLatitude();
                     var lon = request.getLongitude() != null ? request.getLongitude() : existingProfile.getLongitude();
 
-                    return farmerProfileRepository.updateFarmerProfile(farmerId, stallName, bio, farmAddress, lat, lon, now).then();
+                    return farmerProfileRepository.updateFarmerProfile(farmerId, stallName, bio, farmAddress, lat, lon, now);
                 })
-                .switchIfEmpty(
+                .switchIfEmpty(Mono.defer(() ->
                         r2dbcEntityTemplate.insert(FarmerProfile.builder()
                                 .farmerId(farmerId)
                                 .stallName(StringUtils.hasText(request.getStallName()) ? request.getStallName() : "Sạp Nông Sản")
@@ -107,8 +107,9 @@ public class UserService {
                                 .createdAt(now)
                                 .updatedAt(now)
                                 .build()
-                        ).then()
-                );
+                        ).map(saved -> 1)
+                ))
+                .then();
     }
 
     private Mono<Void> updateCustomerDetails(Long customerId, UpdateProfileRequest request, LocalDateTime now) {
@@ -118,9 +119,9 @@ public class UserService {
                     var lat = request.getLatitude() != null ? request.getLatitude() : existingProfile.getLatitude();
                     var lon = request.getLongitude() != null ? request.getLongitude() : existingProfile.getLongitude();
 
-                    return customerProfileRepository.updateCustomerProfile(customerId, defaultAddress, lat, lon, now).then();
+                    return customerProfileRepository.updateCustomerProfile(customerId, defaultAddress, lat, lon, now);
                 })
-                .switchIfEmpty(
+                .switchIfEmpty(Mono.defer(() ->
                         r2dbcEntityTemplate.insert(CustomerProfile.builder()
                                 .customerId(customerId)
                                 .defaultAddress(request.getDefaultAddress())
@@ -129,8 +130,9 @@ public class UserService {
                                 .createdAt(now)
                                 .updatedAt(now)
                                 .build()
-                        ).then()
-                );
+                        ).map(saved -> 1)
+                ))
+                .then();
     }
 
     /**

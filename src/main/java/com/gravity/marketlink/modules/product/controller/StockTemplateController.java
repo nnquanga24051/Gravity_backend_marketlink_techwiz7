@@ -21,7 +21,7 @@ import java.util.List;
 
 @Tag(name = "4. Tồn kho mẫu theo tuần (Weekly Stock Templates)", description = "Các API thiết lập định mức tồn kho tự động lặp lại theo thứ trong tuần cho nông dân")
 @RestController
-@RequestMapping("/api/farmer/stock-templates")
+@RequestMapping(value = {"/api/farmer/stock-templates", "/api/farmer/weekly-stock"})
 @RequiredArgsConstructor
 public class StockTemplateController {
 
@@ -63,7 +63,7 @@ public class StockTemplateController {
 
     @Operation(summary = "Xóa một mẫu định mức tồn kho", description = "Xóa cấu hình định mức tồn kho theo ID.")
     @SecurityRequirement(name = "Bearer Authentication")
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:[0-9]+}")
     public Mono<ResponseEntity<ApiResponse<Void>>> deleteTemplate(
             Authentication authentication,
             @PathVariable("id") Long id) {

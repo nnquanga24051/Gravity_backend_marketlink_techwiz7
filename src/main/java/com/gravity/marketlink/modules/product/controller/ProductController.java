@@ -33,19 +33,35 @@ public class ProductController {
     // 1. PUBLIC ENDPOINTS (Khách hàng & Người dùng)
     // ==========================================
 
-    @Operation(summary = "Tìm kiếm & duyệt danh sách nông sản", description = "Lọc sản phẩm theo danh mục (categoryId), theo nông dân (farmerId) hoặc trạng thái.")
+    @Operation(summary = "Tìm kiếm & duyệt danh sách nông sản", description = "Lọc sản phẩm theo danh mục (categoryId), theo nông dân (farmerId), từ khóa (keyword) hoặc trạng thái.")
     @GetMapping("/products")
     public Mono<ResponseEntity<ApiResponse<List<ProductResponse>>>> getAllProducts(
             @RequestParam(value = "categoryId", required = false) Integer categoryId,
             @RequestParam(value = "farmerId", required = false) Long farmerId,
+            @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "status", required = false, defaultValue = "AVAILABLE") String status) {
+        if (keyword != null && !keyword.isBlank()) {
+            return productService.searchProducts(keyword, categoryId)
+                    .collectList()
+                    .map(list -> ResponseEntity.ok(ApiResponse.success("Tìm kiếm sản phẩm thành công.", list)));
+        }
         return productService.getAllProducts(categoryId, farmerId, status)
                 .collectList()
                 .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm thành công.", list)));
     }
 
+    @Operation(summary = "Tìm kiếm sản phẩm theo từ khóa", description = "Tìm kiếm nhanh nông sản theo từ khóa và danh mục.")
+    @GetMapping("/products/search")
+    public Mono<ResponseEntity<ApiResponse<List<ProductResponse>>>> searchProducts(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "categoryId", required = false) Integer categoryId) {
+        return productService.searchProducts(keyword, categoryId)
+                .collectList()
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Tìm kiếm sản phẩm thành công.", list)));
+    }
+
     @Operation(summary = "Xem chi tiết một sản phẩm", description = "Lấy đầy đủ thông tin mặt hàng, hình ảnh, đơn giá, tồn kho sẵn sàng đặt trước và sạp nông dân.")
-    @GetMapping("/products/{id}")
+    @GetMapping("/products/{id:[0-9]+}")
     public Mono<ResponseEntity<ApiResponse<ProductResponse>>> getProductById(@PathVariable("id") Long id) {
         return productService.getProductById(id)
                 .map(p -> ResponseEntity.ok(ApiResponse.success("Lấy chi tiết sản phẩm thành công.", p)));

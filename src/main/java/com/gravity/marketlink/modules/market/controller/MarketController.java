@@ -48,14 +48,14 @@ public class MarketController {
     }
 
     @Operation(summary = "Lấy chi tiết chợ & Lịch họp chợ", description = "Trả về thông tin chi tiết của một chợ cụ thể kèm danh sách lịch họp chợ định kỳ trong tuần và số lượng sạp nông dân.")
-    @GetMapping("/api/markets/{id}")
+    @GetMapping("/api/markets/{id:[0-9]+}")
     public Mono<ResponseEntity<MarketDetailResponse>> getMarketDetail(@PathVariable("id") Long id) {
         return marketService.getMarketDetail(id)
                 .map(ResponseEntity::ok);
     }
 
     @Operation(summary = "Xem danh sách sạp nông dân tại chợ", description = "Trả về danh sách các nông dân và số sạp tương ứng đang hoạt động tại chợ.")
-    @GetMapping("/api/markets/{id}/farmers")
+    @GetMapping("/api/markets/{id:[0-9]+}/farmers")
     public Flux<FarmerAtMarketResponse> getFarmersAtMarket(@PathVariable("id") Long id) {
         return marketService.getFarmersAtMarket(id);
     }

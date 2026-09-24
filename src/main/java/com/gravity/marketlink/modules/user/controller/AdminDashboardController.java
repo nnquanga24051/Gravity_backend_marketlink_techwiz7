@@ -33,7 +33,7 @@ public class AdminDashboardController {
     }
 
     @Operation(summary = "Báo cáo doanh thu & đơn hàng theo từng chợ", description = "Tổng hợp doanh thu, tổng số đơn đặt trước và số lượng nông dân hoạt động phân bổ theo từng điểm chợ.")
-    @GetMapping("/reports/markets")
+    @GetMapping(value = {"/reports/markets", "/reports/revenue"})
     public Mono<ResponseEntity<ApiResponse<List<MarketRevenueReportDto>>>> getMarketRevenueReports() {
         return dashboardService.getMarketRevenueReports()
                 .collectList()
@@ -41,7 +41,7 @@ public class AdminDashboardController {
     }
 
     @Operation(summary = "Xếp hạng nông dân tích cực nhất (Most Active Farmers)", description = "Danh sách top nông dân có số đơn hàng hoàn tất cao nhất và doanh thu tốt nhất trên sàn.")
-    @GetMapping("/reports/most-active-farmers")
+    @GetMapping(value = {"/reports/most-active-farmers", "/reports/active-farmers"})
     public Mono<ResponseEntity<ApiResponse<List<ActiveFarmerReportDto>>>> getMostActiveFarmers(
             @RequestParam(value = "limit", defaultValue = "10") int limit) {
         return dashboardService.getMostActiveFarmers(limit)

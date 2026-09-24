@@ -45,6 +45,22 @@ public class ProductService {
                 .flatMap(this::enrichProductResponse);
     }
 
+    public Flux<ProductResponse> searchProducts(String keyword, Integer categoryId) {
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
+        Flux<Product> flux;
+        if (categoryId != null) {
+            flux = productRepository.findByCategoryIdAndStatus(categoryId, "AVAILABLE");
+        } else {
+            flux = productRepository.findByStatus("AVAILABLE");
+        }
+        return flux
+                .filter(p -> !"BANNED".equalsIgnoreCase(p.getStatus()))
+                .filter(p -> kw.isEmpty()
+                        || (p.getName() != null && p.getName().toLowerCase().contains(kw))
+                        || (p.getDescription() != null && p.getDescription().toLowerCase().contains(kw)))
+                .flatMap(this::enrichProductResponse);
+    }
+
     public Flux<ProductResponse> getFarmerProducts(Long farmerId) {
         return productRepository.findByFarmerId(farmerId)
                 .flatMap(this::enrichProductResponse);

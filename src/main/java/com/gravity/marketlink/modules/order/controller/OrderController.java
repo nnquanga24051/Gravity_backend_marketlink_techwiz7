@@ -73,7 +73,7 @@ public class OrderController {
 
     @Operation(summary = "Khách hàng xem chi tiết một đơn hàng", description = "Xem đầy đủ danh sách sản phẩm, địa chỉ sạp chợ, thời gian nhận và hạn chốt đơn.")
     @SecurityRequirement(name = "Bearer Authentication")
-    @GetMapping("/customer/orders/{id}")
+    @GetMapping("/customer/orders/{id:[0-9]+}")
     public Mono<ResponseEntity<ApiResponse<OrderDetailResponse>>> getCustomerOrderById(
             Authentication authentication,
             @PathVariable("id") Long id) {
@@ -161,7 +161,7 @@ public class OrderController {
 
     @Operation(summary = "Nông dân xem chi tiết đơn hàng", description = "Xem chi tiết người mua, mặt hàng cần chuẩn bị, ghi chú đơn hàng.")
     @SecurityRequirement(name = "Bearer Authentication")
-    @GetMapping("/farmer/orders/{id}")
+    @GetMapping("/farmer/orders/{id:[0-9]+}")
     public Mono<ResponseEntity<ApiResponse<OrderDetailResponse>>> getFarmerOrderById(
             Authentication authentication,
             @PathVariable("id") Long id) {

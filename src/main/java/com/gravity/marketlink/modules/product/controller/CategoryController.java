@@ -41,7 +41,7 @@ public class CategoryController {
     }
 
     @Operation(summary = "Xem chi tiết một danh mục theo ID", description = "Lấy thông tin của một danh mục cụ thể")
-    @GetMapping("/{id}")
+    @GetMapping("/{id:[0-9]+}")
     public Mono<ResponseEntity<ApiResponse<Category>>> getCategoryById(@PathVariable("id") Integer id) {
         return categoryRepository.findById(id)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy danh mục với ID: " + id)))
