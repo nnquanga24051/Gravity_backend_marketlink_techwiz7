@@ -38,33 +38,25 @@ public class Order {
     @Column("slot_id")
     private Long slotId;
 
-    @Column("order_type")
-    @Builder.Default
-    private String orderType = "PRE_RESERVATION"; // PRE_RESERVATION, DIRECT
-
     @Column("pickup_date")
     private LocalDate pickupDate;
+
+    @Column("cutoff_time")
+    private LocalDateTime cutoffTime;
 
     @Column("total_amount")
     private BigDecimal totalAmount;
 
-    @Column("payment_status")
+    @Column("order_status")
     @Builder.Default
-    private String paymentStatus = "UNPAID"; // UNPAID, PAID, REFUNDED
+    private String orderStatus = "PLACED"; // PLACED, ACCEPTED, DECLINED, READY_FOR_PICKUP, COMPLETED, CANCELLED
 
     @Column("payment_method")
     @Builder.Default
-    private String paymentMethod = "PAY_AT_PICKUP"; // PAY_AT_PICKUP, VN_PAY, MOMO
+    private String paymentMethod = "PAY_AT_PICKUP";
 
-    @Column("order_status")
-    @Builder.Default
-    private String orderStatus = "PENDING"; // PENDING, CONFIRMED, READY_FOR_PICKUP, COMPLETED, CANCELLED
-
-    @Column("qr_code")
-    private String qrCode;
-
-    @Column("cancellation_reason")
-    private String cancellationReason;
+    @Column("note")
+    private String note;
 
     @Column("created_at")
     private LocalDateTime createdAt;

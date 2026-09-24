@@ -33,12 +33,17 @@ public class Review {
     @Column("product_id")
     private Long productId;
 
+    @Column("rating")
     private Integer rating; // 1 to 5
 
+    @Column("comment")
     private String comment;
 
-    @Column("image_url")
-    private String imageUrl;
+    @Column("farmer_reply")
+    private String farmerReply;
+
+    @Column("farmer_reply_at")
+    private LocalDateTime farmerReplyAt;
 
     @Column("is_hidden")
     @Builder.Default

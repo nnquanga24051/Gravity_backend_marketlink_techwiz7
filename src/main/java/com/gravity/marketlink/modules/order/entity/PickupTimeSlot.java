@@ -21,11 +21,11 @@ public class PickupTimeSlot {
     @Column("slot_id")
     private Long slotId;
 
+    @Column("farmer_id")
+    private Long farmerId;
+
     @Column("market_id")
     private Long marketId;
-
-    @Column("slot_name")
-    private String slotName; // Morning Early (07:00-08:00)
 
     @Column("start_time")
     private LocalTime startTime;
@@ -33,7 +33,7 @@ public class PickupTimeSlot {
     @Column("end_time")
     private LocalTime endTime;
 
-    @Column("max_orders")
+    @Column("max_orders_capacity")
     @Builder.Default
-    private Integer maxOrders = 30;
+    private Integer maxOrdersCapacity = 10;
 }

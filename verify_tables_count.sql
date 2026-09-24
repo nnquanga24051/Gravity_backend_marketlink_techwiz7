@@ -1,0 +1,23 @@
+SELECT 'categories' AS table_name, COUNT(*) AS total_rows FROM categories
+UNION ALL SELECT 'customer_profiles', COUNT(*) FROM customer_profiles
+UNION ALL SELECT 'family_account_invitations', COUNT(*) FROM family_account_invitations
+UNION ALL SELECT 'farmer_cutoff_settings', COUNT(*) FROM farmer_cutoff_settings
+UNION ALL SELECT 'farmer_kyc_documents', COUNT(*) FROM farmer_kyc_documents
+UNION ALL SELECT 'farmer_market_assignments', COUNT(*) FROM farmer_market_assignments
+UNION ALL SELECT 'farmer_profiles', COUNT(*) FROM farmer_profiles
+UNION ALL SELECT 'favorites', COUNT(*) FROM favorites
+UNION ALL SELECT 'market_schedules', COUNT(*) FROM market_schedules
+UNION ALL SELECT 'markets', COUNT(*) FROM markets
+UNION ALL SELECT 'notifications', COUNT(*) FROM notifications
+UNION ALL SELECT 'order_items', COUNT(*) FROM order_items
+UNION ALL SELECT 'orders', COUNT(*) FROM orders
+UNION ALL SELECT 'pickup_time_slots', COUNT(*) FROM pickup_time_slots
+UNION ALL SELECT 'products', COUNT(*) FROM products
+UNION ALL SELECT 'reviews', COUNT(*) FROM reviews
+UNION ALL SELECT 'roles', COUNT(*) FROM roles
+UNION ALL SELECT 'system_announcements', COUNT(*) FROM system_announcements
+UNION ALL SELECT 'user_roles', COUNT(*) FROM user_roles
+UNION ALL SELECT 'user_verifications', COUNT(*) FROM user_verifications
+UNION ALL SELECT 'users', COUNT(*) FROM users
+UNION ALL SELECT 'verification_audit_logs', COUNT(*) FROM verification_audit_logs
+UNION ALL SELECT 'weekly_stock_templates', COUNT(*) FROM weekly_stock_templates;

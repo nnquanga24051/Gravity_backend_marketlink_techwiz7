@@ -8,6 +8,7 @@ import reactor.core.publisher.Mono;
 
 @Repository
 public interface WeeklyStockTemplateRepository extends R2dbcRepository<WeeklyStockTemplate, Long> {
+    Flux<WeeklyStockTemplate> findByFarmerId(Long farmerId);
     Flux<WeeklyStockTemplate> findByFarmerIdAndMarketId(Long farmerId, Long marketId);
     Flux<WeeklyStockTemplate> findByFarmerIdAndMarketIdAndDayOfWeek(Long farmerId, Long marketId, Integer dayOfWeek);
     Mono<WeeklyStockTemplate> findByFarmerIdAndMarketIdAndProductIdAndDayOfWeek(Long farmerId, Long marketId, Long productId, Integer dayOfWeek);

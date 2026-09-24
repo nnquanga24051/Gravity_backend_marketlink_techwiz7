@@ -21,27 +21,19 @@ public class SystemAnnouncement {
     @Column("announcement_id")
     private Long announcementId;
 
+    @Column("admin_id")
+    private Long adminId;
+
+    @Column("title")
     private String title;
 
+    @Column("content")
     private String content;
-
-    @Column("target_audience")
-    @Builder.Default
-    private String targetAudience = "ALL"; // ALL, FARMERS_ONLY, CUSTOMERS_ONLY
-
-    @Column("start_date")
-    private LocalDateTime startDate;
-
-    @Column("end_date")
-    private LocalDateTime endDate;
 
     @Column("is_active")
     @Builder.Default
     private Boolean isActive = true;
 
-    @Column("created_by")
-    private Long createdBy;
-
-    @Column("created_at")
-    private LocalDateTime createdAt;
+    @Column("published_at")
+    private LocalDateTime publishedAt;
 }

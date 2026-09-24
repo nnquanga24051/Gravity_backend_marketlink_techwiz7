@@ -32,21 +32,19 @@ public class Product {
 
     private String description;
 
-    @Column("unit_type")
-    private String unitType; // KG, BUNCH, BOX, PIECE
+    private String unit;
 
     private BigDecimal price;
+
+    @Column("current_stock")
+    @Builder.Default
+    private BigDecimal currentStock = BigDecimal.ZERO;
 
     @Column("image_url")
     private String imageUrl;
 
-    @Column("is_organic")
     @Builder.Default
-    private Boolean isOrganic = false;
-
-    @Column("is_active")
-    @Builder.Default
-    private Boolean isActive = true;
+    private String status = "AVAILABLE";
 
     @Column("created_at")
     private LocalDateTime createdAt;

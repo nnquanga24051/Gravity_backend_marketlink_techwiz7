@@ -33,6 +33,10 @@ public class WeeklyStockTemplate {
     @Column("day_of_week")
     private Integer dayOfWeek;
 
-    @Column("default_quantity")
-    private BigDecimal defaultQuantity;
+    @Column("recurring_quantity")
+    private BigDecimal recurringQuantity;
+
+    @Column("is_active")
+    @Builder.Default
+    private Boolean isActive = true;
 }

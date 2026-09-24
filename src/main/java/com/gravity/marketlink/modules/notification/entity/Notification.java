@@ -24,12 +24,14 @@ public class Notification {
     @Column("user_id")
     private Long userId;
 
+    @Column("title")
     private String title;
 
+    @Column("message")
     private String message;
 
-    @Column("notification_type")
-    private String notificationType; // ORDER_STATUS, MARKET_REMINDER, SYSTEM_ALERT, FAMILY_INVITE
+    @Column("type")
+    private String type; // ORDER_PLACED, ORDER_ACCEPTED, ORDER_READY, RESTOCK_ALERT, KYC_UPDATE, SYSTEM
 
     @Column("reference_id")
     private Long referenceId;

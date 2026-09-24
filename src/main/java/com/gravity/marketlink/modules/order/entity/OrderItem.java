@@ -18,8 +18,8 @@ import java.math.BigDecimal;
 public class OrderItem {
 
     @Id
-    @Column("item_id")
-    private Long itemId;
+    @Column("order_item_id")
+    private Long orderItemId;
 
     @Column("order_id")
     private Long orderId;
@@ -27,11 +27,12 @@ public class OrderItem {
     @Column("product_id")
     private Long productId;
 
+    @Column("quantity")
     private BigDecimal quantity;
 
     @Column("unit_price")
     private BigDecimal unitPrice;
 
-    @Column("subtotal_price")
-    private BigDecimal subtotalPrice;
+    @Column("subtotal")
+    private BigDecimal subtotal;
 }

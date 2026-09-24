@@ -8,4 +8,6 @@ import reactor.core.publisher.Flux;
 @Repository
 public interface PickupTimeSlotRepository extends R2dbcRepository<PickupTimeSlot, Long> {
     Flux<PickupTimeSlot> findByMarketId(Long marketId);
+    Flux<PickupTimeSlot> findByFarmerId(Long farmerId);
+    Flux<PickupTimeSlot> findByFarmerIdAndMarketId(Long farmerId, Long marketId);
 }
