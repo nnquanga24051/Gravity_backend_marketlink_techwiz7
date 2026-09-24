@@ -26,17 +26,24 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @Operation(summary = "Đăng ký tài khoản mới", description = "Đăng ký tài khoản cho FARMER, CUSTOMER hoặc ADMIN")
+    @Operation(summary = "Đăng ký tài khoản mới", description = "Đăng ký tài khoản cho FARMER hoặc CUSTOMER")
     @PostMapping("/register")
-    public Mono<ResponseEntity<AuthResponse>> register(@RequestBody RegisterRequest request) {
+    public Mono<ResponseEntity<AuthResponse>> register(@jakarta.validation.Valid @RequestBody RegisterRequest request) {
         return authService.register(request)
                 .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
     }
 
     @Operation(summary = "Đăng nhập", description = "Đăng nhập bằng Email & Password để nhận JWT Token sử dụng cho các API bảo mật")
     @PostMapping("/login")
-    public Mono<ResponseEntity<AuthResponse>> login(@RequestBody LoginRequest request) {
+    public Mono<ResponseEntity<AuthResponse>> login(@jakarta.validation.Valid @RequestBody LoginRequest request) {
         return authService.login(request)
+                .map(ResponseEntity::ok);
+    }
+
+    @Operation(summary = "Làm mới Access Token (Refresh Token)", description = "Sử dụng Refresh Token dài hạn để cấp mới cặp Token mà không cần đăng nhập lại (áp dụng cơ chế xoay vòng Refresh Token Rotation - RTR).")
+    @PostMapping("/refresh")
+    public Mono<ResponseEntity<AuthResponse>> refreshToken(@jakarta.validation.Valid @RequestBody com.gravity.marketlink.modules.auth.dto.RefreshTokenRequest request) {
+        return authService.refreshToken(request.getRefreshToken())
                 .map(ResponseEntity::ok);
     }
 

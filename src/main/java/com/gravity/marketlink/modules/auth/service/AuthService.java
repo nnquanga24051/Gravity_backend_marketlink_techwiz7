@@ -77,10 +77,14 @@ public class AuthService {
                                         .map((User savedUser) -> {
                                             String authRole = role.getRoleName().startsWith("ROLE_") ? role.getRoleName() : "ROLE_" + role.getRoleName();
                                             List<String> roles = List.of(authRole);
-                                            String token = tokenProvider.generateToken(savedUser.getUserId(), savedUser.getEmail(), roles);
+                                            String accessToken = tokenProvider.generateAccessToken(savedUser.getUserId(), savedUser.getEmail(), roles);
+                                            String refreshToken = tokenProvider.generateRefreshToken(savedUser.getUserId(), savedUser.getEmail());
 
                                             return AuthResponse.builder()
-                                                    .token(token)
+                                                    .token(accessToken)
+                                                    .accessToken(accessToken)
+                                                    .refreshToken(refreshToken)
+                                                    .expiresIn(tokenProvider.getJwtExpirationInMs())
                                                     .userId(savedUser.getUserId())
                                                     .email(savedUser.getEmail())
                                                     .fullName(savedUser.getFullName())
@@ -131,9 +135,61 @@ public class AuthService {
                             .map(r -> r.startsWith("ROLE_") ? r : "ROLE_" + r)
                             .collectList()
                             .map(roles -> {
-                                String token = tokenProvider.generateToken(user.getUserId(), user.getEmail(), roles);
+                                String accessToken = tokenProvider.generateAccessToken(user.getUserId(), user.getEmail(), roles);
+                                String refreshToken = tokenProvider.generateRefreshToken(user.getUserId(), user.getEmail());
+
                                 return AuthResponse.builder()
-                                        .token(token)
+                                        .token(accessToken)
+                                        .accessToken(accessToken)
+                                        .refreshToken(refreshToken)
+                                        .expiresIn(tokenProvider.getJwtExpirationInMs())
+                                        .userId(user.getUserId())
+                                        .email(user.getEmail())
+                                        .fullName(user.getFullName())
+                                        .roles(roles)
+                                        .build();
+                            });
+                });
+    }
+
+    /**
+     * Cấp mới Access Token bằng Refresh Token (Refresh Token Rotation - RTR)
+     */
+    public Mono<AuthResponse> refreshToken(String oldRefreshToken) {
+        if (oldRefreshToken == null || oldRefreshToken.isBlank()) {
+            return Mono.error(new IllegalArgumentException("Refresh token không được để trống"));
+        }
+
+        if (!tokenProvider.validateRefreshToken(oldRefreshToken)) {
+            return Mono.error(new IllegalArgumentException("Refresh token không hợp lệ hoặc đã hết hạn"));
+        }
+
+        String email = tokenProvider.getEmailFromToken(oldRefreshToken);
+
+        return userRepository.findByEmail(email)
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Người dùng không tồn tại hoặc đã bị xóa")))
+                .flatMap(user -> {
+                    if (!"ACTIVE".equals(user.getStatus())) {
+                        return Mono.error(new IllegalArgumentException("Tài khoản của bạn đã bị khóa hoặc tạm ngưng"));
+                    }
+
+                    return userRoleRepository.findRolesByUserId(user.getUserId())
+                            .map(Role::getRoleName)
+                            .map(r -> r.startsWith("ROLE_") ? r : "ROLE_" + r)
+                            .collectList()
+                            .map(roles -> {
+                                // 1. Thu hồi Refresh Token cũ (Blacklist) để chống Replay Attack
+                                tokenProvider.blacklistToken(oldRefreshToken);
+
+                                // 2. Phát hành cặp Token mới (RTR)
+                                String newAccessToken = tokenProvider.generateAccessToken(user.getUserId(), user.getEmail(), roles);
+                                String newRefreshToken = tokenProvider.generateRefreshToken(user.getUserId(), user.getEmail());
+
+                                return AuthResponse.builder()
+                                        .token(newAccessToken)
+                                        .accessToken(newAccessToken)
+                                        .refreshToken(newRefreshToken)
+                                        .expiresIn(tokenProvider.getJwtExpirationInMs())
                                         .userId(user.getUserId())
                                         .email(user.getEmail())
                                         .fullName(user.getFullName())
