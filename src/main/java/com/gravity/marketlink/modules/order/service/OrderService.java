@@ -21,6 +21,7 @@ import com.gravity.marketlink.modules.user.entity.FarmerProfile;
 import com.gravity.marketlink.modules.user.repository.FarmerProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -50,6 +51,7 @@ public class OrderService {
     private final FarmerProfileRepository farmerProfileRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final DatabaseClient databaseClient;
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -235,6 +237,81 @@ public class OrderService {
                 });
     }
 
+    /**
+     * Khách hàng điều chỉnh đơn hàng trước thời hạn chốt đơn (Modify Order before Cutoff)
+     */
+    @Transactional
+    public Mono<OrderDetailResponse> modifyOrderByCustomer(Long customerId, Long orderId, OrderModifyRequest request) {
+        if (request.getPickupDate().isBefore(LocalDate.now())) {
+            return Mono.error(new IllegalArgumentException("Ngày nhận hàng không thể là ngày trong quá khứ."));
+        }
+
+        return orderRepository.findById(orderId)
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId)))
+                .flatMap(order -> {
+                    if (!order.getCustomerId().equals(customerId)) {
+                        return Mono.error(new IllegalArgumentException("Bạn không có quyền thao tác trên đơn hàng này."));
+                    }
+
+                    if (!"PLACED".equalsIgnoreCase(order.getOrderStatus()) && !"ACCEPTED".equalsIgnoreCase(order.getOrderStatus())) {
+                        return Mono.error(new IllegalStateException("Chỉ có thể chỉnh sửa đơn hàng ở trạng thái ĐÃ ĐẶT (PLACED) hoặc ĐÃ XÁC NHẬN (ACCEPTED). Trạng thái hiện tại: " + order.getOrderStatus()));
+                    }
+
+                    if (order.getCutoffTime() != null && LocalDateTime.now().isAfter(order.getCutoffTime())) {
+                        return Mono.error(new IllegalStateException("Đã quá thời hạn chốt đơn ("
+                                + order.getCutoffTime().format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
+                                + "). Khách hàng không thể tự chỉnh sửa đơn hàng, vui lòng liên hệ trực tiếp nông dân để được hỗ trợ."));
+                    }
+
+                    return slotRepository.findById(request.getSlotId())
+                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy ca nhận hàng với ID: " + request.getSlotId())))
+                            .flatMap(slot -> {
+                                if (!slot.getFarmerId().equals(order.getFarmerId()) || !slot.getMarketId().equals(order.getMarketId())) {
+                                    return Mono.error(new IllegalArgumentException("Khung giờ nhận hàng không thuộc về gian hàng hoặc chợ của đơn hàng này."));
+                                }
+
+                                return orderRepository.countActiveOrdersInSlot(slot.getSlotId(), request.getPickupDate())
+                                        .flatMap(activeCount -> {
+                                            long effectiveCount = (order.getSlotId().equals(slot.getSlotId()) && order.getPickupDate().equals(request.getPickupDate()))
+                                                    ? activeCount - 1
+                                                    : activeCount;
+
+                                            if (effectiveCount >= slot.getMaxOrdersCapacity()) {
+                                                return Mono.error(new IllegalStateException("Khung giờ nhận hàng mới này đã đạt tối đa sức chứa ("
+                                                        + slot.getMaxOrdersCapacity() + " đơn). Vui lòng chọn khung giờ khác."));
+                                            }
+
+                                            return calculateCutoffTime(order.getFarmerId(), order.getMarketId(), request.getPickupDate(), slot.getStartTime())
+                                                    .flatMap(newCutoff -> {
+                                                        if (LocalDateTime.now().isAfter(newCutoff)) {
+                                                            return Mono.error(new IllegalStateException("Đã quá thời hạn chốt đơn ("
+                                                                    + newCutoff.format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
+                                                                    + ") cho ngày nhận mới này. Nông dân đã ngừng nhận đơn."));
+                                                        }
+
+                                                        order.setSlotId(request.getSlotId());
+                                                        order.setPickupDate(request.getPickupDate());
+                                                        order.setCutoffTime(newCutoff);
+                                                        if (request.getNote() != null) {
+                                                            order.setNote(request.getNote());
+                                                        }
+                                                        order.setUpdatedAt(LocalDateTime.now());
+
+                                                        return orderRepository.save(order)
+                                                                .flatMap(savedOrder -> notificationService.createNotification(
+                                                                        savedOrder.getFarmerId(),
+                                                                        "Khách cập nhật đơn: " + savedOrder.getOrderCode(),
+                                                                        "Đơn hàng " + savedOrder.getOrderCode() + " đã được khách điều chỉnh sang ngày nhận "
+                                                                                + savedOrder.getPickupDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".",
+                                                                        "ORDER_PLACED",
+                                                                        savedOrder.getOrderId())
+                                                                        .then(enrichOrderDetail(savedOrder)));
+                                                    });
+                                        });
+                            });
+                });
+    }
+
     @Transactional
     public Mono<OrderDetailResponse> updateOrderStatusByFarmer(Long farmerId, Long orderId, OrderStatusUpdateRequest request) {
         String newStatus = request.getOrderStatus().toUpperCase().trim();
@@ -376,6 +453,84 @@ public class OrderService {
                             .declinedOrders(declined)
                             .build();
                 });
+    }
+
+    /**
+     * Tái đặt hàng nhanh chóng từ lịch sử đơn hàng cũ (Order History & Reorder)
+     */
+    @Transactional
+    public Mono<OrderDetailResponse> reorder(Long customerId, Long oldOrderId, ReorderRequest request) {
+        return orderRepository.findById(oldOrderId)
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy đơn hàng cũ với ID: " + oldOrderId)))
+                .flatMap(oldOrder -> {
+                    if (!oldOrder.getCustomerId().equals(customerId)) {
+                        return Mono.error(new IllegalArgumentException("Bạn không có quyền thao tác trên đơn hàng này."));
+                    }
+
+                    return orderItemRepository.findByOrderId(oldOrderId)
+                            .map(item -> OrderItemRequest.builder()
+                                    .productId(item.getProductId())
+                                    .quantity(item.getQuantity())
+                                    .build())
+                            .collectList()
+                            .flatMap(items -> {
+                                if (items.isEmpty()) {
+                                    return Mono.error(new IllegalStateException("Đơn hàng cũ không có mặt hàng nào để đặt lại."));
+                                }
+
+                                OrderCreateRequest newOrderReq = OrderCreateRequest.builder()
+                                        .farmerId(oldOrder.getFarmerId())
+                                        .marketId(oldOrder.getMarketId())
+                                        .slotId(request.getSlotId())
+                                        .pickupDate(request.getPickupDate())
+                                        .note(request.getNote() != null && !request.getNote().isBlank()
+                                                ? request.getNote()
+                                                : "Đặt lại từ đơn hàng #" + oldOrder.getOrderCode())
+                                        .items(items)
+                                        .build();
+
+                                return createOrder(customerId, newOrderReq);
+                            });
+                });
+    }
+
+    /**
+     * Thống kê sản phẩm bán chạy nhất của gian hàng nông dân (Farmer Insights: Best-Selling)
+     */
+    public Flux<BestSellingProductDto> getFarmerBestSelling(Long farmerId, int limit) {
+        String sql = """
+            SELECT oi.product_id, 
+                   COALESCE(SUM(oi.quantity), 0) AS total_sold_quantity, 
+                   COALESCE(SUM(oi.subtotal), 0) AS total_revenue, 
+                   COUNT(DISTINCT o.order_id) AS order_count
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.order_id
+            WHERE o.farmer_id = :farmerId AND o.order_status = 'COMPLETED'
+            GROUP BY oi.product_id
+            ORDER BY total_sold_quantity DESC
+            LIMIT :limit
+        """;
+
+        int safeLimit = (limit > 0 && limit <= 50) ? limit : 10;
+
+        return databaseClient.sql(sql)
+                .bind("farmerId", farmerId)
+                .bind("limit", safeLimit)
+                .map((row, metadata) -> BestSellingProductDto.builder()
+                        .productId(row.get("product_id", Long.class))
+                        .totalSoldQuantity(row.get("total_sold_quantity", BigDecimal.class))
+                        .totalRevenue(row.get("total_revenue", BigDecimal.class))
+                        .orderCount(row.get("order_count", Long.class))
+                        .build())
+                .all()
+                .flatMap(dto -> productRepository.findById(dto.getProductId())
+                        .map(prod -> {
+                            dto.setProductName(prod.getName());
+                            dto.setUnit(prod.getUnit());
+                            dto.setImageUrl(prod.getImageUrl());
+                            return dto;
+                        })
+                        .defaultIfEmpty(dto));
     }
 
     private Mono<OrderDetailResponse> enrichOrderDetail(Order order) {

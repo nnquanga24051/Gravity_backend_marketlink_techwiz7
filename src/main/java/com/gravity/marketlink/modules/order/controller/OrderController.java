@@ -3,10 +3,13 @@ package com.gravity.marketlink.modules.order.controller;
 import com.gravity.marketlink.core.exception.ResourceNotFoundException;
 import com.gravity.marketlink.core.response.ApiResponse;
 import com.gravity.marketlink.modules.auth.repository.UserRepository;
+import com.gravity.marketlink.modules.order.dto.BestSellingProductDto;
 import com.gravity.marketlink.modules.order.dto.OrderCreateRequest;
 import com.gravity.marketlink.modules.order.dto.OrderDetailResponse;
+import com.gravity.marketlink.modules.order.dto.OrderModifyRequest;
 import com.gravity.marketlink.modules.order.dto.OrderStatusUpdateRequest;
 import com.gravity.marketlink.modules.order.dto.OrderSummaryResponse;
+import com.gravity.marketlink.modules.order.dto.ReorderRequest;
 import com.gravity.marketlink.modules.order.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -100,6 +103,41 @@ public class OrderController {
                 .map(cancelled -> ResponseEntity.ok(ApiResponse.success("Hủy đơn hàng thành công. Tồn kho sản phẩm đã được hoàn lại.", cancelled)));
     }
 
+    @Operation(summary = "Khách hàng điều chỉnh đơn hàng trước giờ chốt đơn (Modify Order)", description = "Thay đổi ca nhận hàng, ngày lấy hàng hoặc ghi chú trước thời hạn chốt đơn của nông dân.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PutMapping("/customer/orders/{id}/modify")
+    public Mono<ResponseEntity<ApiResponse<OrderDetailResponse>>> modifyOrder(
+            Authentication authentication,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody OrderModifyRequest request) {
+        if (authentication == null || authentication.getName() == null) {
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .flatMap(user -> orderService.modifyOrderByCustomer(user.getUserId(), id, request))
+                .map(modified -> ResponseEntity.ok(ApiResponse.success("Cập nhật đơn hàng thành công.", modified)));
+    }
+
+    @Operation(summary = "Khách hàng tái đặt hàng nhanh chóng từ lịch sử (Reorder)", description = "Lấy lại danh sách mặt hàng từ đơn cũ để tạo đơn đặt mới với ngày họp chợ và ca nhận hàng tùy chọn.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PostMapping("/customer/orders/{id}/reorder")
+    public Mono<ResponseEntity<ApiResponse<OrderDetailResponse>>> reorder(
+            Authentication authentication,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody ReorderRequest request) {
+        if (authentication == null || authentication.getName() == null) {
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .flatMap(user -> orderService.reorder(user.getUserId(), id, request))
+                .map(created -> ResponseEntity.status(HttpStatus.CREATED)
+                        .body(ApiResponse.success("Tái đặt hàng thành công. Hẹn gặp bạn tại phiên chợ!", created)));
+    }
+
     // ==========================================
     // 2. FARMER ENDPOINTS (Dành cho Nông dân)
     // ==========================================
@@ -166,6 +204,22 @@ public class OrderController {
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
                 .flatMap(user -> orderService.getFarmerSummary(user.getUserId()))
                 .map(summary -> ResponseEntity.ok(ApiResponse.success("Lấy thống kê đơn hàng thành công.", summary)));
+    }
+
+    @Operation(summary = "Nông dân xem sản phẩm bán chạy nhất (Farmer Insights: Best-Selling)", description = "Thống kê top sản phẩm bán chạy nhất từ các đơn hàng đã hoàn tất tại các phiên chợ.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @GetMapping("/farmer/orders/insights/best-selling")
+    public Mono<ResponseEntity<ApiResponse<List<BestSellingProductDto>>>> getBestSellingProducts(
+            Authentication authentication,
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+        if (authentication == null || authentication.getName() == null) {
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .flatMap(user -> orderService.getFarmerBestSelling(user.getUserId(), limit).collectList())
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm bán chạy nhất thành công.", list)));
     }
 
     // ==========================================

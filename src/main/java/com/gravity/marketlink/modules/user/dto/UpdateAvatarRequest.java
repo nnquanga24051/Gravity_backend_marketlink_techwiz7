@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Dữ liệu cập nhật ảnh đại diện người dùng")
 public class UpdateAvatarRequest {
 
-    @NotBlank(message = "Đường dẫn ảnh đại diện (avatarUrl) không được để trống")
+    @NotBlank(message = "Avatar không được để trống")
     @Schema(description = "Đường dẫn URL của ảnh đại diện mới", example = "https://images.unsplash.com/photo-1534528741775-53994a69daeb")
     private String avatarUrl;
 }
