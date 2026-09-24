@@ -33,6 +33,9 @@ public class JwtTokenProvider {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private SecretKeySpec secretKeySpec;
 
+    // Danh sách lưu trữ các Token đã bị thu hồi (Blacklist do đăng xuất)
+    private final java.util.Set<String> blacklistedTokens = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     @PostConstruct
     public void init() {
         this.secretKeySpec = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), HMAC_SHA256);
@@ -72,6 +75,11 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
+            if (isTokenBlacklisted(token)) {
+                log.warn("Token JWT này đã bị vô hiệu hóa do người dùng đã đăng xuất.");
+                return false;
+            }
+
             String[] parts = token.split("\\.");
             if (parts.length != 3) {
                 return false;
@@ -108,6 +116,30 @@ public class JwtTokenProvider {
             log.warn("Token JWT không hợp lệ: {}", e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Đưa Token vào Blacklist để vô hiệu hóa ngay lập tức
+     */
+    public void blacklistToken(String token) {
+        if (token != null && !token.trim().isEmpty()) {
+            if (token.startsWith("Bearer ")) {
+                token = token.substring(7);
+            }
+            blacklistedTokens.add(token.trim());
+            log.info("Token JWT đã được đưa vào Blacklist thành công.");
+        }
+    }
+
+    /**
+     * Kiểm tra xem Token đã bị đưa vào Blacklist chưa
+     */
+    public boolean isTokenBlacklisted(String token) {
+        if (token == null) return false;
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        return blacklistedTokens.contains(token.trim());
     }
 
     public String getEmailFromToken(String token) {

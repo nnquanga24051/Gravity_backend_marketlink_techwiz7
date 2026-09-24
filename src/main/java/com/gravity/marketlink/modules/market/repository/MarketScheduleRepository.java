@@ -9,4 +9,5 @@ import reactor.core.publisher.Flux;
 public interface MarketScheduleRepository extends R2dbcRepository<MarketSchedule, Long> {
     Flux<MarketSchedule> findByMarketId(Long marketId);
     Flux<MarketSchedule> findByMarketIdAndDayOfWeek(Long marketId, Integer dayOfWeek);
+    reactor.core.publisher.Mono<Void> deleteByMarketId(Long marketId);
 }

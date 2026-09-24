@@ -29,6 +29,10 @@ public class FarmerProfile {
     @Column("farm_address")
     private String farmAddress;
 
+    private java.math.BigDecimal latitude;
+
+    private java.math.BigDecimal longitude;
+
     @Column("is_approved")
     @Builder.Default
     private Boolean isApproved = false;

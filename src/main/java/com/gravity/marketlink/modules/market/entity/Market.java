@@ -35,9 +35,8 @@ public class Market {
     @Column("image_url")
     private String imageUrl;
 
-    @Column("is_active")
     @Builder.Default
-    private Boolean isActive = true;
+    private String status = "ACTIVE";
 
     @Column("created_at")
     private LocalDateTime createdAt;

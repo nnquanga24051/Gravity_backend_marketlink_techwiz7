@@ -65,6 +65,36 @@
 					"response": []
 				},
 				{
+					"name": "POST - Đăng Xuất (Logout)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Thu hồi token JWT hiện tại và xóa phiên làm việc"
+					},
+					"response": []
+				},
+				{
 					"name": "POST - Đăng Ký Nông Dân (FARMER)",
 					"event": [
 						{
@@ -345,6 +375,470 @@
 								"categories"
 							]
 						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Danh Sách Chợ Nông Sản (Map Pin) (/api/markets)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/markets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"markets"
+							]
+						},
+						"description": "Lấy danh sách tất cả các điểm chợ nông sản đang hoạt động kèm tọa độ GPS để vẽ Map pin"
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Chi Tiết Chợ & Lịch Họp (/api/markets/1)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/markets/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"markets",
+								"1"
+							]
+						},
+						"description": "Lấy thông tin chi tiết một chợ kèm danh sách lịch họp định kỳ trong tuần và số lượng sạp"
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Danh Sách Nông Dân Bán Tại Chợ (/api/markets/1/farmers)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/markets/1/farmers",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"markets",
+								"1",
+								"farmers"
+							]
+						},
+						"description": "Xem danh sách các sạp nông dân đang bán tại chợ"
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Lọc Chợ Theo Ngày Họp Trong Tuần (/api/markets/filter-by-day?dayOfWeek=6)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/markets/filter-by-day?dayOfWeek=6",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"markets",
+								"filter-by-day"
+							],
+							"query": [
+								{
+									"key": "dayOfWeek",
+									"value": "6",
+									"description": "1: Thứ 2, ..., 6: Thứ 7, 7: Chủ nhật"
+								}
+							]
+						},
+						"description": "Lọc các chợ họp theo ngày trong tuần"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. [PROFILE] Quản Lý Hồ Sơ Người Dùng",
+			"item": [
+				{
+					"name": "GET - Xem Hồ Sơ Cá Nhân (/api/users/profile)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile"
+							]
+						},
+						"description": "Lấy đầy đủ thông tin hồ sơ của tài khoản đang đăng nhập kèm profile chi tiết (Farmer/Customer)"
+					},
+					"response": []
+				},
+				{
+					"name": "PUT - Cập Nhật Hồ Sơ (/api/users/profile)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fullName\": \"Nguyễn Văn Nông Dân\",\n  \"phoneNumber\": \"0987654321\",\n  \"stallName\": \"Sạp Rau Củ Hữu Cơ Xanh\",\n  \"bio\": \"Chuyên cung cấp rau củ sạch VietGAP chuẩn tự nhiên.\",\n  \"farmAddress\": \"Xã Ba Vì, Hà Nội\",\n  \"defaultAddress\": \"Số 123 Đường Láng, Hà Nội\",\n  \"latitude\": 21.028511,\n  \"longitude\": 105.804817\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PATCH - Cập Nhật Avatar (/api/users/profile/avatar)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"avatarUrl\": \"https://images.unsplash.com/photo-1534528741775-53994a69daeb\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/profile/avatar",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile",
+								"avatar"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PUT - Đổi Mật Khẩu (/api/users/profile/change-password)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"Password123@\",\n  \"newPassword\": \"NewPassword123@\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/profile/change-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile",
+								"change-password"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. [MARKET] Quản Lý Điểm Chợ (Farmer & Admin)",
+			"item": [
+				{
+					"name": "POST - Nông Dân Đăng Ký Sạp Chợ (/api/farmer/markets/register)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"marketId\": 1,\n  \"stallNumber\": \"Sạp A08\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/farmer/markets/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"farmer",
+								"markets",
+								"register"
+							]
+						},
+						"description": "Nông dân nộp đơn đăng ký tham gia bán hàng tại chợ"
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Nông Dân Xem Sạp Đã Đăng Ký (/api/farmer/markets/my-assignments)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/farmer/markets/my-assignments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"farmer",
+								"markets",
+								"my-assignments"
+							]
+						},
+						"description": "Danh sách các sạp chợ mà nông dân đã tham gia"
+					},
+					"response": []
+				},
+				{
+					"name": "POST - Admin Tạo Mới Chợ Nông Sản (/api/admin/markets)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Chợ Phiên Nông Sản Ba Đình\",\n  \"address\": \"Cung Thể Thao Quần Ngựa, Văn Cao, Ba Đình, Hà Nội\",\n  \"latitude\": 21.038234,\n  \"longitude\": 105.817456,\n  \"description\": \"Chợ phiên cuối tuần quy tụ hơn 30 nhà vườn VietGAP và Hữu cơ uy tín.\",\n  \"imageUrl\": \"https://images.unsplash.com/photo-1488459716781-31db52582fe9\",\n  \"status\": \"ACTIVE\",\n  \"schedules\": [\n    {\n      \"dayOfWeek\": 6,\n      \"openTime\": \"06:00\",\n      \"closeTime\": \"12:00\"\n    },\n    {\n      \"dayOfWeek\": 7,\n      \"openTime\": \"06:00\",\n      \"closeTime\": \"13:00\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/markets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"markets"
+							]
+						},
+						"description": "Quản trị viên tạo điểm chợ mới kèm lịch họp chợ"
+					},
+					"response": []
+				},
+				{
+					"name": "PUT - Admin Cập Nhật Chợ Nông Sản (/api/admin/markets/1)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Chợ Phiên Nông Sản Ba Đình (Mở rộng)\",\n  \"address\": \"Cung Thể Thao Quần Ngựa, Văn Cao, Ba Đình, Hà Nội\",\n  \"latitude\": 21.038234,\n  \"longitude\": 105.817456,\n  \"description\": \"Chợ phiên nông sản hữu cơ nâng cấp quy mô 50 sạp.\",\n  \"imageUrl\": \"https://images.unsplash.com/photo-1488459716781-31db52582fe9\",\n  \"status\": \"ACTIVE\",\n  \"schedules\": [\n    {\n      \"dayOfWeek\": 6,\n      \"openTime\": \"06:30\",\n      \"closeTime\": \"12:30\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/markets/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"markets",
+								"1"
+							]
+						},
+						"description": "Admin cập nhật thông tin chợ và lịch họp"
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE - Admin Tạm Ngưng Chợ (/api/admin/markets/1)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/markets/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"markets",
+								"1"
+							]
+						},
+						"description": "Admin chuyển trạng thái chợ sang INACTIVE"
+					},
+					"response": []
+				},
+				{
+					"name": "PATCH - Admin Duyệt / Thu Hồi Sạp Chợ (/api/admin/markets/assignments/1/status)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/markets/assignments/1/status?status=ACTIVE",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"markets",
+								"assignments",
+								"1",
+								"status"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "ACTIVE",
+									"description": "ACTIVE, REVOKED, REGISTERED"
+								}
+							]
+						},
+						"description": "Admin duyệt sạp hoặc thu hồi quyền bán của nông dân"
 					},
 					"response": []
 				}

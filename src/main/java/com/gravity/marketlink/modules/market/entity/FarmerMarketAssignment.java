@@ -31,8 +31,8 @@ public class FarmerMarketAssignment {
     private String stallNumber;
 
     @Builder.Default
-    private String status = "ACTIVE"; // ACTIVE, INACTIVE
+    private String status = "ACTIVE"; // REGISTERED, ACTIVE, REVOKED
 
-    @Column("assigned_at")
-    private LocalDateTime assignedAt;
+    @Column("created_at")
+    private LocalDateTime createdAt;
 }

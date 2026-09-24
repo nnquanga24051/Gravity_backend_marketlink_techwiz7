@@ -175,4 +175,15 @@ public class AuthService {
                                 })
                 );
     }
+
+    /**
+     * Đăng xuất người dùng: Thu hồi và đưa token JWT vào danh sách Blacklist
+     */
+    public Mono<Void> logout(String bearerToken) {
+        if (bearerToken != null && !bearerToken.trim().isEmpty()) {
+            tokenProvider.blacklistToken(bearerToken);
+        }
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        return Mono.empty();
+    }
 }

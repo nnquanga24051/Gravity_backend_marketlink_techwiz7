@@ -33,24 +33,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = getJwtFromRequest(request);
 
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                String email = tokenProvider.getEmailFromToken(jwt);
-                List<String> roles = tokenProvider.getRolesFromToken(jwt);
+            if (StringUtils.hasText(jwt)) {
+                if (tokenProvider.validateToken(jwt)) {
+                    String email = tokenProvider.getEmailFromToken(jwt);
+                    List<String> roles = tokenProvider.getRolesFromToken(jwt);
 
-                List<SimpleGrantedAuthority> authorities = roles != null
-                        ? roles.stream()
-                                .map(r -> r.startsWith("ROLE_") ? r : "ROLE_" + r)
-                                .map(SimpleGrantedAuthority::new)
-                                .collect(Collectors.toList())
-                        : List.of();
+                    List<SimpleGrantedAuthority> authorities = roles != null
+                            ? roles.stream()
+                                    .map(r -> r.startsWith("ROLE_") ? r : "ROLE_" + r)
+                                    .map(SimpleGrantedAuthority::new)
+                                    .collect(Collectors.toList())
+                            : List.of();
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(email, null, authorities);
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(email, null, authorities);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.info("Set auth for email: {}, authorities: {}", email, authorities);
-            } else {
-                log.warn("JWT is empty or invalid: {}", jwt);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.debug("Set auth for email: {}, authorities: {}", email, authorities);
+                } else {
+                    log.warn("Token JWT được gửi lên nhưng không hợp lệ hoặc đã hết hạn!");
+                }
             }
         } catch (Exception ex) {
             log.error("Could not set user authentication in security context", ex);

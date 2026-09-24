@@ -5,6 +5,8 @@ import com.gravity.marketlink.modules.auth.dto.LoginRequest;
 import com.gravity.marketlink.modules.auth.dto.RegisterRequest;
 import com.gravity.marketlink.modules.auth.dto.UserProfileResponse;
 import com.gravity.marketlink.modules.auth.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+@Tag(name = "1. Xác thực & Người dùng (Auth)", description = "Các API đăng nhập, đăng ký tài khoản và truy xuất thông tin cá nhân")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -23,18 +26,21 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @Operation(summary = "Đăng ký tài khoản mới", description = "Đăng ký tài khoản cho FARMER, CUSTOMER hoặc ADMIN")
     @PostMapping("/register")
     public Mono<ResponseEntity<AuthResponse>> register(@RequestBody RegisterRequest request) {
         return authService.register(request)
                 .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
     }
 
+    @Operation(summary = "Đăng nhập", description = "Đăng nhập bằng Email & Password để nhận JWT Token sử dụng cho các API bảo mật")
     @PostMapping("/login")
     public Mono<ResponseEntity<AuthResponse>> login(@RequestBody LoginRequest request) {
         return authService.login(request)
                 .map(ResponseEntity::ok);
     }
 
+    @Operation(summary = "Lấy thông tin tài khoản hiện tại (/me)", description = "Yêu cầu Bearer Token để lấy profile người dùng đang đăng nhập")
     @GetMapping("/me")
     public Mono<ResponseEntity<UserProfileResponse>> getCurrentUser(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
@@ -42,5 +48,16 @@ public class AuthController {
         }
         return authService.getCurrentUserProfile(authentication.getName())
                 .map(ResponseEntity::ok);
+    }
+
+    @Operation(summary = "Đăng xuất tài khoản", description = "Vô hiệu hóa token JWT hiện tại, thu hồi quyền truy cập và xóa phiên làm việc.")
+    @PostMapping("/logout")
+    public Mono<ResponseEntity<java.util.Map<String, Object>>> logout(
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Authorization", required = false) String bearerToken) {
+        return authService.logout(bearerToken)
+                .thenReturn(ResponseEntity.ok(java.util.Map.<String, Object>of(
+                        "status", "SUCCESS",
+                        "message", "Đăng xuất thành công! Token JWT đã được vô hiệu hóa."
+                )));
     }
 }

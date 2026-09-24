@@ -25,11 +25,11 @@ public class MarketSchedule {
     private Long marketId;
 
     @Column("day_of_week")
-    private Integer dayOfWeek; // 1 = Sunday, 2 = Monday, etc.
+    private Integer dayOfWeek; // 1 = Thứ 2, ..., 7 = Chủ nhật
 
-    @Column("start_time")
-    private LocalTime startTime;
+    @Column("open_time")
+    private LocalTime openTime;
 
-    @Column("end_time")
-    private LocalTime endTime;
+    @Column("close_time")
+    private LocalTime closeTime;
 }
