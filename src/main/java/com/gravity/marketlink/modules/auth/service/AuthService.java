@@ -63,7 +63,7 @@ public class AuthService {
                                         .isEmailVerified(false)
                                         .isPhoneVerified(false)
                                         .status("ACTIVE")
-                                        .kycStatus("NOT_SUBMITTED")
+                                        .kycStatus("UNVERIFIED")
                                         .createdAt(LocalDateTime.now())
                                         .updatedAt(LocalDateTime.now())
                                         .build();

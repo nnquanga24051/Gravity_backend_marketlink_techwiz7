@@ -8,6 +8,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -25,24 +26,20 @@ public class FarmerKycDocument {
     private Long farmerId;
 
     @Column("document_type")
-    private String documentType;
+    private String documentType; // CITIZEN_ID_FRONT, CITIZEN_ID_BACK, BUSINESS_REGISTRATION, FOOD_SAFETY_CERT, ORGANIC_VIETGAP_CERT, FARM_PHOTO
 
     @Column("document_url")
     private String documentUrl;
 
-    @Column("verification_status")
-    @Builder.Default
-    private String verificationStatus = "PENDING";
+    @Column("document_number")
+    private String documentNumber;
 
-    @Column("uploaded_at")
-    private LocalDateTime uploadedAt;
+    @Column("issued_date")
+    private LocalDate issuedDate;
 
-    @Column("verified_at")
-    private LocalDateTime verifiedAt;
+    @Column("expiry_date")
+    private LocalDate expiryDate;
 
-    @Column("verified_by")
-    private Long verifiedBy;
-
-    @Column("rejection_reason")
-    private String rejectionReason;
+    @Column("created_at")
+    private LocalDateTime createdAt;
 }

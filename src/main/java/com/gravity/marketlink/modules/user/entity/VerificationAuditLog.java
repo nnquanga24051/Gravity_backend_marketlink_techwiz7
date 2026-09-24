@@ -21,20 +21,17 @@ public class VerificationAuditLog {
     @Column("log_id")
     private Long logId;
 
-    @Column("target_type")
-    private String targetType; // FARMER_KYC, USER_EMAIL, USER_PHONE
+    @Column("target_user_id")
+    private Long targetUserId;
 
-    @Column("target_id")
-    private Long targetId;
+    @Column("admin_id")
+    private Long adminId;
 
-    @Column("action_taken")
-    private String actionTaken; // APPROVED, REJECTED, SUSPENDED
+    @Column("action")
+    private String action; // APPROVE, REJECT, REQUEST_REVISION, SUSPEND
 
-    private String notes;
+    private String reason;
 
-    @Column("performed_by")
-    private Long performedBy;
-
-    @Column("created_at")
-    private LocalDateTime createdAt;
+    @Column("reviewed_at")
+    private LocalDateTime reviewedAt;
 }

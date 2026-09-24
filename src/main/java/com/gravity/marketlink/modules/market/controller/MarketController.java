@@ -72,7 +72,6 @@ public class MarketController {
 
     @Operation(summary = "Nông dân đăng ký tham gia chợ", description = "Chỉ cho phép tài khoản có ROLE_FARMER đăng ký sạp tại chợ.")
     @SecurityRequirement(name = "Bearer Authentication")
-    @PreAuthorize("hasRole('FARMER')")
     @PostMapping("/api/farmer/markets/register")
     public Mono<ResponseEntity<FarmerMarketAssignment>> registerMarket(
             Authentication authentication,
@@ -83,7 +82,6 @@ public class MarketController {
 
     @Operation(summary = "Xem danh sách chợ nông dân đã đăng ký", description = "Trả về các phiên chợ mà nông dân hiện tại đã tham gia.")
     @SecurityRequirement(name = "Bearer Authentication")
-    @PreAuthorize("hasRole('FARMER')")
     @GetMapping("/api/farmer/markets/my-assignments")
     public Flux<FarmerMarketAssignment> getMyMarketAssignments(Authentication authentication) {
         return marketService.getMyMarketAssignments(authentication.getName());
@@ -95,7 +93,6 @@ public class MarketController {
 
     @Operation(summary = "Admin tạo mới chợ nông sản", description = "Thêm điểm chợ mới cùng danh sách lịch họp định kỳ (Yêu cầu quyền ROLE_ADMIN).")
     @SecurityRequirement(name = "Bearer Authentication")
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/api/admin/markets")
     public Mono<ResponseEntity<MarketDetailResponse>> createMarket(@Valid @RequestBody MarketRequest request) {
         return marketService.createMarket(request)
@@ -104,7 +101,6 @@ public class MarketController {
 
     @Operation(summary = "Admin cập nhật thông tin chợ & lịch họp", description = "Cập nhật tên, địa chỉ, tọa độ bản đồ, mô tả và cập nhật lại lịch họp chợ.")
     @SecurityRequirement(name = "Bearer Authentication")
-    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/api/admin/markets/{id}")
     public Mono<ResponseEntity<MarketDetailResponse>> updateMarket(
             @PathVariable("id") Long id,
@@ -115,7 +111,6 @@ public class MarketController {
 
     @Operation(summary = "Admin tạm ngưng hoạt động chợ", description = "Chuyển trạng thái chợ sang INACTIVE.")
     @SecurityRequirement(name = "Bearer Authentication")
-    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/api/admin/markets/{id}")
     public Mono<ResponseEntity<Map<String, Object>>> deleteMarket(@PathVariable("id") Long id) {
         return marketService.deleteMarket(id)
@@ -124,7 +119,6 @@ public class MarketController {
 
     @Operation(summary = "Admin phê duyệt hoặc thu hồi sạp chợ", description = "Cập nhật trạng thái sạp của nông dân (ACTIVE, REVOKED, REGISTERED).")
     @SecurityRequirement(name = "Bearer Authentication")
-    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/api/admin/markets/assignments/{assignmentId}/status")
     public Mono<ResponseEntity<Map<String, Object>>> updateAssignmentStatus(
             @PathVariable("assignmentId") Long assignmentId,

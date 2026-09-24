@@ -7,5 +7,10 @@ import reactor.core.publisher.Flux;
 
 @Repository
 public interface VerificationAuditLogRepository extends R2dbcRepository<VerificationAuditLog, Long> {
-    Flux<VerificationAuditLog> findByTargetTypeAndTargetIdOrderByCreatedAtDesc(String targetType, Long targetId);
+
+    Flux<VerificationAuditLog> findByTargetUserIdOrderByReviewedAtDesc(Long targetUserId);
+
+    Flux<VerificationAuditLog> findByAdminIdOrderByReviewedAtDesc(Long adminId);
+
+    Flux<VerificationAuditLog> findAllByOrderByReviewedAtDesc();
 }

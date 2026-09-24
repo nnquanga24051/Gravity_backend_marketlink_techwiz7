@@ -17,4 +17,8 @@ public interface FarmerProfileRepository extends R2dbcRepository<FarmerProfile, 
     @Modifying
     @Query("UPDATE farmer_profiles SET stall_name = :stallName, bio = :bio, farm_address = :farmAddress, latitude = :latitude, longitude = :longitude, updated_at = :updatedAt WHERE farmer_id = :farmerId")
     Mono<Integer> updateFarmerProfile(Long farmerId, String stallName, String bio, String farmAddress, BigDecimal latitude, BigDecimal longitude, LocalDateTime updatedAt);
+
+    @Modifying
+    @Query("UPDATE farmer_profiles SET is_approved = :isApproved, updated_at = :updatedAt WHERE farmer_id = :farmerId")
+    Mono<Integer> updateApprovalStatus(Long farmerId, Boolean isApproved, LocalDateTime updatedAt);
 }

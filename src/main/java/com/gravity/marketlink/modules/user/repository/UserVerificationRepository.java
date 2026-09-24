@@ -7,6 +7,10 @@ import reactor.core.publisher.Mono;
 
 @Repository
 public interface UserVerificationRepository extends R2dbcRepository<UserVerification, Long> {
-    Mono<UserVerification> findByUserIdAndVerificationTypeAndCodeAndIsUsedFalse(Long userId, String type, String code);
-    Mono<UserVerification> findTopByUserIdAndVerificationTypeOrderByCreatedAtDesc(Long userId, String type);
+
+    Mono<UserVerification> findTopByUserIdAndVerificationTypeAndIsUsedFalseOrderByCreatedAtDesc(Long userId, String verificationType);
+
+    Mono<UserVerification> findTopByTargetDestinationAndVerificationTypeAndIsUsedFalseOrderByCreatedAtDesc(String targetDestination, String verificationType);
+
+    Mono<UserVerification> findByUserIdAndVerificationTypeAndVerificationCodeAndIsUsedFalse(Long userId, String verificationType, String verificationCode);
 }

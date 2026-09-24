@@ -843,6 +843,577 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "6. [OTP] Xác Minh & Đặt Lại Mật Khẩu",
+			"item": [
+				{
+					"name": "POST - Gửi Mã OTP (Send OTP)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"emailOrPhone\": \"farmer@marketlink.vn\",\n  \"type\": \"EMAIL_CONFIRMATION\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/verification/send-otp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"verification",
+								"send-otp"
+							]
+						},
+						"description": "Gửi mã OTP (EMAIL_CONFIRMATION, PHONE_OTP, PASSWORD_RESET)"
+					},
+					"response": []
+				},
+				{
+					"name": "POST - Xác Minh Mã OTP (Verify OTP)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"emailOrPhone\": \"farmer@marketlink.vn\",\n  \"type\": \"EMAIL_CONFIRMATION\",\n  \"code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/verification/verify-otp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"verification",
+								"verify-otp"
+							]
+						},
+						"description": "Xác minh OTP nhận được"
+					},
+					"response": []
+				},
+				{
+					"name": "POST - Đặt Lại Mật Khẩu (Reset Password)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"emailOrPhone\": \"farmer@marketlink.vn\",\n  \"code\": \"123456\",\n  \"newPassword\": \"NewSecret@2026\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/reset-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"reset-password"
+							]
+						},
+						"description": "Đặt lại mật khẩu mới thông qua mã OTP"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "7. [FARMER] Định Danh KYC",
+			"item": [
+				{
+					"name": "POST - Nông Dân Nộp Hồ Sơ KYC (/api/farmer/kyc/submit)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"documents\": [\n    {\n      \"documentType\": \"CITIZEN_ID_FRONT\",\n      \"documentUrl\": \"https://marketlink.s3.amazonaws.com/kyc/cccd_front_01.jpg\",\n      \"documentNumber\": \"079090123456\",\n      \"issuedDate\": \"2021-04-10\",\n      \"expiryDate\": \"2031-04-10\"\n    },\n    {\n      \"documentType\": \"CITIZEN_ID_BACK\",\n      \"documentUrl\": \"https://marketlink.s3.amazonaws.com/kyc/cccd_back_01.jpg\",\n      \"documentNumber\": \"079090123456\",\n      \"issuedDate\": \"2021-04-10\",\n      \"expiryDate\": \"2031-04-10\"\n    },\n    {\n      \"documentType\": \"ORGANIC_VIETGAP_CERT\",\n      \"documentUrl\": \"https://marketlink.s3.amazonaws.com/kyc/vietgap_cert_01.jpg\",\n      \"documentNumber\": \"VG-2023-HN-8899\",\n      \"issuedDate\": \"2023-01-01\",\n      \"expiryDate\": \"2026-01-01\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/farmer/kyc/submit",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"farmer",
+								"kyc",
+								"submit"
+							]
+						},
+						"description": "Nông dân nộp hồ sơ KYC để chờ Admin duyệt"
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Nông Dân Xem Hồ Sơ & Kết Quả KYC (/api/farmer/kyc/my-documents)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/farmer/kyc/my-documents",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"farmer",
+								"kyc",
+								"my-documents"
+							]
+						},
+						"description": "Xem danh sách tài liệu KYC cá nhân và phản hồi kiểm duyệt"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "8. [ADMIN] Phê Duyệt KYC",
+			"item": [
+				{
+					"name": "GET - Admin Xem Danh Sách KYC Chờ Duyệt (/api/admin/kyc/pending)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/kyc/pending",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"kyc",
+								"pending"
+							]
+						},
+						"description": "Admin xem tất cả hồ sơ KYC đang ở trạng thái PENDING"
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Admin Xem Chi Tiết KYC Nông Dân (/api/admin/kyc/farmers/2)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/kyc/farmers/2",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"kyc",
+								"farmers",
+								"2"
+							]
+						},
+						"description": "Xem toàn bộ tài liệu và lịch sử duyệt của một nông dân"
+					},
+					"response": []
+				},
+				{
+					"name": "POST - Admin Phê Duyệt KYC Nông Dân (/api/admin/kyc/farmers/2/review)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"action\": \"APPROVE\",\n  \"reason\": \"Hồ sơ đầy đủ, chứng chỉ VietGAP hợp lệ.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/kyc/farmers/2/review",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"kyc",
+								"farmers",
+								"2",
+								"review"
+							]
+						},
+						"description": "Admin duyệt (APPROVE, REJECT, REQUEST_REVISION) KYC của nông dân"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9. [ADMIN] Quản Lý Người Dùng",
+			"item": [
+				{
+					"name": "GET - Admin Danh Sách Người Dùng (/api/admin/users)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/users?role=FARMER",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"users"
+							],
+							"query": [
+								{
+									"key": "role",
+									"value": "FARMER"
+								}
+							]
+						},
+						"description": "Admin tìm kiếm người dùng theo keyword, role, status, kycStatus"
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Admin Xem Chi Tiết Người Dùng (/api/admin/users/2)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/users/2",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"users",
+								"2"
+							]
+						},
+						"description": "Xem chi tiết tài khoản, vai trò và thông tin sạp/địa chỉ"
+					},
+					"response": []
+				},
+				{
+					"name": "PATCH - Admin Khóa / Mở Khóa Tài Khoản (/api/admin/users/2/status)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"SUSPENDED\",\n  \"reason\": \"Vi phạm quy chế bán hàng tại chợ phiên\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/users/2/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"users",
+								"2",
+								"status"
+							]
+						},
+						"description": "Khóa (SUSPENDED) hoặc kích hoạt (ACTIVE) tài khoản người dùng"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "10. [CUSTOMER] Tài Khoản Gia Đình (Family Account)",
+			"item": [
+				{
+					"name": "POST - Khách Hàng Gửi Lời Mời Gia Đình (/api/customer/family/invite)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"inviteeEmail\": \"family_member@gmail.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/customer/family/invite",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"customer",
+								"family",
+								"invite"
+							]
+						},
+						"description": "Gửi lời mời tham gia nhóm tài khoản gia đình qua email"
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Danh Sách Lời Mời Gia Đình (/api/customer/family/invitations)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/customer/family/invitations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"customer",
+								"family",
+								"invitations"
+							]
+						},
+						"description": "Xem danh sách lời mời gửi đi hoặc nhận được"
+					},
+					"response": []
+				},
+				{
+					"name": "POST - Chấp Nhận Lời Mời Gia Đình (/api/customer/family/accept)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"invitationToken\": \"TOKEN_FROM_INVITATION\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/customer/family/accept",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"customer",
+								"family",
+								"accept"
+							]
+						},
+						"description": "Chấp nhận lời mời gia đình để liên kết tài khoản"
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Danh Sách Thành Viên Gia Đình (/api/customer/family/members)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/customer/family/members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"customer",
+								"family",
+								"members"
+							]
+						},
+						"description": "Xem tất cả thành viên trong nhóm gia đình"
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE - Rời Khỏi Nhóm Gia Đình (/api/customer/family/leave)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/customer/family/leave",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"customer",
+								"family",
+								"leave"
+							]
+						},
+						"description": "Tự rời khỏi nhóm gia đình"
+					},
+					"response": []
+				}
+			]
 		}
 	]
 }

@@ -46,7 +46,7 @@ public class User {
 
     @Column("kyc_status")
     @Builder.Default
-    private String kycStatus = "NOT_SUBMITTED";
+    private String kycStatus = "UNVERIFIED";
 
     @Column("created_at")
     private LocalDateTime createdAt;
