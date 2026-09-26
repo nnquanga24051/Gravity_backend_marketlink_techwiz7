@@ -1,0 +1,458 @@
+/* ========================================================
+   USER MODERATION & KYC PAGE STYLES - MARKETLINK
+   Giao diện thẩm định & phê duyệt hồ sơ nông hộ mở sạp
+   Thiết kế thẻ hồ sơ trực quan, hỗ trợ modal soi chứng chỉ
+   ======================================================== */
+
+.ml-mod-page,
+.ml-user-moderation-page {
+  background-color: var(--color-bg-base);
+  min-height: calc(100vh - 72px);
+  padding-bottom: var(--space-16);
+}
+
+/* ================= BANNER ĐẦU TRANG ================= */
+.ml-mod-banner,
+.ml-mod-header {
+  background: linear-gradient(135deg, #1B5E20 0%, #0F3913 100%);
+  color: #FFFFFF;
+  padding: var(--space-8) 0 var(--space-10);
+  margin-bottom: var(--space-8);
+  box-shadow: 0 4px 20px rgba(27, 94, 32, 0.15);
+}
+
+.ml-mod-banner-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.ml-mod-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-extrabold);
+  margin-bottom: var(--space-2);
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+  .ml-mod-title {
+    font-size: var(--font-size-3xl);
+  }
+}
+
+.ml-mod-desc {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 680px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ml-mod-stats-strip {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.ml-mod-stat-pill {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  backdrop-filter: blur(8px);
+}
+
+.ml-mod-stat-num {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-extrabold);
+  color: #4ADE80;
+}
+
+.ml-mod-stat-lbl {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ================= CONTROLS & FILTER TABS ================= */
+.ml-mod-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.ml-mod-controls,
+.ml-mod-toolbar {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 768px) {
+  .ml-mod-controls,
+  .ml-mod-toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.ml-mod-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-bg-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 8px 14px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.ml-mod-search-icon {
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.ml-mod-search-input {
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-main);
+  width: 100%;
+  outline: none;
+}
+
+.ml-mod-tabs,
+.ml-mod-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ml-mod-tab,
+.ml-mod-filter-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-base);
+  border: 1px solid var(--color-border);
+  font-size: 12.5px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-body);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ml-mod-tab:hover,
+.ml-mod-filter-btn:hover {
+  background-color: var(--color-primary-surface);
+  border-color: var(--color-primary-light);
+}
+
+.ml-mod-tab.active,
+.ml-mod-filter-btn.active {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(46, 125, 50, 0.25);
+}
+
+/* Loading */
+.ml-mod-loading {
+  background-color: var(--color-primary-surface);
+  border: 1px solid var(--color-primary-subtle);
+  color: var(--color-primary-dark);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Empty State */
+.ml-mod-empty {
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  background-color: var(--color-bg-surface);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.ml-mod-empty-icon {
+  font-size: 44px;
+  background-color: var(--color-primary-surface);
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ================= FARMER KYC CARDS GRID ================= */
+.ml-mod-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 1024px) {
+  .ml-mod-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ml-farmer-kyc-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.ml-farmer-kyc-card:hover {
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-md);
+}
+
+.ml-kyc-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: var(--space-3);
+  gap: var(--space-2);
+}
+
+.ml-kyc-farm-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+.ml-kyc-location {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.ml-kyc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: var(--color-bg-base);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-light);
+}
+
+.ml-kyc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.ml-kyc-lbl {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.ml-kyc-val {
+  color: var(--color-text-main);
+}
+
+.ml-kyc-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: var(--space-2);
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+/* ================= MODAL THẨM ĐỊNH CHI TIẾT ================= */
+.ml-kyc-modal-content,
+.ml-dossier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.ml-kyc-modal-img-wrap,
+.ml-dossier-photo-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ml-kyc-proof-img,
+.ml-dossier-photo {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.ml-kyc-img-caption,
+.ml-photo-caption {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  text-align: center;
+  font-style: italic;
+}
+
+.ml-kyc-modal-section,
+.ml-dossier-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ml-kyc-modal-section h4 {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-main);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ml-kyc-modal-section p {
+  font-size: 13px;
+  color: var(--color-text-body);
+  line-height: 1.5;
+  background-color: var(--color-bg-base);
+  border-left: 3px solid var(--color-primary);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  margin: 0;
+}
+
+.ml-cert-grid,
+.ml-cert-dossier-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  background-color: var(--color-bg-base);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+}
+
+@media (min-width: 640px) {
+  .ml-cert-grid,
+  .ml-cert-dossier-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ml-cert-lbl,
+.ml-cert-box-label {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  display: block;
+}
+
+.ml-cert-grid strong,
+.ml-cert-grid span {
+  font-size: 13px;
+  color: var(--color-text-main);
+}
+
+.ml-kyc-modal-footer,
+.ml-dossier-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+}
+
+/* Reject Modal Form */
+.ml-reject-prompt {
+  font-size: 13.5px;
+  color: var(--color-text-body);
+  margin-bottom: var(--space-4);
+  line-height: 1.5;
+}
+
+.ml-reject-farmer-info {
+  background-color: var(--color-bg-base);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  font-size: 13px;
+  border: 1px solid var(--color-border);
+}
+
+.ml-reject-label {
+  display: block;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-main);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.ml-reject-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-bg-surface);
+  outline: none;
+  font-family: inherit;
+  transition: border-color var(--transition-fast);
+}
+
+.ml-reject-textarea:focus {
+  border-color: var(--color-danger);
+}
+
+.ml-reject-hint {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  display: block;
+}
+
+.ml-reject-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.btn-danger-text {
+  color: var(--color-danger) !important;
+}
+
+.btn-danger-text:hover {
+  background-color: var(--color-danger-surface) !important;
+}

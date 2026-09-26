@@ -35,4 +35,10 @@ public class FarmerMarketAssignment {
 
     @Column("created_at")
     private LocalDateTime createdAt;
+
+    @org.springframework.data.annotation.Transient
+    private String marketName;
+
+    @org.springframework.data.annotation.Transient
+    private String marketAddress;
 }

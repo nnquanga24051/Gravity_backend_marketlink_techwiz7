@@ -1,0 +1,232 @@
+.ml-farmer-reviews-page {
+  padding-bottom: var(--space-16);
+}
+
+.ml-reviews-banner {
+  background: linear-gradient(180deg, #f5f1e8 0%, var(--color-bg-base) 100%);
+  padding: var(--space-8) 0;
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: var(--space-8);
+}
+
+.ml-rev-page-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-text-main);
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.ml-rev-page-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  max-width: 640px;
+}
+
+.ml-reviews-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+}
+
+@media (min-width: 1024px) {
+  .ml-reviews-layout {
+    grid-template-columns: 320px 1fr;
+  }
+}
+
+.ml-score-summary-card {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  height: fit-content;
+}
+
+.ml-score-heading {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-main);
+  margin-bottom: var(--space-3);
+}
+
+.ml-score-big {
+  font-size: 3rem;
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-accent);
+  line-height: 1;
+}
+
+.ml-score-scale {
+  font-size: 1.25rem;
+  color: var(--color-text-muted);
+  font-weight: normal;
+}
+
+.ml-score-stars {
+  font-size: 20px;
+  color: var(--color-accent);
+  margin: var(--space-2) 0;
+}
+
+.ml-score-count {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-5);
+}
+
+.ml-score-breakdown {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-4);
+  font-size: 11.5px;
+}
+
+.ml-score-bar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ml-bar-track {
+  flex: 1;
+  height: 6px;
+  background-color: var(--color-bg-base);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.ml-bar-fill {
+  height: 100%;
+  background-color: var(--color-accent);
+  border-radius: var(--radius-full);
+}
+
+/* Reviews Feed */
+.ml-reviews-feed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ml-feed-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-main);
+}
+
+.ml-reviews-list-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ml-rev-feed-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ml-rev-feed-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ml-rev-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ml-rev-uavatar {
+  font-size: 24px;
+}
+
+.ml-rev-uname {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-main);
+}
+
+.ml-rev-udate {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.ml-rev-stars-gold {
+  color: var(--color-accent);
+  font-size: 14px;
+}
+
+.ml-rev-text {
+  font-size: 13.5px;
+  color: var(--color-text-body);
+  line-height: 1.5;
+}
+
+/* Farmer Reply */
+.ml-farmer-reply-box {
+  background-color: var(--color-primary-surface);
+  border: 1px solid var(--color-primary-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: 12.5px;
+}
+
+.ml-reply-author {
+  color: var(--color-primary-dark);
+  margin-bottom: 2px;
+}
+
+.ml-reply-msg {
+  color: var(--color-text-body);
+  line-height: 1.45;
+}
+
+.ml-reply-trigger-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  padding: 0;
+}
+
+.ml-reply-trigger-btn:hover {
+  text-decoration: underline;
+}
+
+.ml-reply-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ml-reply-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-bg-base);
+}
+
+.ml-reply-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.ml-reply-time {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}

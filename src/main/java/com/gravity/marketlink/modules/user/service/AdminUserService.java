@@ -43,7 +43,8 @@ public class AdminUserService {
                         String kw = keyword.trim().toLowerCase();
                         boolean matchName = user.getFullName() != null && user.getFullName().toLowerCase().contains(kw);
                         boolean matchEmail = user.getEmail() != null && user.getEmail().toLowerCase().contains(kw);
-                        boolean matchPhone = user.getPhoneNumber() != null && user.getPhoneNumber().toLowerCase().contains(kw);
+                        boolean matchPhone = user.getPhoneNumber() != null
+                                && user.getPhoneNumber().toLowerCase().contains(kw);
                         if (!matchName && !matchEmail && !matchPhone) {
                             return false;
                         }
@@ -66,7 +67,8 @@ public class AdminUserService {
                         .filter(roles -> {
                             if (role != null && !role.trim().isEmpty()) {
                                 String cleanRole = role.trim().toUpperCase();
-                                return roles.stream().anyMatch(r -> r.equalsIgnoreCase(cleanRole) || r.equalsIgnoreCase("ROLE_" + cleanRole));
+                                return roles.stream().anyMatch(
+                                        r -> r.equalsIgnoreCase(cleanRole) || r.equalsIgnoreCase("ROLE_" + cleanRole));
                             }
                             return true;
                         })
@@ -87,7 +89,8 @@ public class AdminUserService {
 
     public Mono<AdminUserDetailResponse> getUserDetail(Long userId) {
         Mono<User> userMono = userRepository.findById(userId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + userId)));
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + userId)));
 
         Mono<List<String>> rolesMono = userRoleRepository.findRolesByUserId(userId)
                 .map(Role::getRoleName)
@@ -99,7 +102,8 @@ public class AdminUserService {
         Mono<CustomerProfile> customerMono = customerProfileRepository.findByCustomerId(userId)
                 .defaultIfEmpty(new CustomerProfile());
 
-        Mono<List<VerificationAuditLogResponse>> logsMono = verificationAuditLogRepository.findByTargetUserIdOrderByReviewedAtDesc(userId)
+        Mono<List<VerificationAuditLogResponse>> logsMono = verificationAuditLogRepository
+                .findByTargetUserIdOrderByReviewedAtDesc(userId)
                 .flatMap(logItem -> userRepository.findById(logItem.getAdminId())
                         .map(admin -> VerificationAuditLogResponse.builder()
                                 .logId(logItem.getLogId())
@@ -160,24 +164,29 @@ public class AdminUserService {
     }
 
     @Transactional
-    public Mono<AdminUserDetailResponse> updateUserStatus(Long adminId, Long userId, AdminUpdateUserStatusRequest request) {
+    public Mono<AdminUserDetailResponse> updateUserStatus(Long adminId, Long userId,
+            AdminUpdateUserStatusRequest request) {
         String newStatus = request.getStatus().trim().toUpperCase();
         if (!"ACTIVE".equals(newStatus) && !"SUSPENDED".equals(newStatus) && !"PENDING".equals(newStatus)) {
-            return Mono.error(new IllegalArgumentException("Trạng thái không hợp lệ: " + newStatus + ". Chọn ACTIVE, SUSPENDED hoặc PENDING."));
+            return Mono.error(new IllegalArgumentException(
+                    "Trạng thái không hợp lệ: " + newStatus + ". Chọn ACTIVE, SUSPENDED hoặc PENDING."));
         }
 
         return userRepository.findById(userId)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + userId)))
                 .flatMap(user -> {
-                    Mono<Integer> updateStatusMono = userRepository.updateStatus(userId, newStatus, LocalDateTime.now());
+                    Mono<Integer> updateStatusMono = userRepository.updateStatus(userId, newStatus,
+                            LocalDateTime.now());
 
                     Mono<VerificationAuditLog> logMono = Mono.empty();
-                    if ("SUSPENDED".equals(newStatus) || (request.getReason() != null && !request.getReason().trim().isEmpty())) {
+                    if ("SUSPENDED".equals(newStatus)
+                            || (request.getReason() != null && !request.getReason().trim().isEmpty())) {
                         VerificationAuditLog auditLog = VerificationAuditLog.builder()
                                 .targetUserId(userId)
                                 .adminId(adminId)
                                 .action("SUSPENDED".equals(newStatus) ? "SUSPEND" : "APPROVE")
-                                .reason(request.getReason() != null ? request.getReason().trim() : "Quản trị viên cập nhật trạng thái sang " + newStatus)
+                                .reason(request.getReason() != null ? request.getReason().trim()
+                                        : "Quản trị viên cập nhật trạng thái sang " + newStatus)
                                 .reviewedAt(LocalDateTime.now())
                                 .build();
                         logMono = verificationAuditLogRepository.save(auditLog);

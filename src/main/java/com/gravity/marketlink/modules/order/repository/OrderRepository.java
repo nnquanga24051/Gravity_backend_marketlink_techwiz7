@@ -11,13 +11,20 @@ import java.time.LocalDate;
 
 @Repository
 public interface OrderRepository extends R2dbcRepository<Order, Long> {
-    Mono<Order> findByOrderCode(String orderCode);
-    Flux<Order> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
-    Flux<Order> findByFarmerIdOrderByCreatedAtDesc(Long farmerId);
-    Flux<Order> findByFarmerIdAndPickupDateOrderByCreatedAtDesc(Long farmerId, LocalDate pickupDate);
-    Flux<Order> findByFarmerIdAndMarketIdAndPickupDate(Long farmerId, Long marketId, LocalDate pickupDate);
-    Flux<Order> findByFarmerIdAndOrderStatusOrderByCreatedAtDesc(Long farmerId, String orderStatus);
+       Mono<Order> findByOrderCode(String orderCode);
 
-    @Query("SELECT COUNT(*) FROM orders WHERE slot_id = :slotId AND pickup_date = :pickupDate AND order_status NOT IN ('CANCELLED', 'DECLINED')")
-    Mono<Long> countActiveOrdersInSlot(Long slotId, LocalDate pickupDate);
+       Flux<Order> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
+
+       Flux<Order> findByFarmerIdOrderByCreatedAtDesc(Long farmerId);
+
+       Flux<Order> findByFarmerIdAndPickupDateOrderByCreatedAtDesc(Long farmerId, LocalDate pickupDate);
+
+       Flux<Order> findByFarmerIdAndMarketIdAndPickupDate(Long farmerId, Long marketId, LocalDate pickupDate);
+
+       Flux<Order> findByFarmerIdAndOrderStatusOrderByCreatedAtDesc(Long farmerId, String orderStatus);
+
+       @Query("SELECT COUNT(*) FROM orders WHERE slot_id = :slotId AND pickup_date = :pickupDate AND order_status NOT IN ('CANCELLED', 'DECLINED')")
+       Mono<Long> countActiveOrdersInSlot(Long slotId, LocalDate pickupDate);
+
+       Mono<Long> countByMarketId(Long marketId);
 }

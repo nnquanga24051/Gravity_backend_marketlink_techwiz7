@@ -1,0 +1,82 @@
+/* ========================================================
+   ADMIN ORDERS PAGE STYLES - MARKETLINK
+   ======================================================== */
+
+.ml-admin-orders-page {
+  background-color: var(--color-bg-base);
+  min-height: calc(100vh - 72px);
+  padding-bottom: var(--space-16);
+}
+
+.ml-admin-orders-banner {
+  background: linear-gradient(135deg, #1B5E20 0%, #0F3913 100%);
+  color: #FFFFFF;
+  padding: var(--space-8) 0 var(--space-10);
+  margin-bottom: var(--space-8);
+  box-shadow: 0 4px 20px rgba(27, 94, 32, 0.15);
+}
+
+.ml-admin-orders-banner-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.ml-admin-orders-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-extrabold);
+  margin-bottom: var(--space-2);
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+  .ml-admin-orders-title {
+    font-size: var(--font-size-3xl);
+  }
+}
+
+.ml-admin-orders-desc {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 680px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ml-admin-orders-stats-strip {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.ml-admin-stat-pill {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  backdrop-filter: blur(8px);
+}
+
+.ml-admin-stat-num {
+  font-size: 1.35rem;
+  font-weight: var(--font-weight-extrabold);
+  color: #4ADE80;
+}
+
+.ml-admin-stat-lbl {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ml-admin-orders-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

@@ -1,4 +1,4 @@
-﻿-- MariaDB dump 10.19  Distrib 10.4.32-MariaDB, for Win64 (AMD64)
+-- MariaDB dump 10.19  Distrib 10.4.32-MariaDB, for Win64 (AMD64)
 --
 -- Host: localhost    Database: marketlink_db
 -- ------------------------------------------------------
@@ -110,14 +110,13 @@ DROP TABLE IF EXISTS `farmer_kyc_documents`;
 CREATE TABLE `farmer_kyc_documents` (
   `document_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `farmer_id` bigint(20) NOT NULL,
-  `document_type` enum('CITIZEN_ID_FRONT','CITIZEN_ID_BACK','BUSINESS_REGISTRATION','FOOD_SAFETY_CERT','ORGANIC_VIETGAP_CERT','FARM_PHOTO') NOT NULL,
   `document_url` varchar(500) NOT NULL,
   `document_number` varchar(100) DEFAULT NULL,
   `issued_date` date DEFAULT NULL,
   `expiry_date` date DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`document_id`),
-  KEY `idx_fkd_farmer_type` (`farmer_id`,`document_type`),
+  KEY `idx_fkd_farmer` (`farmer_id`),
   CONSTRAINT `fk_fkd_farmer` FOREIGN KEY (`farmer_id`) REFERENCES `farmer_profiles` (`farmer_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -338,6 +337,8 @@ DROP TABLE IF EXISTS `products`;
 CREATE TABLE `products` (
   `product_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `farmer_id` bigint(20) NOT NULL,
+  `market_id` bigint(20) DEFAULT NULL,
+  `stall_number` varchar(50) DEFAULT NULL,
   `category_id` int(11) NOT NULL,
   `name` varchar(200) NOT NULL,
   `description` text DEFAULT NULL,
@@ -350,9 +351,12 @@ CREATE TABLE `products` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`product_id`),
   KEY `fk_p_cat` (`category_id`),
+  KEY `fk_p_market` (`market_id`),
   KEY `idx_products_catalog` (`farmer_id`,`category_id`,`status`),
+  KEY `idx_products_market_stall` (`market_id`,`stall_number`),
   CONSTRAINT `fk_p_cat` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`),
-  CONSTRAINT `fk_p_farmer` FOREIGN KEY (`farmer_id`) REFERENCES `farmer_profiles` (`farmer_id`) ON DELETE CASCADE
+  CONSTRAINT `fk_p_farmer` FOREIGN KEY (`farmer_id`) REFERENCES `farmer_profiles` (`farmer_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_p_market` FOREIGN KEY (`market_id`) REFERENCES `markets` (`market_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

@@ -13,6 +13,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class ProductUpdateRequest {
 
+    private Long marketId;
+
+    private String stallNumber;
+
     private Integer categoryId;
 
     private String name;

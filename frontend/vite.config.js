@@ -9,7 +9,11 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8081',
+        target: process.env.VITE_BACKEND_TARGET || 'http://36.50.176.64',
+        changeOrigin: true
+      },
+      '/uploads': {
+        target: process.env.VITE_BACKEND_TARGET || 'http://36.50.176.64',
         changeOrigin: true
       }
     }

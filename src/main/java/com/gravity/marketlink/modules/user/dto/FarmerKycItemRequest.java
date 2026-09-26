@@ -16,10 +16,6 @@ import java.time.LocalDate;
 @Schema(description = "Thông tin chi tiết một tài liệu KYC của Nông dân")
 public class FarmerKycItemRequest {
 
-    @NotBlank(message = "Loại tài liệu không được để trống")
-    @Schema(description = "Loại tài liệu: CITIZEN_ID_FRONT, CITIZEN_ID_BACK, BUSINESS_REGISTRATION, FOOD_SAFETY_CERT, ORGANIC_VIETGAP_CERT, FARM_PHOTO", example = "CITIZEN_ID_FRONT")
-    private String documentType;
-
     @NotBlank(message = "URL tài liệu không được để trống")
     @Schema(description = "Đường dẫn hình ảnh/tài liệu đã tải lên", example = "https://example.com/kyc/cccd-mat-truoc.jpg")
     private String documentUrl;

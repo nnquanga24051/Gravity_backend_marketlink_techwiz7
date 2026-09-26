@@ -51,7 +51,8 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
                 .flatMap(user -> orderService.createOrder(user.getUserId(), request))
                 .map(created -> ResponseEntity.status(HttpStatus.CREATED)
                         .body(ApiResponse.success("Đặt hàng thành công. Hẹn gặp bạn tại phiên chợ!", created)));
@@ -66,7 +67,8 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
                 .flatMap(user -> orderService.getCustomerOrders(user.getUserId()).collectList())
                 .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy lịch sử đơn hàng thành công.", list)));
     }
@@ -82,7 +84,8 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
                 .flatMap(user -> orderService.getOrderById(id, user.getUserId(), false))
                 .map(order -> ResponseEntity.ok(ApiResponse.success("Lấy thông tin đơn hàng thành công.", order)));
     }
@@ -98,9 +101,11 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
                 .flatMap(user -> orderService.cancelOrderByCustomer(user.getUserId(), id))
-                .map(cancelled -> ResponseEntity.ok(ApiResponse.success("Hủy đơn hàng thành công. Tồn kho sản phẩm đã được hoàn lại.", cancelled)));
+                .map(cancelled -> ResponseEntity.ok(
+                        ApiResponse.success("Hủy đơn hàng thành công. Tồn kho sản phẩm đã được hoàn lại.", cancelled)));
     }
 
     @Operation(summary = "Khách hàng điều chỉnh đơn hàng trước giờ chốt đơn (Modify Order)", description = "Thay đổi ca nhận hàng, ngày lấy hàng hoặc ghi chú trước thời hạn chốt đơn của nông dân.")
@@ -115,7 +120,8 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
                 .flatMap(user -> orderService.modifyOrderByCustomer(user.getUserId(), id, request))
                 .map(modified -> ResponseEntity.ok(ApiResponse.success("Cập nhật đơn hàng thành công.", modified)));
     }
@@ -132,7 +138,8 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
                 .flatMap(user -> orderService.reorder(user.getUserId(), id, request))
                 .map(created -> ResponseEntity.status(HttpStatus.CREATED)
                         .body(ApiResponse.success("Tái đặt hàng thành công. Hẹn gặp bạn tại phiên chợ!", created)));
@@ -154,9 +161,11 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
                 .flatMap(user -> orderService.getFarmerOrders(user.getUserId(), pickupDate, status).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách đơn hàng của nông dân thành công.", list)));
+                .map(list -> ResponseEntity
+                        .ok(ApiResponse.success("Lấy danh sách đơn hàng của nông dân thành công.", list)));
     }
 
     @Operation(summary = "Nông dân xem chi tiết đơn hàng", description = "Xem chi tiết người mua, mặt hàng cần chuẩn bị, ghi chú đơn hàng.")
@@ -170,7 +179,8 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
                 .flatMap(user -> orderService.getOrderById(id, user.getUserId(), true))
                 .map(order -> ResponseEntity.ok(ApiResponse.success("Lấy chi tiết đơn hàng thành công.", order)));
     }
@@ -187,9 +197,11 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
                 .flatMap(user -> orderService.updateOrderStatusByFarmer(user.getUserId(), id, request))
-                .map(updated -> ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái đơn hàng thành công.", updated)));
+                .map(updated -> ResponseEntity
+                        .ok(ApiResponse.success("Cập nhật trạng thái đơn hàng thành công.", updated)));
     }
 
     @Operation(summary = "Nông dân xem tổng quan thống kê đơn hàng", description = "Tổng số đơn hàng, doanh thu thực tế từ đơn hoàn thành, số lượng đơn theo từng trạng thái.")
@@ -201,7 +213,8 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
                 .flatMap(user -> orderService.getFarmerSummary(user.getUserId()))
                 .map(summary -> ResponseEntity.ok(ApiResponse.success("Lấy thống kê đơn hàng thành công.", summary)));
     }
@@ -217,9 +230,11 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
                 .flatMap(user -> orderService.getFarmerBestSelling(user.getUserId(), limit).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm bán chạy nhất thành công.", list)));
+                .map(list -> ResponseEntity
+                        .ok(ApiResponse.success("Lấy danh sách sản phẩm bán chạy nhất thành công.", list)));
     }
 
     // ==========================================

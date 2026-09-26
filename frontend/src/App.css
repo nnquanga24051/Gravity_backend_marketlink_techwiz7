@@ -508,3 +508,91 @@ main {
   color: white;
 }
 
+/* OpenStreetMap & Routing Styles */
+.map-view-box {
+  width: 100%;
+  height: 440px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.route-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.route-stat-item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+.route-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.route-stat-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-top: 4px;
+  color: #38bdf8;
+}
+
+.geofence-banner {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.35));
+  border: 1px solid #10b981;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  animation: pulseGeofence 2s infinite ease-in-out;
+}
+
+@keyframes pulseGeofence {
+  0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 28px rgba(16, 185, 129, 0.7); }
+}
+
+.geofence-icon {
+  font-size: 32px;
+}
+
+.geofence-title {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #a7f3d0;
+}
+
+.geofence-desc {
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  margin-top: 2px;
+}
+
+.steps-list {
+  max-height: 180px;
+  overflow-y: auto;
+  padding-left: 20px;
+  margin: 10px 0;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+
+.steps-list li {
+  margin-bottom: 6px;
+}
+
+

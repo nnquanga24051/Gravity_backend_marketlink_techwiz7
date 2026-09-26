@@ -1,0 +1,239 @@
+/* ========================================================
+   PRODUCT CARD STYLES - MARKETLINK
+   Đảm bảo kích thước thẻ đồng đều, bố cục phân tầng rõ nét
+   Không bị chèn ép chữ, giá hoặc nút giỏ hàng
+   ======================================================== */
+
+.ml-product-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+.ml-product-card:hover {
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-md);
+}
+
+.ml-product-card.is-out-of-stock {
+  opacity: 0.8;
+  filter: grayscale(0.2);
+}
+
+/* Khung ảnh sản phẩm */
+.ml-product-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  background-color: var(--color-bg-muted);
+}
+
+.ml-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-normal);
+}
+
+.ml-product-card:hover .ml-product-img {
+  transform: scale(1.05);
+}
+
+/* Nhãn phủ trên ảnh */
+.ml-product-badges {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ml-harvest-tag {
+  background: rgba(27, 94, 32, 0.9);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  margin-left: auto;
+}
+
+/* Thân thẻ sản phẩm */
+.ml-product-body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* Nguồn gốc & Mã sạp */
+.ml-product-origin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 11.5px;
+  margin-bottom: 6px;
+}
+
+.ml-farmer-name {
+  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
+}
+
+.ml-stall-code {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  background-color: var(--color-bg-base);
+  border: 1px solid var(--color-border-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Tên nông sản - Giới hạn 2 dòng đều nhau */
+.ml-product-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-main);
+  line-height: 1.35;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 42px; /* Đảm bảo độ cao đồng nhất cho các card cùng hàng */
+}
+
+/* Thông tin chợ phiên nhận hàng */
+.ml-product-market-hint {
+  font-size: 12px;
+  color: var(--color-text-body);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ml-product-market-hint strong {
+  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Tồn kho */
+.ml-product-stock-wrap {
+  margin-top: auto;
+  margin-bottom: var(--space-3);
+  font-size: 11.5px;
+  padding: 4px 8px;
+  background-color: var(--color-bg-base);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  width: fit-content;
+}
+
+.ml-stock-text {
+  color: var(--color-primary-dark);
+}
+
+.ml-stock-text strong {
+  font-weight: var(--font-weight-bold);
+}
+
+.ml-stock-text.out {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Footer & Nút Giỏ Hàng */
+.ml-product-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-light);
+  min-height: 48px;
+}
+
+.ml-product-price-box {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ml-product-price {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-accent);
+}
+
+.ml-product-unit {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+
+/* Điều khiển số lượng */
+.ml-qty-control {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-primary-light);
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-surface);
+  overflow: hidden;
+  height: 32px;
+}
+
+.ml-qty-btn {
+  background: none;
+  border: none;
+  width: 30px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: bold;
+  color: var(--color-primary-dark);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.ml-qty-btn:hover {
+  background-color: var(--color-primary-subtle);
+}
+
+.ml-qty-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.ml-qty-num {
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  min-width: 26px;
+  text-align: center;
+  color: var(--color-primary-dark);
+}

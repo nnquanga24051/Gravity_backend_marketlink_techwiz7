@@ -48,9 +48,10 @@ public class SecurityConfig {
                                                                 jakarta.servlet.DispatcherType.ERROR)
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                                .requestMatchers("/", "/index.html", "/test.html", "/static/**", "/*.html", "/*.css", "/*.js", "/favicon.ico").permitAll()
+                                                .requestMatchers("/", "/index.html", "/test.html", "/static/**", "/uploads/**", "/*.html", "/*.css", "/*.js", "/favicon.ico").permitAll()
                                                 .requestMatchers("/api/auth/**").permitAll()
                                                 .requestMatchers("/api/ai/**").permitAll()
+                                                .requestMatchers("/api/upload/**").permitAll()
                                                 .requestMatchers(HttpMethod.GET, 
                                                                 "/api/markets/**",
                                                                 "/api/categories/**", 

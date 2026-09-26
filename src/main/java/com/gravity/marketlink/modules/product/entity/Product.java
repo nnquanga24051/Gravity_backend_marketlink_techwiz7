@@ -25,6 +25,12 @@ public class Product {
     @Column("farmer_id")
     private Long farmerId;
 
+    @Column("market_id")
+    private Long marketId;
+
+    @Column("stall_number")
+    private String stallNumber;
+
     @Column("category_id")
     private Integer categoryId;
 

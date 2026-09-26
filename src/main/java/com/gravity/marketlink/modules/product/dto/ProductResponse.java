@@ -18,6 +18,9 @@ public class ProductResponse {
     private Long farmerId;
     private String farmerStallName;
     private String farmAddress;
+    private Long marketId;
+    private String marketName;
+    private String stallNumber;
     private Integer categoryId;
     private String categoryName;
     private String name;

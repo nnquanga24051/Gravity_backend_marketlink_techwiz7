@@ -1,756 +1,575 @@
-import React, { useState, useEffect, useRef } from 'react';
-import './App.css';
+import React, { useState, useEffect } from 'react';
+import './styles/global.css';
 
-const BASE_URL = ''; // Relative path leverages Vite's proxy to http://localhost:8081
+// Layout & Common
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import MobileDrawer from './components/layout/MobileDrawer';
+import AIChatbot from './components/layout/AIChatbot';
+import Toast from './components/common/Toast';
+import AuthModal from './components/common/AuthModal';
+import CartDrawer from './components/customer/CartDrawer';
+
+// Pages & Studios - Customer
+import HomePage from './pages/HomePage';
+import ProductsPage from './pages/customer/ProductsPage';
+import MarketsPage from './pages/customer/MarketsPage';
+import StallsPage from './pages/customer/StallsPage';
+import CustomerOrdersPage from './pages/customer/CustomerOrdersPage';
+import CustomerDashboardPage from './pages/customer/CustomerDashboardPage';
+import CustomerReviewsPage from './pages/customer/CustomerReviewsPage';
+
+// Pages - Farmer
+import FarmerDashboardPage from './pages/farmer/FarmerDashboardPage';
+import FarmerInventoryPage from './pages/farmer/FarmerInventoryPage';
+import FarmerOrdersPage from './pages/farmer/FarmerOrdersPage';
+import FarmerStallProfilePage from './pages/farmer/FarmerStallProfilePage';
+import FarmerReviewsPage from './pages/farmer/FarmerReviewsPage';
+
+// Pages - Admin
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import UserModerationPage from './pages/admin/UserModerationPage';
+import ContentModerationPage from './pages/admin/ContentModerationPage';
+import AdminOrdersPage from './pages/admin/AdminOrdersPage';
+
+// Studios & Tools
+import AdminMarketStudio from './components/AdminMarketStudio';
+import OpenStreetMapRouting from './components/OpenStreetMapRouting';
+import ImageUploadStudio from './components/ImageUploadStudio';
+
+// Services
+import orderService from './services/orderService';
+import authService from './services/authService';
 
 export default function App() {
+  // Sanitize potentially corrupted UTF-8 string like 'Nguy?n Nh?t Quang'
+  const sanitizeName = (raw) => {
+    if (!raw || raw === 'Khách vãng lai') return 'Khách vãng lai';
+    return raw
+      .replace(/Nguy\?n\s*Nh\?t\s*Quang/gi, 'Nguyễn Nhựt Quang')
+      .replace(/Nguy\?n/gi, 'Nguyễn')
+      .replace(/Nh\?t/gi, 'Nhựt')
+      .replace(/\?/g, '');
+  };
+
+  // Authentication & Role
   const [token, setToken] = useState(() => localStorage.getItem('ml_token') || '');
-  const [role, setRole] = useState(() => localStorage.getItem('ml_role') || 'GUEST');
-  const [userName, setUserName] = useState(() => localStorage.getItem('ml_name') || 'Khách vãng lai');
-  const [activeTab, setActiveTab] = useState('ai');
-
-  // AI Chat state
-  const [chatMessages, setChatMessages] = useState([
-    {
-      sender: 'bot',
-      text: 'Xin chào! Tôi là Trợ lý ảo AI của sàn Nông sản MarketLink. Tôi có thể hỗ trợ bạn tìm kiếm nông sản sạch, lịch họp chợ và các khung giờ nhận hàng tại sạp. Bạn cần hỗ trợ gì hôm nay?',
-      markets: [],
-      products: [],
-      isStreaming: false
+  const [currentRole, setCurrentRole] = useState(() => localStorage.getItem('ml_role') || 'GUEST');
+  const [userName, setUserName] = useState(() => {
+    const saved = localStorage.getItem('ml_name');
+    if (saved) {
+      const clean = sanitizeName(saved);
+      if (clean !== saved) {
+        try { localStorage.setItem('ml_name', clean); } catch {}
+      }
+      return clean;
     }
-  ]);
-  const [aiInput, setAiInput] = useState('');
-  const [customKey, setCustomKey] = useState('');
-  const [aiJson, setAiJson] = useState('// Phản hồi chi tiết từ AI sẽ hiển thị ở đây...');
-  const [aiLoading, setAiLoading] = useState(false);
-  const chatEndRef = useRef(null);
-  const abortControllerRef = useRef(null);
+    return 'Khách vãng lai';
+  });
 
-  // Auto-scroll chat to bottom
+  // Navigation & UI state
+  const [activeNav, setActiveNav] = useState('home');
+  const [selectedLocation, setSelectedLocation] = useState('Hà Nội');
+  const [selectedMarketFilter, setSelectedMarketFilter] = useState('all');
+  const [selectedFarmerFilter, setSelectedFarmerFilter] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('LOGIN'); // 'LOGIN' | 'REGISTER' | 'FORGOT'
+
+  // Cart state (stored in localStorage for persistence)
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ml_cart');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 101,
+          name: 'Dâu Tây Mộc Châu Giống Hana (Hái Sớm)',
+          price: 65000,
+          unit: 'hộp 500g',
+          farmerName: 'HTX Dâu Tây Mộc Châu',
+          stallCode: 'Sạp A-02',
+          marketName: 'Chợ Nông Sản Tây Hồ',
+          imageUrl: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?auto=format&fit=crop&w=600&q=80',
+          quantity: 2
+        }
+      ];
+    } catch {
+      return [];
+    }
+  });
+
+  // Toast notifications
+  const [toasts, setToasts] = useState([]);
+
   useEffect(() => {
-    if (activeTab === 'ai') {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chatMessages, aiLoading, activeTab]);
-
-  // Profile form state (for testing PUT /api/users/profile fix)
-  const [fullName, setFullName] = useState('Nguyễn Nhựt Quang');
-  const [phone, setPhone] = useState('0987654321');
-  const [address, setAddress] = useState('Số 123 Đường Láng, Đống Đa, Hà Nội');
-  const [lat, setLat] = useState('21.028511');
-  const [lon, setLon] = useState('105.804817');
-  const [profileResult, setProfileResult] = useState('// Bấm nút để gọi API xem hoặc sửa hồ sơ...');
-
-  // Favorites test state
-  const [favTargetType, setFavTargetType] = useState('MARKET');
-
-  // General console outputs
-  const [custOutput, setCustOutput] = useState('// Bấm nút để xem dữ liệu Chợ và Đơn hàng...');
-  const [farmerOutput, setFarmerOutput] = useState('// Bấm nút để xem nghiệp vụ Nông dân...');
-  const [adminOutput, setAdminOutput] = useState('// Bấm nút để xem số liệu Quản trị viên...');
-  const [adminMetrics, setAdminMetrics] = useState({ customers: '-', farmers: '-', markets: '-', orders: '-' });
-
-  // Custom request state
-  const [customMethod, setCustomMethod] = useState('GET');
-  const [customPath, setCustomPath] = useState('/api/markets');
-  const [customBody, setCustomBody] = useState('');
-  const [customOutput, setCustomOutput] = useState('// Kết quả gọi API tùy biến...');
-
-  // Save auth
-  const handleLogin = (tok, r, name) => {
-    setToken(tok);
-    setRole(r);
-    setUserName(name);
-    localStorage.setItem('ml_token', tok);
-    localStorage.setItem('ml_role', r);
-    localStorage.setItem('ml_name', name);
-  };
-
-  const handleLogout = () => {
-    setToken('');
-    setRole('GUEST');
-    setUserName('Khách vãng lai');
-    localStorage.removeItem('ml_token');
-    localStorage.removeItem('ml_role');
-    localStorage.removeItem('ml_name');
-    alert('Đã xóa phiên đăng nhập!');
-  };
-
-  const quickLogin = async (email, password, displayName) => {
     try {
-      const res = await fetch(`${BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (res.ok && data.token) {
-        const primaryRole = (data.roles && data.roles[0]) ? data.roles[0].replace('ROLE_', '') : 'CUSTOMER';
-        handleLogin(data.token, primaryRole, data.fullName || displayName);
-        alert(`Đăng nhập thành công với vai trò: ${primaryRole}`);
-      } else {
-        alert('Đăng nhập thất bại: ' + (data.message || JSON.stringify(data)));
-      }
+      localStorage.setItem('ml_cart', JSON.stringify(cartItems));
     } catch (err) {
-      alert('Lỗi kết nối Backend (8081): ' + err.message);
+      console.warn('Error saving cart to storage', err);
     }
+  }, [cartItems]);
+
+  // Verify stored session on mount
+  useEffect(() => {
+    const verifySession = async () => {
+      const savedToken = localStorage.getItem('ml_token');
+      if (savedToken) {
+        try {
+          const profile = await authService.getCurrentUser();
+          if (profile?.fullName) {
+            const clean = sanitizeName(profile.fullName);
+            setUserName(clean);
+            localStorage.setItem('ml_name', clean);
+          }
+          if (profile?.roles && profile.roles.length > 0) {
+            const serverRole = profile.roles[0].replace('ROLE_', '');
+            setCurrentRole(serverRole);
+            localStorage.setItem('ml_role', serverRole);
+          }
+        } catch (err) {
+          console.warn('Session verification warning:', err);
+          if (err.status === 401 || err.status === 403) {
+            authService.logout();
+            setToken('');
+            setCurrentRole('GUEST');
+            setUserName('Khách vãng lai');
+          }
+        }
+      }
+    };
+    verifySession();
+  }, []);
+
+  const addToast = (title, message, type = 'success') => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, title, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
   };
 
-  // Generic API caller
-  const callApi = async (path, method = 'GET', body = null) => {
-    const start = performance.now();
-    try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const res = await fetch(`${BASE_URL}${path}`, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined
-      });
-
-      const ms = Math.round(performance.now() - start);
-      let data;
-      const text = await res.text();
-      try { data = JSON.parse(text); } catch { data = text; }
-
-      return { status: res.status, ms, data };
-    } catch (err) {
-      return { status: 500, ms: 0, data: { error: err.message } };
-    }
+  const removeToast = (id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Stop AI streaming
-  const stopAiStream = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    setAiLoading(false);
-    setChatMessages(prev => {
-      const copy = [...prev];
-      const lastIdx = copy.length - 1;
-      if (lastIdx >= 0 && copy[lastIdx].sender === 'bot') {
-        copy[lastIdx] = { ...copy[lastIdx], isStreaming: false };
+  // Cart operations
+  const handleAddToCart = (product) => {
+    setCartItems((prev) => {
+      const existing = prev.find((item) => item.id === product.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
       }
-      return copy;
+      return [...prev, { ...product, quantity: 1 }];
     });
+    addToast(
+      'Đã thêm vào giỏ đặt trước! 🌿',
+      `${product.name} được đặt giữ chỗ tại ${product.marketName || 'chợ phiên'}.`,
+      'success'
+    );
   };
 
-  // AI chat send (Real-time SSE with dynamic typewriter fallback)
-  const sendAi = async (messageText) => {
-    const q = messageText || aiInput;
-    if (!q.trim() || aiLoading) return;
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+  const handleUpdateCartQty = (product, newQty) => {
+    if (newQty <= 0) {
+      handleRemoveCartItem(product.id);
+      return;
     }
-    const abortCtrl = new AbortController();
-    abortControllerRef.current = abortCtrl;
+    setCartItems((prev) =>
+      prev.map((item) => (item.id === product.id ? { ...item, quantity: newQty } : item))
+    );
+  };
 
-    const userMsg = { sender: 'user', text: q };
-    const botPlaceholder = {
-      sender: 'bot',
-      text: '',
-      isStreaming: true,
-      markets: [],
-      products: [],
-      timing: ''
-    };
+  const handleRemoveCartItem = (productId) => {
+    setCartItems((prev) => prev.filter((item) => item.id !== productId));
+    addToast('Đã bỏ món khỏi giỏ', 'Bạn có thể chọn lại sản phẩm khác bất kỳ lúc nào.', 'info');
+  };
 
-    setChatMessages(prev => [...prev, userMsg, botPlaceholder]);
-    setAiInput('');
-    setAiLoading(true);
-
-    const payload = { message: q };
-    if (customKey.trim()) payload.apiKey = customKey.trim();
-
+  const handleSubmitOrder = async (orderPayload, metaDetails = {}) => {
     try {
-      // 1. Try real-time streaming endpoint (SSE)
-      let streamRes = null;
+      let finalPayload = orderPayload;
+      if (!finalPayload || !finalPayload.items) {
+        const firstItem = (cartItems && cartItems.length > 0) ? cartItems[0] : null;
+        const farmerId = firstItem?.farmerId || 103;
+        const marketId = firstItem?.marketId || 101;
+        const slotId = 101; // Ca sáng 07:00 - 08:00
+        
+        const now = new Date();
+        now.setDate(now.getDate() + 1);
+        const pickupDate = now.toISOString().split('T')[0];
 
-      try {
-        streamRes = await fetch(`${BASE_URL}/api/ai/chat/stream`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: abortCtrl.signal
-        });
-        if (streamRes.status === 404) {
-          streamRes = await fetch(`${BASE_URL}/api/ai/assistant/chat/stream`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            signal: abortCtrl.signal
-          });
-        }
-      } catch (streamErr) {
-        if (abortCtrl.signal.aborted) return;
-        console.warn('Direct stream connection error, will use fallback:', streamErr);
+        finalPayload = {
+          farmerId: Number(farmerId),
+          marketId: Number(marketId),
+          slotId: Number(slotId),
+          pickupDate: pickupDate,
+          note: metaDetails.customerNote || orderPayload?.customerNote || 'Đặt trước qua sàn MarketLink',
+          items: cartItems.map((it) => ({
+            productId: Number(it.productId || it.id || 101),
+            quantity: Number(it.quantity || 1)
+          }))
+        };
       }
 
-      if (streamRes && streamRes.ok && streamRes.body) {
-        const reader = streamRes.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let accumulated = '';
-        let sseBuffer = '';
+      const result = await orderService.createOrder(finalPayload);
+      const code = result?.orderCode || result?.data?.orderCode || 'ORD-' + Math.floor(1000 + Math.random() * 9000);
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          sseBuffer += chunk;
-          const lines = sseBuffer.split('\n');
-          sseBuffer = lines.pop() || '';
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('data:')) {
-              const token = line.replace(/^\s*data:\s?/, '');
-              accumulated += token;
-              setChatMessages(prev => {
-                const copy = [...prev];
-                const lastIdx = copy.length - 1;
-                if (lastIdx >= 0 && copy[lastIdx].sender === 'bot') {
-                  copy[lastIdx] = { ...copy[lastIdx], text: accumulated, isStreaming: true };
-                }
-                return copy;
-              });
-            }
-          }
-        }
-
-        if (accumulated.trim().length > 0) {
-          setChatMessages(prev => {
-            const copy = [...prev];
-            const lastIdx = copy.length - 1;
-            if (lastIdx >= 0 && copy[lastIdx].sender === 'bot') {
-              copy[lastIdx] = { ...copy[lastIdx], isStreaming: false };
-            }
-            return copy;
-          });
-          setAiJson(JSON.stringify({ mode: 'REALTIME_SSE', length: accumulated.length, status: 200 }, null, 2));
-          return;
-        }
-      }
-
-      // 2. Resilient fallback: call standard API and stream token-by-token
-      let res = await fetch(`${BASE_URL}/api/ai/assistant/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: abortCtrl.signal
-      });
-
-      if (res.status === 404) {
-        res = await fetch(`${BASE_URL}/api/ai/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: abortCtrl.signal
-        });
-      }
-
-      const raw = await res.json();
-      const aiData = raw.data || raw;
-      const fullReply = aiData.reply || raw.message || 'Dạ, tôi chưa tìm thấy câu trả lời phù hợp.';
-      setAiJson(JSON.stringify(raw, null, 2));
-
-      // Tokenize and stream into UI with 24ms typewriter delay
-      const tokens = fullReply.split(/(?<=\s)|(?<=[.,!?])/);
-      let currentTyped = '';
-
-      for (let i = 0; i < tokens.length; i++) {
-        if (abortCtrl.signal.aborted) break;
-        currentTyped += tokens[i];
-        setChatMessages(prev => {
-          const copy = [...prev];
-          const lastIdx = copy.length - 1;
-          if (lastIdx >= 0 && copy[lastIdx].sender === 'bot') {
-            copy[lastIdx] = {
-              ...copy[lastIdx],
-              text: currentTyped,
-              isStreaming: i < tokens.length - 1,
-              markets: aiData.relevantMarkets || [],
-              products: aiData.relevantProducts || [],
-              timing: aiData.timingNotes || ''
-            };
-          }
-          return copy;
-        });
-        await new Promise(r => setTimeout(r, 24));
-      }
+      addToast(
+        `Đặt trước thành công! 🎉 Mã đơn: #${code}`,
+        `Đơn hàng tại ${metaDetails.pickupMarket || 'sạp nông dân'} đã được ghi nhận. Hẹn bạn ghé chợ nhận hàng và thanh toán trực tiếp!`,
+        'success'
+      );
+      setCartItems([]);
+      setIsCartOpen(false);
+      setActiveNav('orders');
     } catch (err) {
-      if (abortCtrl.signal.aborted) return;
-      setChatMessages(prev => {
-        const copy = [...prev];
-        const lastIdx = copy.length - 1;
-        if (lastIdx >= 0 && copy[lastIdx].sender === 'bot') {
-          copy[lastIdx] = {
-            ...copy[lastIdx],
-            text: 'Lỗi gọi API Chat: ' + err.message,
-            isStreaming: false
-          };
-        }
-        return copy;
-      });
-    } finally {
-      setAiLoading(false);
-      abortControllerRef.current = null;
+      console.warn('Real order submit warning:', err);
+      addToast(
+        'Không thể tạo đơn đặt trước',
+        err?.message || 'Vui lòng kiểm tra lại thông tin hoặc đăng nhập trước khi đặt hàng.',
+        'error'
+      );
     }
   };
 
-  // Test Profile PUT fix
-  const handleUpdateProfile = async () => {
-    setProfileResult('Đang gửi PUT /api/users/profile...');
-    const body = {
-      fullName,
-      phoneNumber: phone,
-      defaultAddress: address,
-      latitude: parseFloat(lat),
-      longitude: parseFloat(lon)
-    };
-    const res = await callApi('/api/users/profile', 'PUT', body);
-    setProfileResult(
-      `[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2)
-    );
+  // Auth actions
+  const handleLoginSuccess = (tokenVal, roleVal, nameVal) => {
+    const cleanName = sanitizeName(nameVal);
+    setToken(tokenVal);
+    setCurrentRole(roleVal);
+    setUserName(cleanName);
+    localStorage.setItem('ml_token', tokenVal);
+    localStorage.setItem('ml_role', roleVal);
+    localStorage.setItem('ml_name', cleanName);
+    addToast('Đăng nhập thành công! 🎉', `Chào mừng ${cleanName} đến với MarketLink!`, 'success');
   };
 
-  const handleGetProfile = async () => {
-    setProfileResult('Đang gửi GET /api/users/profile...');
-    const res = await callApi('/api/users/profile', 'GET');
-    setProfileResult(
-      `[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2)
-    );
+  const handleOpenAuthModal = (mode = 'LOGIN') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
   };
 
-  const handleFavorites = async () => {
-    setProfileResult(`Đang kiểm tra GET /api/customer/favorites?targetType=${favTargetType}...`);
-    const res = await callApi(`/api/customer/favorites?targetType=${favTargetType}`, 'GET');
-    setProfileResult(
-      `[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2)
-    );
+  const handleLogout = async () => {
+    await authService.logout();
+    setToken('');
+    setCurrentRole('GUEST');
+    setUserName('Khách vãng lai');
+    setActiveNav('home');
+    addToast('Đã đăng xuất', 'Bạn đã đăng xuất tài khoản an toàn.', 'info');
   };
 
-  // Admin metrics
-  const loadAdminMetrics = async () => {
-    setAdminOutput('Đang tải dữ liệu chỉ số toàn sàn...');
-    const res = await callApi('/api/admin/dashboard/metrics', 'GET');
-    setAdminOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-    const payload = res.data?.data || res.data;
-    if (payload && (payload.totalCustomers !== undefined || payload.customers !== undefined)) {
-      setAdminMetrics({
-        customers: payload.totalCustomers ?? payload.customers ?? 0,
-        farmers: payload.totalFarmers ?? payload.farmers ?? 0,
-        markets: payload.totalMarkets ?? payload.markets ?? 0,
-        orders: payload.totalOrders ?? payload.orders ?? 0
-      });
+  const callApi = async (endpoint, method = 'GET', body = null) => {
+    try {
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      if (body && !(body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
+
+      const options = {
+        method,
+        headers
+      };
+
+      if (body) {
+        options.body = body instanceof FormData ? body : JSON.stringify(body);
+      }
+
+      const res = await fetch(endpoint, options);
+      let data = null;
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        data = { message: text };
+      }
+      return { status: res.status, data };
+    } catch (err) {
+      console.warn('callApi error:', err);
+      return { status: 500, data: { message: err.message || 'Lỗi kết nối máy chủ.' } };
     }
   };
+
+  const handleSwitchRole = (roleVal) => {
+    setCurrentRole(roleVal);
+    localStorage.setItem('ml_role', roleVal);
+    if (roleVal === 'ADMIN' || roleVal === 'FARMER') {
+      setIsCartOpen(false);
+    }
+
+    // Auto-navigate to respective landing page
+    if (roleVal === 'FARMER') {
+      setActiveNav('farmer-dashboard');
+    } else if (roleVal === 'ADMIN') {
+      setActiveNav('admin-dashboard');
+    } else if (roleVal === 'CUSTOMER') {
+      if (activeNav.startsWith('farmer-') || activeNav.startsWith('admin-')) {
+        setActiveNav('home');
+      }
+    }
+
+    addToast(
+      'Đã đổi góc nhìn giao diện',
+      `Hiện đang xem với quyền: ${
+        roleVal === 'FARMER'
+          ? 'Nông dân (Chủ sạp)'
+          : roleVal === 'ADMIN'
+          ? 'Quản trị viên'
+          : roleVal === 'CUSTOMER'
+          ? 'Khách hàng'
+          : 'Khách vãng lai'
+      }`,
+      'info'
+    );
+  };
+
+  const isShopper = currentRole !== 'ADMIN' && currentRole !== 'FARMER';
+  const totalCartCount = cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
   return (
-    <div className="app-container">
-      {/* Top Header */}
-      <header>
-        <div className="header-inner">
-          <div className="brand">
-            <div className="brand-icon">🥬</div>
-            <div>
-              <div className="brand-name">MarketLink Frontend Studio</div>
-              <div className="brand-sub">React 19 + Vite • Cổng 5173 • Techwiz 7 Sandbox</div>
-            </div>
-          </div>
+    <div className="ml-app">
+      {/* Toast Notification Container */}
+      <Toast toasts={toasts} onRemove={removeToast} />
 
-          <div className="auth-bar">
-            <div className="user-tag">
-              <div className={`dot ${token ? 'online' : ''}`}></div>
-              <span>{userName}</span>
-              <span className={`role-badge role-${role.toLowerCase()}`}>{role}</span>
-            </div>
+      {/* Main Responsive Header */}
+      <Header
+        currentRole={currentRole}
+        userName={userName}
+        onSwitchRole={handleSwitchRole}
+        cartCount={isShopper ? totalCartCount : 0}
+        onOpenCart={isShopper ? () => setIsCartOpen(true) : undefined}
+        onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+        selectedLocation={selectedLocation}
+        onSelectLocation={setSelectedLocation}
+        onOpenAuthModal={handleOpenAuthModal}
+        activeNav={activeNav}
+        onNavigate={(navKey) => setActiveNav(navKey)}
+        onLogout={handleLogout}
+      />
 
-            <div className="btn-actions">
-              <button className="btn btn-outline" onClick={() => quickLogin('customer@marketlink.vn', 'Customer@123', 'Trần Thị Khách Hàng')}>🛒 Khách Hàng</button>
-              <button className="btn btn-outline" onClick={() => quickLogin('farmer@marketlink.vn', 'Farmer@123', 'Nguyễn Văn Nông Dân')}>👨‍🌾 Nông Dân</button>
-              <button className="btn btn-outline" onClick={() => quickLogin('admin@marketlink.vn', 'Admin@123', 'Quản Trị Viên')}>👑 Admin</button>
-              {token && <button className="btn btn-danger" onClick={handleLogout}>Đăng Xuất</button>}
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Mobile Navigation Drawer */}
+      <MobileDrawer
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        currentRole={currentRole}
+        userName={userName}
+        onSwitchRole={handleSwitchRole}
+        selectedLocation={selectedLocation}
+        onSelectLocation={setSelectedLocation}
+        activeNav={activeNav}
+        onNavigate={(navKey) => setActiveNav(navKey)}
+        onOpenAuthModal={handleOpenAuthModal}
+        onLogout={handleLogout}
+      />
 
-      {/* Main Tabs */}
-      <main>
-        <div className="tab-nav">
-          <button className={`tab-item ${activeTab === 'ai' ? 'active' : ''}`} onClick={() => setActiveTab('ai')}>🤖 AI Assistant Chatbot</button>
-          <button className={`tab-item ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>👤 Profile & Favorites (Test Fix)</button>
-          <button className={`tab-item ${activeTab === 'customer' ? 'active' : ''}`} onClick={() => setActiveTab('customer')}>🛒 Chợ & Nông Sản</button>
-          <button className={`tab-item ${activeTab === 'farmer' ? 'active' : ''}`} onClick={() => setActiveTab('farmer')}>👨‍🌾 Nghiệp vụ Nông Dân</button>
-          <button className={`tab-item ${activeTab === 'admin' ? 'active' : ''}`} onClick={() => setActiveTab('admin')}>👑 Quản Trị Viên (Admin)</button>
-          <button className={`tab-item ${activeTab === 'custom' ? 'active' : ''}`} onClick={() => setActiveTab('custom')}>⚡ API Playground Tùy Biến</button>
-        </div>
-
-        {/* TAB 1: AI Assistant */}
-        {activeTab === 'ai' && (
-          <div className="grid-cols-2">
-            <div className="card">
-              <div className="card-top">
-                <div className="card-heading">
-                  🤖 Trợ lý ảo Nông sản MarketLink
-                  <span className="live-badge">
-                    <span className="live-pulse"></span>
-                    {aiLoading ? 'Đang truyền trực tiếp...' : 'Real-time Chat'}
-                  </span>
-                </div>
-                <span className="badge-tag">SSE & RAG</span>
-              </div>
-
-              <div className="chat-window">
-                <div className="chat-history">
-                  {chatMessages.map((m, idx) => (
-                    <div key={idx} className={`chat-msg ${m.sender}`}>
-                      <div className="avatar-circle">{m.sender === 'bot' ? '🥬' : '👤'}</div>
-                      <div className="bubble">
-                        <div>
-                          {m.text}
-                          {m.isStreaming && <span className="streaming-cursor">▌</span>}
-                        </div>
-                        {m.isStreaming && !m.text && (
-                          <div className="stream-typing-row">
-                            <span>Đang kết nối luồng dữ liệu chợ...</span>
-                            <span className="typing-dots"><span></span><span></span><span></span></span>
-                          </div>
-                        )}
-                        {m.markets && m.markets.length > 0 && (
-                          <div className="tags-row">
-                            {m.markets.map((mk, i) => <span key={i} className="badge-tag">📍 {mk}</span>)}
-                          </div>
-                        )}
-                        {m.products && m.products.length > 0 && (
-                          <div className="tags-row">
-                            {m.products.map((pr, i) => <span key={i} className="badge-tag">🥦 {pr}</span>)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  <div ref={chatEndRef} />
-                </div>
-
-                <div className="quick-chips">
-                  <span className="chip-btn" onClick={() => sendAi('Chợ nào mở vào Chủ nhật và có bán rau sạch?')}>Chợ mở Chủ nhật?</span>
-                  <span className="chip-btn" onClick={() => sendAi('Giá cà chua bi hiện tại là bao nhiêu?')}>Giá cà chua bi?</span>
-                  <span className="chip-btn" onClick={() => sendAi('Quy định đặt trước và nhận hàng tại sạp thế nào?')}>Quy định nhận hàng?</span>
-                  <span className="chip-btn" onClick={() => sendAi('Thứ 7 này có chợ nào bán xà lách thủy canh không?')}>Xà lách thứ 7?</span>
-                </div>
-
-                <div className="chat-footer">
-                  <input
-                    className="input-control"
-                    type="text"
-                    placeholder="Gõ câu hỏi cho AI (ví dụ: Chợ nào bán rau sạch vào Chủ nhật?)..."
-                    value={aiInput}
-                    disabled={aiLoading}
-                    onChange={e => setAiInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && !aiLoading && sendAi()}
-                  />
-                  {aiLoading ? (
-                    <button className="btn-stop" onClick={stopAiStream}>
-                      ⏹ Dừng
-                    </button>
-                  ) : (
-                    <button className="btn btn-primary" onClick={() => sendAi()}>
-                      Gửi ↵
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-top">
-                <div className="card-heading">⚙️ Cấu hình AI & JSON Phản Hồi Gốc</div>
-              </div>
-              <div className="form-item">
-                <label>API Key tùy chọn (để trống sẽ dùng cấu hình server application.properties):</label>
-                <input
-                  className="input-control"
-                  type="password"
-                  placeholder="AIzaSy... (Tùy chọn)"
-                  value={customKey}
-                  onChange={e => setCustomKey(e.target.value)}
-                />
-              </div>
-              <div className="form-item">
-                <label>Phản hồi JSON chi tiết từ máy chủ:</label>
-                <pre className="code-console">{aiJson}</pre>
-              </div>
-            </div>
-          </div>
+      {/* Main View Area */}
+      <main className="ml-main-content">
+        {/* View Router */}
+        {/* Customer Views */}
+        {activeNav === 'home' && (
+          <HomePage
+            onAddToCart={isShopper ? handleAddToCart : undefined}
+            cartItems={isShopper ? cartItems : []}
+            onUpdateCartQty={isShopper ? handleUpdateCartQty : undefined}
+            onNavigate={(nav) => setActiveNav(nav)}
+            onSelectMarketProducts={(market) => {
+              if (market?.name) setSelectedMarketFilter(market.name);
+              setActiveNav('products');
+            }}
+            onOpenFarmerRegister={() => {
+              handleOpenAuthModal('REGISTER');
+            }}
+          />
         )}
 
-        {/* TAB 2: Profile & Favorites */}
-        {activeTab === 'profile' && (
-          <div className="grid-cols-2">
-            <div className="card">
-              <div className="card-top">
-                <div className="card-heading">🛠️ Test Cập Nhật Profile (Vừa sửa lỗi HTTP 500)</div>
-                <span className="badge-tag">PUT /api/users/profile</span>
-              </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 14 }}>
-                Bản vá đã loại bỏ cơ chế nhảy nhầm vào <code>switchIfEmpty</code> trên <code>Mono&lt;Void&gt;</code>. Hãy bấm nút dưới để test kết quả trả về!
+        {activeNav === 'markets' && (
+          <MarketsPage
+            onNavigate={(nav) => setActiveNav(nav)}
+            onSelectMarketProducts={(market) => {
+              if (market?.name) setSelectedMarketFilter(market.name);
+              setActiveNav('products');
+            }}
+            onAddToCart={isShopper ? handleAddToCart : undefined}
+            cartItems={isShopper ? cartItems : []}
+            onUpdateCartQty={isShopper ? handleUpdateCartQty : undefined}
+          />
+        )}
+
+        {activeNav === 'products' && (
+          <ProductsPage
+            onAddToCart={isShopper ? handleAddToCart : undefined}
+            cartItems={isShopper ? cartItems : []}
+            onUpdateCartQty={isShopper ? handleUpdateCartQty : undefined}
+            onNavigate={(nav) => setActiveNav(nav)}
+            initialMarket={selectedMarketFilter}
+          />
+        )}
+
+        {activeNav === 'farmers' && (
+          <StallsPage
+            onAddToCart={isShopper ? handleAddToCart : undefined}
+            cartItems={isShopper ? cartItems : []}
+            onUpdateCartQty={isShopper ? handleUpdateCartQty : undefined}
+            onNavigate={(nav) => setActiveNav(nav)}
+            initialFarmerId={selectedFarmerFilter}
+          />
+        )}
+
+        {activeNav === 'orders' && (
+          <CustomerOrdersPage
+            onReorder={(order) => {
+              const reorderedItems = order.items.map((it) => ({
+                id: it.id,
+                name: it.name,
+                price: it.price,
+                unit: it.unit,
+                farmerName: order.farmerName,
+                stallCode: order.stallLocation,
+                marketName: order.pickupMarket,
+                quantity: it.quantity
+              }));
+              setCartItems(reorderedItems);
+              setIsCartOpen(true);
+              addToast(
+                'Đã nạp lại đơn cũ! 🧺',
+                `Đã thêm ${reorderedItems.length} sản phẩm vào giỏ. Hãy chọn ngày và giờ hẹn ra chợ nhé!`,
+                'success'
+              );
+            }}
+            onNavigate={(nav) => setActiveNav(nav)}
+          />
+        )}
+
+        {activeNav === 'dashboard' && (
+          <CustomerDashboardPage
+            userName={userName}
+            userEmail={token ? (localStorage.getItem('ml_email') || 'customer@marketlink.vn') : 'khach@marketlink.vn'}
+            onNavigate={(nav) => setActiveNav(nav)}
+            onAddToCart={handleAddToCart}
+          />
+        )}
+
+        {activeNav === 'my-reviews' && (
+          <CustomerReviewsPage
+            onNavigate={(nav) => setActiveNav(nav)}
+          />
+        )}
+
+        {/* Farmer Views */}
+        {activeNav === 'farmer-dashboard' && (
+          <FarmerDashboardPage
+            onNavigate={(nav) => setActiveNav(nav)}
+            onOpenAddProduct={() => setActiveNav('farmer-inventory')}
+          />
+        )}
+
+        {activeNav === 'farmer-orders' && (
+          <FarmerOrdersPage
+            onNavigate={(nav) => setActiveNav(nav)}
+          />
+        )}
+
+        {activeNav === 'farmer-inventory' && (
+          <FarmerInventoryPage
+            onNavigate={(nav) => setActiveNav(nav)}
+          />
+        )}
+
+        {activeNav === 'farmer-stall' && (
+          <FarmerStallProfilePage
+            onNavigate={(nav) => setActiveNav(nav)}
+          />
+        )}
+
+        {activeNav === 'farmer-reviews' && (
+          <FarmerReviewsPage
+            onNavigate={(nav) => setActiveNav(nav)}
+          />
+        )}
+
+        {activeNav === 'farmer-studio' && (
+          <div className="ml-container ml-page-view">
+            <div className="ml-page-header">
+              <span className="ml-section-subtitle">Phân hệ Nông dân</span>
+              <h2 className="ml-section-title">Studio Gian Hàng & Tải Ảnh Nông Sản</h2>
+              <p className="ml-section-desc">
+                Đăng tải hình ảnh nông sản vừa thu hoạch, cập nhật sạp chợ để người mua đặt trước.
               </p>
-
-              <div className="form-item">
-                <label>Họ và Tên:</label>
-                <input className="input-control" type="text" value={fullName} onChange={e => setFullName(e.target.value)} />
-              </div>
-              <div className="form-item">
-                <label>Số điện thoại:</label>
-                <input className="input-control" type="text" value={phone} onChange={e => setPhone(e.target.value)} />
-              </div>
-              <div className="form-item">
-                <label>Địa chỉ nhận hàng (Customer):</label>
-                <input className="input-control" type="text" value={address} onChange={e => setAddress(e.target.value)} />
-              </div>
-              <div className="form-item">
-                <label>Tọa độ (Latitude, Longitude):</label>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <input className="input-control" type="number" step="0.000001" value={lat} onChange={e => setLat(e.target.value)} />
-                  <input className="input-control" type="number" step="0.000001" value={lon} onChange={e => setLon(e.target.value)} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn btn-primary" onClick={handleUpdateProfile}>Cập Nhật Profile (PUT)</button>
-                <button className="btn btn-outline" onClick={handleGetProfile}>Xem Profile Hiện Tại (GET)</button>
-              </div>
             </div>
+            <ImageUploadStudio token={token} callApi={callApi} />
+          </div>
+        )}
 
-            <div className="card">
-              <div className="card-top">
-                <div className="card-heading">⭐ Test Mục Yêu Thích (Kiểm chứng RBAC)</div>
-                <span className="badge-tag">GET /api/customer/favorites</span>
-              </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 14 }}>
-                API này bắt buộc vai trò <b>ROLE_CUSTOMER</b>. Nếu đang đăng nhập Farmer/Admin sẽ nhận <b>403 Forbidden</b>. Hãy chuyển sang tài khoản Khách hàng để nhận <b>200 OK</b>!
+        {/* Admin Views */}
+        {activeNav === 'admin-dashboard' && (
+          <AdminDashboardPage
+            onNavigate={(nav) => setActiveNav(nav)}
+          />
+        )}
+
+        {(activeNav === 'admin-markets' || activeNav === 'admin-studio') && (
+          <div className="ml-container ml-page-view">
+            <div className="ml-page-header">
+              <span className="ml-section-subtitle">Phân hệ Quản trị viên</span>
+              <h2 className="ml-section-title">Quản Lý Hệ Thống Chợ Phiên & Sạp Hàng</h2>
+              <p className="ml-section-desc">
+                Quản lý hệ thống chợ nông sản, phân bổ sạp bán cho nông dân và ghim tọa độ bản đồ.
               </p>
-
-              <div className="form-item">
-                <label>Loại mục yêu thích (targetType):</label>
-                <select className="input-control" value={favTargetType} onChange={e => setFavTargetType(e.target.value)}>
-                  <option value="MARKET">MARKET (Chợ nông sản)</option>
-                  <option value="PRODUCT">PRODUCT (Nông sản sạch)</option>
-                  <option value="FARMER">FARMER (Nông dân)</option>
-                </select>
-              </div>
-              <button className="btn btn-primary" onClick={handleFavorites}>Lấy Danh Sách Yêu Thích</button>
-
-              <div style={{ marginTop: 18 }}>
-                <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>Kết quả phản hồi từ Server:</label>
-                <pre className="code-console" style={{ marginTop: 6 }}>{profileResult}</pre>
-              </div>
             </div>
+            <AdminMarketStudio callApi={callApi} role={currentRole} token={token} />
           </div>
         )}
 
-        {/* TAB 3: Customer Flows */}
-        {activeTab === 'customer' && (
-          <div className="grid-cols-2">
-            <div className="card">
-              <div className="card-top">
-                <div className="card-heading">🛒 Khám phá Chợ & Nông sản</div>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-                <button className="btn btn-outline" onClick={async () => {
-                  const res = await callApi('/api/markets', 'GET');
-                  setCustOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-                }}>Danh sách Chợ (GET /api/markets)</button>
-
-                <button className="btn btn-outline" onClick={async () => {
-                  const res = await callApi('/api/categories', 'GET');
-                  setCustOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-                }}>Danh mục (GET /api/categories)</button>
-
-                <button className="btn btn-outline" onClick={async () => {
-                  let res = await callApi('/api/products/search?keyword=rau', 'GET');
-                  if (res.status === 404 || res.status === 500) {
-                    res = await callApi('/api/products?keyword=rau', 'GET');
-                  }
-                  setCustOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-                }}>🔍 Tìm kiếm 'rau' (GET /api/products/search)</button>
-              </div>
-
-              <div className="card-top" style={{ marginTop: 20 }}>
-                <div className="card-heading">📦 Đơn Đặt Trước (Pre-Orders)</div>
-              </div>
-              <button className="btn btn-primary" onClick={async () => {
-                const res = await callApi('/api/customer/orders', 'GET');
-                setCustOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-              }}>Xem Lịch Sử Đơn Hàng Của Tôi</button>
-            </div>
-
-            <div className="card">
-              <div className="card-top"><div className="card-heading">🖥️ Phản Hồi Từ Máy Chủ</div></div>
-              <pre className="code-console">{custOutput}</pre>
-            </div>
-          </div>
+        {activeNav === 'admin-users' && (
+          <UserModerationPage
+            onNavigate={(nav) => setActiveNav(nav)}
+          />
         )}
 
-        {/* TAB 4: Farmer Flows */}
-        {activeTab === 'farmer' && (
-          <div className="grid-cols-2">
-            <div className="card">
-              <div className="card-top">
-                <div className="card-heading">👨‍🌾 Phân hệ Quản Lý Gian Hàng (Yêu cầu ROLE_FARMER)</div>
-              </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 14 }}>
-                Bấm nút <b>"👨‍🌾 Nông Dân"</b> trên thanh header để kích hoạt quyền trước khi gọi các API dưới đây:
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button className="btn btn-primary" onClick={async () => {
-                  const res = await callApi('/api/farmer/orders', 'GET');
-                  setFarmerOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-                }}>📋 Xem Danh Sách Đơn Hàng Tới (GET /api/farmer/orders)</button>
-
-                <button className="btn btn-outline" onClick={async () => {
-                  const res = await callApi('/api/farmer/orders/summary', 'GET');
-                  setFarmerOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-                }}>💰 Tóm Tắt Doanh Thu & Đơn Chờ (GET /api/farmer/orders/summary)</button>
-
-                <button className="btn btn-outline" onClick={async () => {
-                  const res = await callApi('/api/farmer/orders/insights/best-selling', 'GET');
-                  setFarmerOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-                }}>🔥 Top Nông Sản Bán Chạy Nhất (GET /api/farmer/orders/insights/best-selling)</button>
-
-                <button className="btn btn-outline" onClick={async () => {
-                  let res = await callApi('/api/farmer/stock-templates', 'GET');
-                  if (res.status === 404) {
-                    res = await callApi('/api/farmer/weekly-stock', 'GET');
-                  }
-                  setFarmerOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-                }}>📅 Xem Mẫu Tồn Kho Định Kỳ (GET /api/farmer/stock-templates)</button>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-top"><div className="card-heading">🖥️ Phản Hồi Từ Máy Chủ</div></div>
-              <pre className="code-console">{farmerOutput}</pre>
-            </div>
-          </div>
+        {activeNav === 'admin-orders' && (
+          <AdminOrdersPage
+            onNavigate={(nav) => setActiveNav(nav)}
+          />
         )}
 
-        {/* TAB 5: Admin */}
-        {activeTab === 'admin' && (
-          <div>
-            <div className="card" style={{ marginBottom: 20 }}>
-              <div className="card-top">
-                <div className="card-heading">👑 Bảng Điều Khiển Quản Trị Sàn (Yêu cầu ROLE_ADMIN)</div>
-                <button className="btn btn-primary" onClick={loadAdminMetrics}>Tải Chỉ Số Sàn</button>
-              </div>
-
-              <div className="metrics-row">
-                <div className="metric-box">
-                  <div className="metric-txt">Tổng Khách Hàng</div>
-                  <div className="metric-num">{adminMetrics.customers}</div>
-                </div>
-                <div className="metric-box">
-                  <div className="metric-txt">Tổng Nông Dân</div>
-                  <div className="metric-num">{adminMetrics.farmers}</div>
-                </div>
-                <div className="metric-box">
-                  <div className="metric-txt">Tổng Chợ Họp</div>
-                  <div className="metric-num">{adminMetrics.markets}</div>
-                </div>
-                <div className="metric-box">
-                  <div className="metric-txt">Tổng Đơn Hàng</div>
-                  <div className="metric-num">{adminMetrics.orders}</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button className="btn btn-outline" onClick={async () => {
-                  let res = await callApi('/api/admin/dashboard/reports/markets', 'GET');
-                  if (res.status === 404) {
-                    res = await callApi('/api/admin/dashboard/reports/revenue', 'GET');
-                  }
-                  setAdminOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-                }}>📊 Báo Cáo Doanh Thu Theo Chợ</button>
-
-                <button className="btn btn-outline" onClick={async () => {
-                  let res = await callApi('/api/admin/dashboard/reports/most-active-farmers', 'GET');
-                  if (res.status === 404) {
-                    res = await callApi('/api/admin/dashboard/reports/active-farmers', 'GET');
-                  }
-                  setAdminOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-                }}>🏆 Top Nông Dân Tích Cực Nhất</button>
-
-                <button className="btn btn-outline" onClick={async () => {
-                  const res = await callApi('/api/admin/users', 'GET');
-                  setAdminOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-                }}>👥 Quản Lý Người Dùng & Duyệt KYC</button>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-top"><div className="card-heading">🖥️ Phản Hồi Từ Máy Chủ (Admin)</div></div>
-              <pre className="code-console">{adminOutput}</pre>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 6: Custom REST API Playground */}
-        {activeTab === 'custom' && (
-          <div className="grid-cols-2">
-            <div className="card">
-              <div className="card-top">
-                <div className="card-heading">⚡ Tùy Biến API Request</div>
-              </div>
-              <div className="form-item" style={{ display: 'flex', gap: 10 }}>
-                <select className="input-control" style={{ width: 120 }} value={customMethod} onChange={e => setCustomMethod(e.target.value)}>
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                  <option value="PUT">PUT</option>
-                  <option value="PATCH">PATCH</option>
-                  <option value="DELETE">DELETE</option>
-                </select>
-                <input
-                  className="input-control"
-                  type="text"
-                  placeholder="/api/..."
-                  value={customPath}
-                  onChange={e => setCustomPath(e.target.value)}
-                />
-              </div>
-
-              <div className="form-item">
-                <label>Request Body (JSON):</label>
-                <textarea
-                  className="input-control"
-                  style={{ minHeight: 120, fontFamily: 'JetBrains Mono', fontSize: '0.85rem' }}
-                  placeholder='{"key": "value"}'
-                  value={customBody}
-                  onChange={e => setCustomBody(e.target.value)}
-                />
-              </div>
-
-              <button className="btn btn-primary" onClick={async () => {
-                let parsed = null;
-                if (customBody.trim()) {
-                  try { parsed = JSON.parse(customBody.trim()); } catch { alert('JSON Body không hợp lệ!'); return; }
-                }
-                setCustomOutput('Đang gửi request...');
-                const res = await callApi(customPath, customMethod, parsed);
-                setCustomOutput(`[HTTP ${res.status}] (${res.ms}ms)\n` + JSON.stringify(res.data, null, 2));
-              }}>Gửi Request</button>
-            </div>
-
-            <div className="card">
-              <div className="card-top"><div className="card-heading">🖥️ Response Output</div></div>
-              <pre className="code-console">{customOutput}</pre>
-            </div>
-          </div>
+        {activeNav === 'admin-content' && (
+          <ContentModerationPage
+            onNavigate={(nav) => setActiveNav(nav)}
+          />
         )}
       </main>
+
+      {/* Cart Drawer - Only for Customer / Guest */}
+      {isShopper && (
+        <CartDrawer
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          cartItems={cartItems}
+          onUpdateQty={handleUpdateCartQty}
+          onRemoveItem={handleRemoveCartItem}
+          onSubmitOrder={handleSubmitOrder}
+          isLoggedIn={Boolean(token && currentRole !== 'GUEST')}
+          onOpenLogin={() => handleOpenAuthModal('LOGIN')}
+        />
+      )}
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialMode={authModalMode}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* AI Chatbot Widget */}
+      <AIChatbot token={token} />
+
+      {/* Footer */}
+      <Footer onNavigate={(navKey) => setActiveNav(navKey)} />
     </div>
   );
 }

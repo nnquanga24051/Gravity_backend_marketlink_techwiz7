@@ -22,9 +22,6 @@ public class FarmerKycDocumentResponse {
     @Schema(description = "ID Nông dân", example = "2")
     private Long farmerId;
 
-    @Schema(description = "Loại tài liệu", example = "CITIZEN_ID_FRONT")
-    private String documentType;
-
     @Schema(description = "URL tài liệu", example = "https://example.com/kyc/cccd-mat-truoc.jpg")
     private String documentUrl;
 

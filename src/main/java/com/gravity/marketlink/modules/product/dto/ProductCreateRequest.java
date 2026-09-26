@@ -16,6 +16,11 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class ProductCreateRequest {
 
+    @NotNull(message = "Vui lòng chọn phiên chợ / sạp chỉ định để đăng bán sản phẩm")
+    private Long marketId;
+
+    private String stallNumber;
+
     @NotNull(message = "Danh mục sản phẩm không được để trống")
     private Integer categoryId;
 

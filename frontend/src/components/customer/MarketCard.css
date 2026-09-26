@@ -1,0 +1,123 @@
+.ml-market-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ml-market-img-wrap {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+  background-color: var(--color-bg-muted);
+}
+
+.ml-market-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-normal);
+}
+
+.ml-market-card:hover .ml-market-img {
+  transform: scale(1.04);
+}
+
+.ml-market-badge-top {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+.ml-market-schedule-pill {
+  position: absolute;
+  bottom: var(--space-3);
+  left: var(--space-3);
+  background: rgba(30, 41, 34, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.ml-market-body {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.ml-market-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.ml-market-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-main);
+  line-height: 1.3;
+}
+
+.ml-market-city {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+
+.ml-market-address {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-body);
+  line-height: 1.4;
+  margin-bottom: var(--space-4);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ml-icon-pin {
+  font-size: 13px;
+}
+
+.ml-market-footer-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-border);
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-xs);
+}
+
+.ml-market-stalls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-body);
+}
+
+.ml-market-tag {
+  font-size: 11px;
+  background-color: var(--color-bg-muted);
+  color: var(--color-primary-dark);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.ml-market-actions {
+  display: flex;
+  gap: var(--space-2);
+}

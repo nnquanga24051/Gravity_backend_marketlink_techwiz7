@@ -130,6 +130,11 @@ public class ReviewService {
                 .flatMap(this::enrichReview);
     }
 
+    public Flux<ReviewResponse> getAllReviewsForAdmin() {
+        return reviewRepository.findAllByOrderByCreatedAtDesc()
+                .flatMap(this::enrichReview);
+    }
+
     @Transactional
     public Mono<ReviewResponse> setReviewVisibility(Long reviewId, boolean isHidden) {
         return reviewRepository.findById(reviewId)

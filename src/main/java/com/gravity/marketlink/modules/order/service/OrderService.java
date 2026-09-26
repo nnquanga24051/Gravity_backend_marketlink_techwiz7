@@ -17,6 +17,7 @@ import com.gravity.marketlink.modules.order.repository.PickupTimeSlotRepository;
 import com.gravity.marketlink.modules.product.entity.Product;
 import com.gravity.marketlink.modules.product.repository.FarmerCutoffSettingRepository;
 import com.gravity.marketlink.modules.product.repository.ProductRepository;
+import com.gravity.marketlink.modules.review.repository.ReviewRepository;
 import com.gravity.marketlink.modules.user.entity.FarmerProfile;
 import com.gravity.marketlink.modules.user.repository.FarmerProfileRepository;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final DatabaseClient databaseClient;
+    private final ReviewRepository reviewRepository;
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -564,16 +566,24 @@ public class OrderService {
                                 .build()))
                 .collectList();
 
+        // Check if the customer has already reviewed this order
+        Mono<Boolean> hasReviewMono = reviewRepository.findByOrderId(order.getOrderId())
+                .map(r -> true)
+                .defaultIfEmpty(false);
+
         return Mono.zip(customerMono, farmerMono, farmerUserMono, marketMono, slotMono)
                 .zipWith(itemsMono)
-                .map(tuple -> {
-                    var t1 = tuple.getT1();
+                .zipWith(hasReviewMono)
+                .map(outerTuple -> {
+                    var inner = outerTuple.getT1();
+                    Boolean hasReview = outerTuple.getT2();
+                    var t1 = inner.getT1();
                     User customer = t1.getT1();
                     FarmerProfile farmerProfile = t1.getT2();
                     User farmerUser = t1.getT3();
                     Market market = t1.getT4();
                     PickupTimeSlot slot = t1.getT5();
-                    List<OrderItemResponse> items = tuple.getT2();
+                    List<OrderItemResponse> items = inner.getT2();
 
                     String slotRange = (slot.getStartTime() != null && slot.getEndTime() != null)
                             ? slot.getStartTime().format(TIME_FMT) + " - " + slot.getEndTime().format(TIME_FMT)
@@ -607,6 +617,7 @@ public class OrderService {
                             .createdAt(order.getCreatedAt())
                             .updatedAt(order.getUpdatedAt())
                             .items(items)
+                            .hasReview(hasReview)
                             .build();
                 });
     }

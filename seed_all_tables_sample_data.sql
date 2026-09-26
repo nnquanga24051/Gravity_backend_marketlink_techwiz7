@@ -88,14 +88,14 @@ ON DUPLICATE KEY UPDATE
 
 -- 6. BẢNG farmer_kyc_documents (Hồ sơ pháp lý chứng thực nông dân)
 INSERT INTO `farmer_kyc_documents` (
-  `document_id`, `farmer_id`, `document_type`, `document_url`, `document_number`, `issued_date`, `expiry_date`, `created_at`
+  `document_id`, `farmer_id`, `document_url`, `document_number`, `issued_date`, `expiry_date`, `created_at`
 ) VALUES
-(101, 103, 'ORGANIC_VIETGAP_CERT', 'https://storage.marketlink.vn/kyc/cert_vietgap_bavi.pdf', 'VG-2026-HN089', '2024-01-15', '2027-01-15', NOW()),
-(102, 103, 'FOOD_SAFETY_CERT', 'https://storage.marketlink.vn/kyc/attp_bavi.pdf', 'ATTP-BV-8821', '2024-02-01', '2027-02-01', NOW()),
-(103, 104, 'BUSINESS_REGISTRATION', 'https://storage.marketlink.vn/kyc/gpkd_htx_mocchau.pdf', '0108928374', '2023-05-10', '2033-05-10', NOW()),
-(104, 105, 'ORGANIC_VIETGAP_CERT', 'https://storage.marketlink.vn/kyc/organic_dalat.pdf', 'ORG-DL-9921', '2024-03-20', '2027-03-20', NOW()),
-(105, 106, 'CITIZEN_ID_FRONT', 'https://storage.marketlink.vn/kyc/cccd_front_haiduong.jpg', '030094002819', '2022-08-12', '2035-08-12', NOW()),
-(106, 107, 'FOOD_SAFETY_CERT', 'https://storage.marketlink.vn/kyc/attp_sapa.pdf', 'ATTP-LC-4421', '2024-04-10', '2027-04-10', NOW())
+(101, 103, 'https://storage.marketlink.vn/kyc/cert_vietgap_bavi.pdf', 'VG-2026-HN089', '2024-01-15', '2027-01-15', NOW()),
+(102, 103, 'https://storage.marketlink.vn/kyc/attp_bavi.pdf', 'ATTP-BV-8821', '2024-02-01', '2027-02-01', NOW()),
+(103, 104, 'https://storage.marketlink.vn/kyc/gpkd_htx_mocchau.pdf', '0108928374', '2023-05-10', '2033-05-10', NOW()),
+(104, 105, 'https://storage.marketlink.vn/kyc/organic_dalat.pdf', 'ORG-DL-9921', '2024-03-20', '2027-03-20', NOW()),
+(105, 106, 'https://storage.marketlink.vn/kyc/cccd_front_haiduong.jpg', '030094002819', '2022-08-12', '2035-08-12', NOW()),
+(106, 107, 'https://storage.marketlink.vn/kyc/attp_sapa.pdf', 'ATTP-LC-4421', '2024-04-10', '2027-04-10', NOW())
 ON DUPLICATE KEY UPDATE `document_number` = VALUES(`document_number`);
 
 -- 7. BẢNG customer_profiles (Địa chỉ nhận hàng và tọa độ của khách hàng)
@@ -169,7 +169,8 @@ INSERT INTO `farmer_market_assignments` (
 (103, 105, 102, 'SẠP-B05', 'ACTIVE', NOW()), -- Đà Lạt tại Chợ Cầu Giấy
 (104, 106, 102, 'SẠP-B06', 'ACTIVE', NOW()), -- Hải Dương tại Chợ Cầu Giấy
 (105, 107, 104, 'SẠP-C10', 'ACTIVE', NOW()), -- Sa Pa tại Chợ Tây Hồ
-(106, 103, 102, 'SẠP-B01', 'ACTIVE', NOW())  -- Ba Vì tại Chợ Cầu Giấy
+(106, 103, 102, 'SẠP-B01', 'ACTIVE', NOW()), -- Ba Vì tại Chợ Cầu Giấy
+(107, 105, 103, 'SẠP-C01', 'ACTIVE', NOW())  -- Đà Lạt tại Chợ Thảo Điền
 ON DUPLICATE KEY UPDATE `stall_number` = VALUES(`stall_number`), `status` = VALUES(`status`);
 
 -- 13. BẢNG categories (5 danh mục hàng hóa chuẩn)
@@ -181,17 +182,19 @@ INSERT INTO `categories` (`category_id`, `name`, `slug`, `description`) VALUES
 (5, 'Sữa & Chế Phẩm Thủ Công', 'sua-che-pham-thu-cong', 'Sữa dê, sữa bò thanh trùng, phô mai và sản phẩm lên men truyền thống')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`);
 
--- 14. BẢNG products (6 mặt hàng nông sản tiêu biểu kèm số lượng tồn kho)
+-- 14. BẢNG products (6 mặt hàng nông sản tiêu biểu kèm sạp và phiên chợ chỉ định)
 INSERT INTO `products` (
-  `product_id`, `farmer_id`, `category_id`, `name`, `description`, `unit`, `price`, `current_stock`, `image_url`, `status`, `created_at`, `updated_at`
+  `product_id`, `farmer_id`, `market_id`, `stall_number`, `category_id`, `name`, `description`, `unit`, `price`, `current_stock`, `image_url`, `status`, `created_at`, `updated_at`
 ) VALUES
-(101, 103, 1, 'Cải Bó Xôi Hữu Cơ Ba Vì', 'Rau bina trồng hữu cơ vi sinh, lá dày xanh thẫm, giàu sắt và vitamin', 'kg', 45000.00, 35.00, 'https://images.unsplash.com/photo-1576045057995-568f588f82fb', 'AVAILABLE', NOW(), NOW()),
-(102, 103, 1, 'Rau Muống Tiến Vua Sạch', 'Thu hoạch sớm từ ngọn non, thân giòn xào tỏi hoặc nấu canh thanh mát', 'bó', 15000.00, 60.00, 'https://images.unsplash.com/photo-1540420773420-3366772f4999', 'AVAILABLE', NOW(), NOW()),
-(103, 104, 2, 'Cà Chua Cherry Mộc Châu Ngọt Giòn', 'Cà chua bi giống Socola Mộc Châu vỏ mỏng mọng nước, vị ngọt đậm đà', 'hộp 500g', 35000.00, 45.00, 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea', 'AVAILABLE', NOW(), NOW()),
-(104, 105, 3, 'Dâu Tây Hana Đà Lạt Tuyển Chọn', 'Dâu tây giống Hana hái tại vườn Đà Lạt lúc sáng sớm, thơm lừng vị ngọt', 'hộp 500g', 125000.00, 30.00, 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6', 'AVAILABLE', NOW(), NOW()),
-(105, 106, 3, 'Vải Thiều Thanh Hà Chính Gốc', 'Cùi dày hạt tiêu mọng nước, ngọt sắc hương thơm đặc trưng vùng Thanh Hà', 'kg', 65000.00, 80.00, 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba', 'AVAILABLE', NOW(), NOW()),
-(106, 107, 4, 'Nấm Hương Rừng Sa Pa Tươi', 'Nấm hương sinh trưởng tự nhiên trên gỗ mục vùng núi Tả Phìn, thơm nồng', 'kg', 98000.00, 20.00, 'https://images.unsplash.com/photo-1509042239860-f550ce710b93', 'AVAILABLE', NOW(), NOW())
+(101, 103, 101, 'SẠP-A01', 1, 'Cải Bó Xôi Hữu Cơ Ba Vì', 'Rau bina trồng hữu cơ vi sinh, lá dày xanh thẫm, giàu sắt và vitamin', 'kg', 45000.00, 35.00, 'https://images.unsplash.com/photo-1576045057995-568f588f82fb', 'AVAILABLE', NOW(), NOW()),
+(102, 103, 101, 'SẠP-A01', 1, 'Rau Muống Tiến Vua Sạch', 'Thu hoạch sớm từ ngọn non, thân giòn xào tỏi hoặc nấu canh thanh mát', 'bó', 15000.00, 60.00, 'https://images.unsplash.com/photo-1540420773420-3366772f4999', 'AVAILABLE', NOW(), NOW()),
+(103, 104, 101, 'SẠP-A02', 2, 'Cà Chua Cherry Mộc Châu Ngọt Giòn', 'Cà chua bi giống Socola Mộc Châu vỏ mỏng mọng nước, vị ngọt đậm đà', 'hộp 500g', 35000.00, 45.00, 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea', 'AVAILABLE', NOW(), NOW()),
+(104, 105, 102, 'SẠP-B05', 3, 'Dâu Tây Hana Đà Lạt Tuyển Chọn', 'Dâu tây giống Hana hái tại vườn Đà Lạt lúc sáng sớm, thơm lừng vị ngọt', 'hộp 500g', 125000.00, 30.00, 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6', 'AVAILABLE', NOW(), NOW()),
+(105, 106, 102, 'SẠP-B06', 3, 'Vải Thiều Thanh Hà Chính Gốc', 'Cùi dày hạt tiêu mọng nước, ngọt sắc hương thơm đặc trưng vùng Thanh Hà', 'kg', 65000.00, 80.00, 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba', 'AVAILABLE', NOW(), NOW()),
+(106, 107, 104, 'SẠP-C10', 4, 'Nấm Hương Rừng Sa Pa Tươi', 'Nấm hương sinh trưởng tự nhiên trên gỗ mục vùng núi Tả Phìn, thơm nồng', 'kg', 98000.00, 20.00, 'https://images.unsplash.com/photo-1509042239860-f550ce710b93', 'AVAILABLE', NOW(), NOW())
 ON DUPLICATE KEY UPDATE 
+  `market_id` = VALUES(`market_id`),
+  `stall_number` = VALUES(`stall_number`),
   `name` = VALUES(`name`),
   `price` = VALUES(`price`),
   `current_stock` = VALUES(`current_stock`),

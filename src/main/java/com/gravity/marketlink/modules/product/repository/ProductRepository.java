@@ -15,19 +15,29 @@ import java.time.LocalDateTime;
 @Repository
 public interface ProductRepository extends R2dbcRepository<Product, Long> {
 
-    Flux<Product> findByFarmerId(Long farmerId);
+       Flux<Product> findByFarmerId(Long farmerId);
 
-    Flux<Product> findByFarmerIdAndStatus(Long farmerId, String status);
+       Flux<Product> findByFarmerIdAndStatus(Long farmerId, String status);
 
-    Flux<Product> findByCategoryIdAndStatus(Integer categoryId, String status);
+       Flux<Product> findByMarketId(Long marketId);
 
-    Flux<Product> findByStatus(String status);
+       Flux<Product> findByMarketIdAndStatus(Long marketId, String status);
 
-    @Modifying
-    @Query("UPDATE products SET current_stock = :stock, updated_at = :now WHERE product_id = :productId")
-    Mono<Integer> updateStock(@Param("productId") Long productId, @Param("stock") BigDecimal stock, @Param("now") LocalDateTime now);
+       Flux<Product> findByFarmerIdAndMarketId(Long farmerId, Long marketId);
 
-    @Modifying
-    @Query("UPDATE products SET status = :status, updated_at = :now WHERE product_id = :productId")
-    Mono<Integer> updateStatus(@Param("productId") Long productId, @Param("status") String status, @Param("now") LocalDateTime now);
+       Flux<Product> findByFarmerIdAndMarketIdAndStatus(Long farmerId, Long marketId, String status);
+
+       Flux<Product> findByCategoryIdAndStatus(Integer categoryId, String status);
+
+       Flux<Product> findByStatus(String status);
+
+       @Modifying
+       @Query("UPDATE products SET current_stock = :stock, updated_at = :now WHERE product_id = :productId")
+       Mono<Integer> updateStock(@Param("productId") Long productId, @Param("stock") BigDecimal stock,
+                     @Param("now") LocalDateTime now);
+
+       @Modifying
+       @Query("UPDATE products SET status = :status, updated_at = :now WHERE product_id = :productId")
+       Mono<Integer> updateStatus(@Param("productId") Long productId, @Param("status") String status,
+                     @Param("now") LocalDateTime now);
 }

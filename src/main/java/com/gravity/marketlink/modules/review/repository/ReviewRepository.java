@@ -12,4 +12,6 @@ public interface ReviewRepository extends R2dbcRepository<Review, Long> {
     Flux<Review> findByFarmerIdAndIsHiddenFalseOrderByCreatedAtDesc(Long farmerId);
     Flux<Review> findByProductIdAndIsHiddenFalseOrderByCreatedAtDesc(Long productId);
     Flux<Review> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
+    Flux<Review> findAllByOrderByCreatedAtDesc();
 }
+

@@ -33,11 +33,13 @@ public class ProductController {
     // 1. PUBLIC ENDPOINTS (Khách hàng & Người dùng)
     // ==========================================
 
-    @Operation(summary = "Tìm kiếm & duyệt danh sách nông sản", description = "Lọc sản phẩm theo danh mục (categoryId), theo nông dân (farmerId), từ khóa (keyword) hoặc trạng thái.")
+    @Operation(summary = "Tìm kiếm & duyệt danh sách nông sản", description = "Lọc sản phẩm theo danh mục (categoryId), theo nông dân (farmerId), theo chợ (marketId), sạp (stallNumber), từ khóa (keyword) hoặc trạng thái.")
     @GetMapping("/products")
     public Mono<ResponseEntity<ApiResponse<List<ProductResponse>>>> getAllProducts(
             @RequestParam(value = "categoryId", required = false) Integer categoryId,
             @RequestParam(value = "farmerId", required = false) Long farmerId,
+            @RequestParam(value = "marketId", required = false) Long marketId,
+            @RequestParam(value = "stallNumber", required = false) String stallNumber,
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "status", required = false, defaultValue = "AVAILABLE") String status) {
         if (keyword != null && !keyword.isBlank()) {
@@ -45,7 +47,7 @@ public class ProductController {
                     .collectList()
                     .map(list -> ResponseEntity.ok(ApiResponse.success("Tìm kiếm sản phẩm thành công.", list)));
         }
-        return productService.getAllProducts(categoryId, farmerId, status)
+        return productService.getAllProducts(categoryId, farmerId, marketId, stallNumber, status)
                 .collectList()
                 .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm thành công.", list)));
     }
@@ -80,9 +82,11 @@ public class ProductController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
                 .flatMap(user -> productService.getFarmerProducts(user.getUserId()).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm của nông dân thành công.", list)));
+                .map(list -> ResponseEntity
+                        .ok(ApiResponse.success("Lấy danh sách sản phẩm của nông dân thành công.", list)));
     }
 
     @Operation(summary = "Nông dân đăng bán sản phẩm mới", description = "Yêu cầu quyền ROLE_FARMER và tài khoản nông dân đã được duyệt KYC (is_approved = true).")
@@ -96,7 +100,8 @@ public class ProductController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
                 .flatMap(user -> productService.createProduct(user.getUserId(), request))
                 .map(created -> ResponseEntity.status(HttpStatus.CREATED)
                         .body(ApiResponse.success("Đăng bán sản phẩm mới thành công.", created)));
@@ -114,9 +119,11 @@ public class ProductController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
                 .flatMap(user -> productService.updateProduct(user.getUserId(), id, request))
-                .map(updated -> ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin sản phẩm thành công.", updated)));
+                .map(updated -> ResponseEntity
+                        .ok(ApiResponse.success("Cập nhật thông tin sản phẩm thành công.", updated)));
     }
 
     @Operation(summary = "Nông dân đổi trạng thái bán hàng", description = "Đổi trạng thái sản phẩm: AVAILABLE, SOLD_OUT, hoặc TEMPORARILY_UNAVAILABLE.")
@@ -131,9 +138,11 @@ public class ProductController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
                 .flatMap(user -> productService.updateProductStatus(user.getUserId(), id, status))
-                .map(updated -> ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái sản phẩm thành công.", updated)));
+                .map(updated -> ResponseEntity
+                        .ok(ApiResponse.success("Cập nhật trạng thái sản phẩm thành công.", updated)));
     }
 
     @Operation(summary = "Nông dân xóa sản phẩm", description = "Gỡ bỏ hoàn toàn sản phẩm khỏi danh mục gian hàng.")
@@ -147,7 +156,8 @@ public class ProductController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
                 .flatMap(user -> productService.deleteProduct(user.getUserId(), id))
                 .then(Mono.just(ResponseEntity.ok(ApiResponse.success("Đã xóa sản phẩm thành công.", null))));
     }
@@ -163,6 +173,7 @@ public class ProductController {
             @PathVariable("id") Long id,
             @RequestParam("status") String status) {
         return productService.adminModerateProduct(id, status)
-                .map(mod -> ResponseEntity.ok(ApiResponse.success("Đã kiểm duyệt trạng thái sản phẩm thành công.", mod)));
+                .map(mod -> ResponseEntity
+                        .ok(ApiResponse.success("Đã kiểm duyệt trạng thái sản phẩm thành công.", mod)));
     }
 }

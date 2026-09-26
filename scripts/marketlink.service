@@ -1,0 +1,28 @@
+[Unit]
+Description=MarketLink Spring Boot Backend API
+After=syslog.target network.target mysql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/marketlink/app
+
+# Cấu hình biến môi trường Production
+Environment="PORT=8081"
+Environment="DB_URL=r2dbc:mysql://localhost:3306/marketlink_db"
+Environment="DB_USERNAME=marketlink_user"
+Environment="DB_PASSWORD=MarketLink@2026Secure"
+Environment="JWT_SECRET=quang_dev_backend_techwiz_susc_2026_super_secure_key"
+Environment="JWT_ISSUER=http://36.50.176.64"
+Environment="UPLOAD_DIR=/var/www/marketlink/uploads"
+Environment="UPLOAD_BASE_URL=http://36.50.176.64"
+Environment="GEMINI_API_KEY=AQ.Ab8RN6IoTUIfN8IbJBHAkrMxL40dv8o9YwgMWjFEhQTFbpLJPg"
+
+# Cấu hình RAM JVM tối ưu cho VPS (256MB - 512MB)
+ExecStart=/usr/bin/java -Xms256m -Xmx512m -jar /var/www/marketlink/app/marketlink.jar
+SuccessExitStatus=143
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

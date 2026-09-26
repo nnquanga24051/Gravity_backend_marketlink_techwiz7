@@ -25,9 +25,6 @@ public class FarmerKycDocument {
     @Column("farmer_id")
     private Long farmerId;
 
-    @Column("document_type")
-    private String documentType; // CITIZEN_ID_FRONT, CITIZEN_ID_BACK, BUSINESS_REGISTRATION, FOOD_SAFETY_CERT, ORGANIC_VIETGAP_CERT, FARM_PHOTO
-
     @Column("document_url")
     private String documentUrl;
 

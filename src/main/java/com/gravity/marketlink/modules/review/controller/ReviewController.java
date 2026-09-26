@@ -94,6 +94,16 @@ public class ReviewController {
                 .map(res -> ResponseEntity.ok(ApiResponse.success("Phản hồi đánh giá thành công.", res)));
     }
 
+    @Operation(summary = "Quản trị viên xem tất cả các đánh giá", description = "Lấy toàn bộ đánh giá bao gồm cả đánh giá đã bị ẩn. Yêu cầu ROLE_ADMIN.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/reviews")
+    public Mono<ResponseEntity<ApiResponse<List<ReviewResponse>>>> getAllReviewsForAdmin() {
+        return reviewService.getAllReviewsForAdmin()
+                .collectList()
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy toàn bộ đánh giá thành công.", list)));
+    }
+
     @Operation(summary = "Quản trị viên ẩn hoặc hiện đánh giá", description = "Yêu cầu quyền ROLE_ADMIN để kiểm duyệt nội dung vi phạm.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
@@ -106,3 +116,4 @@ public class ReviewController {
                         (isHidden ? "Đã ẩn đánh giá khỏi giao diện." : "Đã kích hoạt hiển thị lại đánh giá."), res)));
     }
 }
+

@@ -1,0 +1,60 @@
+name: Auto Deploy MarketLink Backend to VPS
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build JAR & Deploy to VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: 2. Set up JDK 21 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: 3. Grant execute permission for Maven Wrapper
+        run: chmod +x mvnw || true
+
+      - name: 4. Build Spring Boot Executable JAR
+        run: |
+          if [ -f "./mvnw" ]; then
+            ./mvnw clean package -DskipTests || mvn clean package -DskipTests
+          else
+            mvn clean package -DskipTests
+          fi
+
+      - name: 5. Copy JAR to VPS via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: "target/marketlink-0.0.1-SNAPSHOT.jar"
+          target: "/var/www/marketlink/app"
+          strip_components: 1
+
+      - name: 6. Restart Service & Verify Health on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            mv -f /var/www/marketlink/app/marketlink-0.0.1-SNAPSHOT.jar /var/www/marketlink/app/marketlink.jar
+            chmod +x /var/www/marketlink/app/marketlink.jar
+            systemctl restart marketlink
+            sleep 4
+            systemctl is-active --quiet marketlink && echo "✅ Service marketlink updated and RUNNING smoothly!" || (echo "❌ Service failed to start!"; journalctl -u marketlink -n 30 --no-pager; exit 1)

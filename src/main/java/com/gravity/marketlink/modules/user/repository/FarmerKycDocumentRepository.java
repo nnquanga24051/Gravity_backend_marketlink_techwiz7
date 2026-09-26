@@ -11,7 +11,5 @@ public interface FarmerKycDocumentRepository extends R2dbcRepository<FarmerKycDo
 
     Flux<FarmerKycDocument> findByFarmerId(Long farmerId);
 
-    Mono<FarmerKycDocument> findByFarmerIdAndDocumentType(Long farmerId, String documentType);
-
-    Mono<Void> deleteByFarmerIdAndDocumentType(Long farmerId, String documentType);
+    Mono<Void> deleteByFarmerId(Long farmerId);
 }

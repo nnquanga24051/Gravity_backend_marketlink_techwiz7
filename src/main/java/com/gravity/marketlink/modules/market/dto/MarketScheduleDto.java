@@ -29,12 +29,12 @@ public class MarketScheduleDto {
     private Integer dayOfWeek;
 
     @NotNull(message = "Giờ mở cửa không được để trống")
-    @JsonFormat(pattern = "HH:mm")
-    @Schema(description = "Giờ mở sạp chợ (HH:mm)", example = "06:00")
+    @JsonFormat(pattern = "HH:mm[:ss]")
+    @Schema(description = "Giờ mở sạp chợ (HH:mm hoặc HH:mm:ss)", example = "06:00")
     private LocalTime openTime;
 
     @NotNull(message = "Giờ đóng cửa không được để trống")
-    @JsonFormat(pattern = "HH:mm")
-    @Schema(description = "Giờ kết thúc phiên chợ (HH:mm)", example = "12:00")
+    @JsonFormat(pattern = "HH:mm[:ss]")
+    @Schema(description = "Giờ kết thúc phiên chợ (HH:mm hoặc HH:mm:ss)", example = "12:00")
     private LocalTime closeTime;
 }

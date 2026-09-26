@@ -1,0 +1,151 @@
+/**
+ * MarketLink Design Tokens
+ * Bản quyền thiết kế giao diện sàn nông sản sạch MarketLink
+ * Chủ đạo: Xanh lá đậm, nền be nhạt hữu cơ, nhấn cam đất ấm áp
+ */
+
+:root {
+  /* ========================================================
+     1. BẢNG MÀU CHỦ ĐẠO (COLOR SYSTEM)
+     ======================================================== */
+  /* Xanh lá nông sản (Primary Green) */
+  --color-primary-dark: #1b5e20;
+  --color-primary: #2e7d32;
+  --color-primary-hover: #256828;
+  --color-primary-light: #81c784;
+  --color-primary-subtle: #a5d6a7;
+  --color-primary-surface: #e8f5e9;
+  --color-primary-tint: #f1f8f2;
+  --color-primary-focus: rgba(46, 125, 50, 0.25);
+
+  /* Nền & Bề mặt (Warm Organic Backgrounds & Surfaces) */
+  --color-bg-base: #fafaf5;         /* Be sữa hữu cơ dịu mắt */
+  --color-bg-surface: #ffffff;      /* Trắng tinh khôi cho card, modal */
+  --color-bg-muted: #f5f1e8;        /* Be nhạt ấm cho sections */
+  --color-bg-surface-hover: #f9f8f3;
+  --color-border: #e6e4dd;          /* Viền nhẹ nhàng hài hòa nền be */
+  --color-border-light: #f0eee6;
+  --color-border-focus: #2e7d32;
+
+  /* Màu nhấn phụ (Warm Terracotta / Amber Accent) */
+  --color-accent: #d97706;          /* Nút CTA, Giá tiền, Điểm hẹn */
+  --color-accent-hover: #b45309;
+  --color-accent-light: #fbbf24;
+  --color-accent-surface: #fef3c7;
+  --color-accent-tint: #fffbeb;
+  --color-accent-focus: rgba(217, 119, 6, 0.25);
+
+  /* Văn bản & Trung tính (Typography & Neutrals) */
+  --color-text-main: #1e2922;       /* Xanh rêu than sẫm - tương phản cao */
+  --color-text-body: #374151;       /* Xám than đậm - dễ đọc nội dung dài */
+  --color-text-muted: #6b7280;      /* Xám trung tính - phụ đề, thông số */
+  --color-text-subtle: #9ca3af;     /* Xám mờ - icon phụ, đơn vị tính */
+  --color-text-inverse: #ffffff;
+
+  /* Trạng thái đơn hàng & Thông báo (Semantic Status) */
+  --status-pending: #d97706;
+  --status-pending-bg: #fef3c7;
+  --status-ready: #2e7d32;
+  --status-ready-bg: #dcfce7;
+  --status-completed: #4b5563;
+  --status-completed-bg: #f3f4f6;
+  --status-cancelled: #dc2626;
+  --status-cancelled-bg: #fee2e2;
+
+  --color-danger: #dc2626;
+  --color-danger-surface: #fee2e2;
+  --color-info: #0284c7;
+  --color-info-surface: #e0f2fe;
+
+  /* ========================================================
+     2. HỆ THỐNG TYPOGRAPHY
+     ======================================================== */
+  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Kích thước chữ */
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.844rem;   /* 13.5px */
+  --font-size-base: 0.938rem; /* 15px */
+  --font-size-md: 1.063rem;   /* 17px */
+  --font-size-lg: 1.25rem;    /* 20px */
+  --font-size-xl: 1.5rem;     /* 24px */
+  --font-size-2xl: 1.875rem;  /* 30px */
+  --font-size-3xl: 2.25rem;   /* 36px */
+  --font-size-4xl: 2.75rem;   /* 44px */
+
+  /* Độ đậm chữ */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Line Heights */
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.35;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+
+  /* ========================================================
+     3. KHOẢNG CÁCH (SPACING SYSTEM - 4px/8px base)
+     ======================================================== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Aliases for semantic spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* Aliases for modern color tokens */
+  --color-bg-main: var(--color-bg-base);
+  --color-surface-subtle: #f6f8f6;
+  --color-text-primary: var(--color-text-main);
+  --color-text-secondary: var(--color-text-body);
+  --color-text-tertiary: var(--color-text-muted);
+
+  /* ========================================================
+     4. BO GÓC (BORDER RADIUS)
+     ======================================================== */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ========================================================
+     5. ĐỔ BÓNG HỮU CƠ (ORGANIC SHADOWS)
+     ======================================================== */
+  --shadow-xs: 0 1px 2px rgba(30, 41, 34, 0.05);
+  --shadow-sm: 0 2px 6px -1px rgba(46, 125, 50, 0.06), 0 1px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 8px 16px -4px rgba(46, 125, 50, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 16px 32px -8px rgba(30, 41, 34, 0.12), 0 6px 12px -3px rgba(46, 125, 50, 0.05);
+  --shadow-xl: 0 24px 48px -12px rgba(27, 94, 32, 0.18);
+  --shadow-floating: 0 20px 40px -10px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(230, 228, 221, 0.7);
+
+  /* ========================================================
+     6. CHUYỂN ĐỘNG & HIỆU ỨNG (MOTION & TRANSITIONS)
+     ======================================================== */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 350ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Container Max-Width */
+  --container-max-width: 1240px;
+}

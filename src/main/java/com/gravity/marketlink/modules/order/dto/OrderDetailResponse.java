@@ -48,4 +48,6 @@ public class OrderDetailResponse {
     private LocalDateTime updatedAt;
 
     private List<OrderItemResponse> items;
+
+    private Boolean hasReview;
 }

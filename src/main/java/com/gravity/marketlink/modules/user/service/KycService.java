@@ -19,6 +19,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -32,34 +33,40 @@ public class KycService {
 
     @Transactional
     public Mono<FarmerKycStatusResponse> submitKyc(Long farmerId, FarmerKycSubmitRequest request) {
+        if (request == null || request.getDocuments() == null || request.getDocuments().isEmpty()) {
+            return Mono.error(new IllegalArgumentException("Danh sách tài liệu KYC không được để trống."));
+        }
+
+        List<FarmerKycItemRequest> docs = request.getDocuments();
+
+        // 1. Đảm bảo FarmerProfile tồn tại (tự động tạo nếu chưa có)
         return farmerProfileRepository.findByFarmerId(farmerId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy hồ sơ Nông dân với ID: " + farmerId)))
+                .switchIfEmpty(Mono.defer(() -> {
+                    FarmerProfile defaultProfile = FarmerProfile.builder()
+                            .farmerId(farmerId)
+                            .stallName("Nông Trại")
+                            .farmAddress("Chưa cập nhật")
+                            .isApproved(false)
+                            .createdAt(LocalDateTime.now())
+                            .updatedAt(LocalDateTime.now())
+                            .build();
+                    return farmerProfileRepository.save(defaultProfile);
+                }))
                 .flatMap(profile -> {
-                    // For each document item in the request, save or update
-                    List<FarmerKycItemRequest> docs = request.getDocuments();
-
-                    Flux<FarmerKycDocument> saveDocsFlux = Flux.fromIterable(docs)
-                            .flatMap(item -> farmerKycDocumentRepository.findByFarmerIdAndDocumentType(farmerId, item.getDocumentType())
-                                    .flatMap(existing -> {
-                                        existing.setDocumentUrl(item.getDocumentUrl());
-                                        existing.setDocumentNumber(item.getDocumentNumber());
-                                        existing.setIssuedDate(item.getIssuedDate());
-                                        existing.setExpiryDate(item.getExpiryDate());
-                                        return farmerKycDocumentRepository.save(existing);
-                                    })
-                                    .switchIfEmpty(farmerKycDocumentRepository.save(
-                                            FarmerKycDocument.builder()
-                                                    .farmerId(farmerId)
-                                                    .documentType(item.getDocumentType())
-                                                    .documentUrl(item.getDocumentUrl())
-                                                    .documentNumber(item.getDocumentNumber())
-                                                    .issuedDate(item.getIssuedDate())
-                                                    .expiryDate(item.getExpiryDate())
-                                                    .createdAt(LocalDateTime.now())
-                                                    .build()
-                                    )));
-
-                    return saveDocsFlux.then(userRepository.updateKycStatus(farmerId, "PENDING", LocalDateTime.now()))
+                    // 2. Xóa các tài liệu cũ (nếu có) và nạp danh sách tài liệu mới
+                    return farmerKycDocumentRepository.deleteByFarmerId(farmerId)
+                            .thenMany(Flux.fromIterable(docs))
+                            .flatMap(item -> farmerKycDocumentRepository.save(
+                                    FarmerKycDocument.builder()
+                                            .farmerId(farmerId)
+                                            .documentUrl(item.getDocumentUrl())
+                                            .documentNumber(item.getDocumentNumber())
+                                            .issuedDate(item.getIssuedDate())
+                                            .expiryDate(item.getExpiryDate())
+                                            .createdAt(LocalDateTime.now())
+                                            .build()
+                            ))
+                            .then(userRepository.updateKycStatus(farmerId, "PENDING", LocalDateTime.now()))
                             .then(getFarmerKycStatus(farmerId));
                 });
     }
@@ -67,11 +74,19 @@ public class KycService {
     public Mono<FarmerKycStatusResponse> getFarmerKycStatus(Long farmerId) {
         Mono<User> userMono = userRepository.findById(farmerId)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + farmerId)));
+
         Mono<FarmerProfile> profileMono = farmerProfileRepository.findByFarmerId(farmerId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy hồ sơ Nông dân với ID: " + farmerId)));
+                .defaultIfEmpty(FarmerProfile.builder()
+                        .farmerId(farmerId)
+                        .stallName("Nông Trại")
+                        .farmAddress("Chưa cập nhật")
+                        .isApproved(false)
+                        .build());
+
         Mono<List<FarmerKycDocumentResponse>> docsMono = farmerKycDocumentRepository.findByFarmerId(farmerId)
                 .map(this::mapToDocResponse)
                 .collectList();
+
         Mono<List<VerificationAuditLogResponse>> logsMono = verificationAuditLogRepository.findByTargetUserIdOrderByReviewedAtDesc(farmerId)
                 .flatMap(logItem -> userRepository.findById(logItem.getAdminId())
                         .map(admin -> mapToAuditLogResponse(logItem, admin.getFullName()))
@@ -89,8 +104,8 @@ public class KycService {
 
                     return FarmerKycStatusResponse.builder()
                             .farmerId(farmerId)
-                            .kycStatus(user.getKycStatus())
-                            .isApproved(profile.getIsApproved())
+                            .kycStatus(user.getKycStatus() != null ? user.getKycStatus() : "UNVERIFIED")
+                            .isApproved(profile.getIsApproved() != null && profile.getIsApproved())
                             .latestRemark(latestRemark)
                             .documents(docs)
                             .auditLogs(logs)
@@ -101,11 +116,17 @@ public class KycService {
     public Flux<PendingFarmerKycResponse> getPendingKycList() {
         return userRepository.findByKycStatusOrderByCreatedAtDesc("PENDING")
                 .flatMap(user -> farmerProfileRepository.findByFarmerId(user.getUserId())
+                        .defaultIfEmpty(FarmerProfile.builder()
+                                .farmerId(user.getUserId())
+                                .stallName("Nông Trại")
+                                .farmAddress("Chưa cập nhật")
+                                .isApproved(false)
+                                .build())
                         .flatMap(profile -> farmerKycDocumentRepository.findByFarmerId(user.getUserId()).collectList()
                                 .map(docs -> {
                                     LocalDateTime lastSubmit = docs.stream()
                                             .map(FarmerKycDocument::getCreatedAt)
-                                            .filter(java.util.Objects::nonNull)
+                                            .filter(Objects::nonNull)
                                             .max(LocalDateTime::compareTo)
                                             .orElse(user.getCreatedAt());
 
@@ -116,7 +137,7 @@ public class KycService {
                                             .phoneNumber(user.getPhoneNumber())
                                             .stallName(profile.getStallName())
                                             .farmAddress(profile.getFarmAddress())
-                                            .kycStatus(user.getKycStatus())
+                                            .kycStatus(user.getKycStatus() != null ? user.getKycStatus() : "PENDING")
                                             .documentCount(docs.size())
                                             .lastSubmittedAt(lastSubmit)
                                             .build();
@@ -125,6 +146,10 @@ public class KycService {
 
     @Transactional
     public Mono<FarmerKycStatusResponse> reviewFarmerKyc(Long adminId, Long farmerId, AdminKycReviewRequest request) {
+        if (request == null || request.getAction() == null) {
+            return Mono.error(new IllegalArgumentException("Hành động kiểm duyệt không được để trống."));
+        }
+
         String action = request.getAction().trim().toUpperCase();
         String reason = request.getReason() != null ? request.getReason().trim() : "";
 
@@ -161,19 +186,28 @@ public class KycService {
                 .build();
 
         return farmerProfileRepository.findByFarmerId(farmerId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy nông dân với ID: " + farmerId)))
-                .then(userRepository.updateKycStatus(farmerId, newKycStatus, LocalDateTime.now()))
-                .then(farmerProfileRepository.updateApprovalStatus(farmerId, newIsApproved, LocalDateTime.now()))
-                .then(verificationAuditLogRepository.save(auditLog))
-                .doOnSuccess(saved -> log.info("Admin [{}] đã thực hiện [{}] KYC cho nông dân [{}]", adminId, action, farmerId))
-                .then(getFarmerKycStatus(farmerId));
+                .switchIfEmpty(Mono.defer(() -> {
+                    FarmerProfile defaultProfile = FarmerProfile.builder()
+                            .farmerId(farmerId)
+                            .stallName("Nông Trại")
+                            .farmAddress("Chưa cập nhật")
+                            .isApproved(false)
+                            .createdAt(LocalDateTime.now())
+                            .updatedAt(LocalDateTime.now())
+                            .build();
+                    return farmerProfileRepository.save(defaultProfile);
+                }))
+                .flatMap(profile -> userRepository.updateKycStatus(farmerId, newKycStatus, LocalDateTime.now())
+                        .then(farmerProfileRepository.updateApprovalStatus(farmerId, newIsApproved, LocalDateTime.now()))
+                        .then(verificationAuditLogRepository.save(auditLog))
+                        .doOnSuccess(saved -> log.info("Admin [{}] đã thực hiện [{}] KYC cho nông dân [{}]", adminId, action, farmerId))
+                        .then(getFarmerKycStatus(farmerId)));
     }
 
     private FarmerKycDocumentResponse mapToDocResponse(FarmerKycDocument doc) {
         return FarmerKycDocumentResponse.builder()
                 .documentId(doc.getDocumentId())
                 .farmerId(doc.getFarmerId())
-                .documentType(doc.getDocumentType())
                 .documentUrl(doc.getDocumentUrl())
                 .documentNumber(doc.getDocumentNumber())
                 .issuedDate(doc.getIssuedDate())

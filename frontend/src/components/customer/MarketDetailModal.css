@@ -1,0 +1,521 @@
+/* ================================================================
+   MARKET DETAIL MODAL - Schedule & Interactive OpenStreetMap
+   ================================================================ */
+
+.ml-market-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+/* Modal Tab Navigation */
+.ml-modal-tab-nav {
+  display: flex;
+  border-bottom: 2px solid var(--color-border-light, #e2e8f0);
+  margin-bottom: 4px;
+}
+
+.ml-modal-tab-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted, #64748b);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.ml-modal-tab-btn:hover {
+  color: var(--color-primary, #059669);
+  background-color: var(--color-bg-subtle, #f8fafc);
+}
+
+.ml-modal-tab-btn.active {
+  color: var(--color-primary, #059669);
+  border-bottom-color: var(--color-primary, #059669);
+}
+
+.ml-modal-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+/* Banner */
+.ml-detail-banner {
+  position: relative;
+  height: 200px;
+  border-radius: var(--radius-md, 12px);
+  overflow: hidden;
+  background-color: var(--color-bg-muted, #f1f5f9);
+}
+
+.ml-detail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ml-detail-pills {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Schedule Card */
+.ml-detail-schedule-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  background-color: var(--color-primary-surface, #ecfdf5);
+  border: 1px solid var(--color-primary-subtle, #a7f3d0);
+  border-radius: var(--radius-md, 12px);
+  padding: 12px 16px;
+}
+
+.ml-sched-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ml-sched-icon {
+  font-size: 22px;
+}
+
+.ml-sched-label {
+  font-size: 11px;
+  color: var(--color-primary-dark, #065f46);
+  font-weight: 500;
+}
+
+.ml-sched-val {
+  font-size: 13.5px;
+  color: var(--color-text-main, #0f172a);
+}
+
+/* Session Card & Cutoff */
+.ml-session-card {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.ml-session-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ml-session-icon {
+  font-size: 20px;
+}
+
+.ml-session-title {
+  margin: 0 0 2px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.ml-session-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #b45309;
+}
+
+.ml-cutoff-notice {
+  background: #ffffff;
+  border: 1px dashed #f59e0b;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #78350f;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ml-cutoff-badge {
+  font-weight: 700;
+  color: #d97706;
+}
+
+/* Section Headings */
+.ml-detail-heading {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-main, #0f172a);
+  margin: 0 0 8px 0;
+}
+
+.ml-detail-text {
+  font-size: 13px;
+  color: var(--color-text-body, #334155);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Steps Grid */
+.ml-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ml-step-card {
+  background-color: var(--color-bg-subtle, #f8fafc);
+  border: 1px solid var(--color-border-light, #e2e8f0);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.ml-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--color-primary, #059669);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ml-step-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ml-step-info strong {
+  font-size: 12px;
+  color: var(--color-text-main, #0f172a);
+}
+
+.ml-step-info span {
+  font-size: 11px;
+  color: var(--color-text-muted, #64748b);
+  line-height: 1.4;
+}
+
+/* Amenities */
+.ml-amenities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.ml-amenity-chip {
+  font-size: 12px;
+  color: var(--color-primary-dark, #065f46);
+  background-color: var(--color-bg-subtle, #f8fafc);
+  border: 1px solid var(--color-border-light, #e2e8f0);
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Footer & Actions */
+.ml-detail-footer {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--color-border-light, #e2e8f0);
+  padding-top: 14px;
+}
+
+.ml-detail-stall-note {
+  font-size: 12.5px;
+  color: var(--color-text-muted, #64748b);
+  text-align: center;
+}
+
+.ml-modal-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ================================================================
+   TAB 2: MAP & ROUTING STYLES
+   ================================================================ */
+
+.ml-map-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--color-bg-subtle, #f8fafc);
+  border: 1px solid var(--color-border-light, #e2e8f0);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.ml-map-target-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ml-map-target-icon {
+  font-size: 24px;
+}
+
+.ml-map-target-addr {
+  font-size: 12px;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 2px;
+}
+
+.ml-leaflet-container-wrap {
+  width: 100%;
+  height: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light, #e2e8f0);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 1;
+}
+
+.ml-modal-map-view {
+  width: 100%;
+  height: 100%;
+}
+
+.ml-route-loading {
+  text-align: center;
+  padding: 12px;
+  font-size: 13px;
+  color: var(--color-primary, #059669);
+  background-color: var(--color-primary-surface, #ecfdf5);
+  border-radius: 8px;
+}
+
+.ml-route-stats-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ml-route-stat-box {
+  background-color: var(--color-bg-subtle, #f8fafc);
+  border: 1px solid var(--color-border-light, #e2e8f0);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+}
+
+.ml-route-stat-label {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-muted, #64748b);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.ml-route-stat-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-main, #0f172a);
+}
+
+.ml-route-stat-num.highlight {
+  color: #d97706;
+}
+
+.ml-route-stat-num.in {
+  color: #059669;
+}
+
+.ml-route-stat-num.out {
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* Geofence Alert */
+.ml-geofence-alert-box {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: pulseGf 2s infinite ease-in-out;
+}
+
+@keyframes pulseGf {
+  0%, 100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+}
+
+.ml-geofence-bell {
+  font-size: 26px;
+}
+
+.ml-geofence-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #166534;
+}
+
+.ml-geofence-desc {
+  font-size: 12px;
+  color: #15803d;
+  margin-top: 2px;
+}
+
+.ml-farmer-alert-preview {
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #92400e;
+}
+
+/* GPS Simulator */
+.ml-gps-simulate-section {
+  background-color: var(--color-bg-subtle, #f8fafc);
+  border: 1px solid var(--color-border-light, #e2e8f0);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.ml-gps-sim-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-text-main, #0f172a);
+  margin-bottom: 8px;
+}
+
+.ml-gps-sim-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ml-sim-btn {
+  background-color: #ffffff;
+  border: 1px solid var(--color-border-light, #e2e8f0);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--color-text-body, #334155);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ml-sim-btn:hover {
+  border-color: var(--color-primary, #059669);
+  color: var(--color-primary, #059669);
+}
+
+.ml-sim-btn.active {
+  background-color: var(--color-primary, #059669);
+  border-color: var(--color-primary, #059669);
+  color: #ffffff;
+}
+
+.ml-sim-btn.geofence {
+  border-color: #10b981;
+  color: #059669;
+}
+
+.ml-sim-btn.geofence.active {
+  background-color: #059669;
+  color: #ffffff;
+}
+
+.ml-sim-btn.gps {
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+.ml-current-pos-label {
+  font-size: 11px;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 8px;
+}
+
+/* Steps list */
+.ml-route-steps-section {
+  background-color: var(--color-bg-subtle, #f8fafc);
+  border: 1px solid var(--color-border-light, #e2e8f0);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.ml-steps-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-main, #0f172a);
+  margin-bottom: 6px;
+}
+
+.ml-steps-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: var(--color-text-body, #334155);
+  line-height: 1.6;
+}
+
+/* Map modal footer */
+.ml-map-modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border-light, #e2e8f0);
+  padding-top: 14px;
+  flex-wrap: wrap;
+}
+
+.ml-btn-gmaps {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #0284c7;
+  color: #0284c7;
+  background-color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.ml-btn-gmaps:hover {
+  background-color: #f0f9ff;
+  border-color: #0369a1;
+  color: #0369a1;
+}
+
+@media (max-width: 600px) {
+  .ml-detail-schedule-card,
+  .ml-steps-grid,
+  .ml-modal-actions-row,
+  .ml-route-stats-container {
+    grid-template-columns: 1fr;
+  }
+}

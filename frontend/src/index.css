@@ -1,19 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import './styles/tokens.css';
+@import './styles/global.css';
 
+/* Fallback & legacy variable aliases for MarketLink theme */
 :root {
-  --primary: #059669;
-  --primary-hover: #047857;
-  --primary-light: #ecfdf5;
-  --accent: #10b981;
-  --bg-main: #0b1120;
-  --card-bg: #1e293b;
-  --card-border: #334155;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --info: #38bdf8;
-  --radius: 12px;
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --primary-light: var(--color-primary-surface);
+  --accent: var(--color-accent);
+  --bg-main: var(--color-bg-base);
+  --card-bg: var(--color-bg-surface);
+  --card-border: var(--color-border);
+  --text-main: var(--color-text-main);
+  --text-muted: var(--color-text-muted);
+  --danger: var(--color-danger);
+  --warning: #d97706;
+  --info: var(--color-info);
+  --radius: var(--radius-lg);
 }
 
 * {
@@ -23,17 +26,14 @@
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: var(--bg-main);
-  color: var(--text-main);
+  font-family: var(--font-family);
+  background-color: var(--color-bg-base);
+  color: var(--color-text-body);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-button {
-  font-family: inherit;
-}
-
-input, select, textarea {
+button, input, select, textarea {
   font-family: inherit;
 }
