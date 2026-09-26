@@ -19,6 +19,22 @@ export default function UserModerationPage({ onNavigate }) {
     status: 'ALL',
     kycStatus: 'ALL'
   });
+
+  const handleResetUserFilters = () => {
+    setUserFilters({
+      keyword: '',
+      role: 'ALL',
+      status: 'ALL',
+      kycStatus: 'ALL'
+    });
+  };
+
+  const hasActiveFilters = Boolean(
+    (userFilters.keyword && userFilters.keyword.trim() !== '') ||
+    userFilters.role !== 'ALL' ||
+    userFilters.status !== 'ALL' ||
+    userFilters.kycStatus !== 'ALL'
+  );
   const [selectedUserDetail, setSelectedUserDetail] = useState(null);
   const [isUserDetailModalOpen, setIsUserDetailModalOpen] = useState(false);
   const [isUserStatusModalOpen, setIsUserStatusModalOpen] = useState(false);
@@ -63,12 +79,12 @@ export default function UserModerationPage({ onNavigate }) {
   };
 
   // ==========================================
-  // LOAD KYC PENDING FROM REAL API
+  // LOAD KYC PENDING FROM REAL API (Server-Side Search)
   // ==========================================
-  const loadKyc = async () => {
+  const loadKyc = async (kw = kycSearch) => {
     setLoadingKyc(true);
     try {
-      const data = await adminService.getPendingKycList();
+      const data = await adminService.getPendingKycList(kw ? kw.trim() : '');
       setKycList(Array.isArray(data) ? data : []);
     } catch (err) {
       console.warn('Failed to load KYC pending list', err);
@@ -80,11 +96,17 @@ export default function UserModerationPage({ onNavigate }) {
 
   useEffect(() => {
     if (mainTab === 'users') {
-      loadUsers();
+      const timer = setTimeout(() => {
+        loadUsers();
+      }, 250);
+      return () => clearTimeout(timer);
     } else {
-      loadKyc();
+      const timer = setTimeout(() => {
+        loadKyc(kycSearch);
+      }, 250);
+      return () => clearTimeout(timer);
     }
-  }, [mainTab, userFilters]);
+  }, [mainTab, userFilters, kycSearch]);
 
   // View User Detail Modal
   const handleViewUserDetail = async (userId) => {
@@ -207,16 +229,8 @@ export default function UserModerationPage({ onNavigate }) {
     }
   };
 
-  // Filtered KYC
-  const filteredKycList = kycList.filter((k) => {
-    const matchSearch =
-      !kycSearch ||
-      (k.fullName && k.fullName.toLowerCase().includes(kycSearch.toLowerCase())) ||
-      (k.stallName && k.stallName.toLowerCase().includes(kycSearch.toLowerCase())) ||
-      (k.phoneNumber && k.phoneNumber.includes(kycSearch)) ||
-      (k.email && k.email.toLowerCase().includes(kycSearch.toLowerCase()));
-    return matchSearch;
-  });
+  // Filtered KYC (Processed entirely on server-side)
+  const filteredKycList = kycList;
 
   return (
     <div className="ml-mod-page">
@@ -265,22 +279,30 @@ export default function UserModerationPage({ onNavigate }) {
       </div>
 
       <div className="ml-container ml-mod-content">
-        {/* Navigation Tabs */}
-        <div className="ml-inv-main-tabs" style={{ marginBottom: 20 }}>
-          <button
-            type="button"
-            className={`ml-inv-main-tab ${mainTab === 'users' ? 'active' : ''}`}
-            onClick={() => setMainTab('users')}
-          >
-            👥 Người dùng hệ thống ({users.length})
-          </button>
-          <button
-            type="button"
-            className={`ml-inv-main-tab ${mainTab === 'kyc' ? 'active' : ''}`}
-            onClick={() => setMainTab('kyc')}
-          >
-            📜 Thẩm định hồ sơ VietGAP ({kycList.length} chờ duyệt)
-          </button>
+        {/* Navigation Tabs - Modern Segmented Control */}
+        <div className="ml-user-mod-tabs-container">
+          <div className="ml-user-mod-tabs">
+            <button
+              type="button"
+              className={`ml-user-mod-tab ${mainTab === 'users' ? 'active' : ''}`}
+              onClick={() => setMainTab('users')}
+            >
+              <span className="ml-user-mod-tab-icon">👥</span>
+              <span className="ml-user-mod-tab-label">Người dùng hệ thống</span>
+              <span className="ml-tab-badge ml-tab-badge-users">{users.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`ml-user-mod-tab ${mainTab === 'kyc' ? 'active' : ''}`}
+              onClick={() => setMainTab('kyc')}
+            >
+              <span className="ml-user-mod-tab-icon">📜</span>
+              <span className="ml-user-mod-tab-label">Thẩm định hồ sơ VietGAP</span>
+              <span className={`ml-tab-badge ${kycList.length > 0 ? 'ml-tab-badge-kyc-alert' : 'ml-tab-badge-kyc'}`}>
+                {kycList.length} chờ duyệt
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* ========================================================
@@ -288,60 +310,195 @@ export default function UserModerationPage({ onNavigate }) {
             ======================================================== */}
         {mainTab === 'users' && (
           <div className="ml-users-management-box">
-            {/* Filter Toolbar */}
-            <div className="ml-card ml-mod-controls" style={{ marginBottom: 20 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                <div>
-                  <label className="ml-form-label" style={{ fontSize: 12, marginBottom: 4 }}>Tìm kiếm người dùng:</label>
-                  <input
-                    type="text"
-                    className="ml-form-input"
-                    placeholder="Tên, Email, SĐT..."
-                    value={userFilters.keyword}
-                    onChange={(e) => setUserFilters({ ...userFilters, keyword: e.target.value })}
-                  />
+            {/* Filter Toolbar - Modern Redesigned Card */}
+            <div className="ml-user-filter-card">
+              {/* Header inside filter card */}
+              <div className="ml-filter-card-header">
+                <div className="ml-filter-card-title-group">
+                  <div className="ml-filter-card-icon-badge">🔍</div>
+                  <div>
+                    <h3 className="ml-filter-card-title">Bộ Lọc & Tra Cứu Tài Khoản</h3>
+                    <p className="ml-filter-card-subtitle">
+                      {loadingUsers ? 'Đang tìm kiếm dữ liệu...' : `Tìm thấy ${users.length} tài khoản phù hợp với điều kiện`}
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="ml-form-label" style={{ fontSize: 12, marginBottom: 4 }}>Vai trò:</label>
-                  <select
-                    className="ml-form-select"
-                    value={userFilters.role}
-                    onChange={(e) => setUserFilters({ ...userFilters, role: e.target.value })}
+                <div className="ml-filter-card-actions">
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      className="ml-filter-reset-btn"
+                      onClick={handleResetUserFilters}
+                      title="Xóa tất cả bộ lọc về mặc định"
+                    >
+                      <span className="ml-reset-icon">✕</span>
+                      <span>Xóa bộ lọc</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="ml-filter-reload-btn"
+                    onClick={loadUsers}
+                    title="Tải lại dữ liệu"
+                    disabled={loadingUsers}
                   >
-                    <option value="ALL">Tất cả vai trò</option>
-                    <option value="ROLE_ADMIN">Quản trị viên (ADMIN)</option>
-                    <option value="ROLE_FARMER">Nông dân (FARMER)</option>
-                    <option value="ROLE_CUSTOMER">Khách hàng (CUSTOMER)</option>
-                  </select>
+                    <span className={loadingUsers ? 'ml-spin' : ''}>🔄</span>
+                    <span>Làm mới</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Main 4-Column Full-width Grid */}
+              <div className="ml-user-filter-grid">
+                {/* 1. Search keyword */}
+                <div className="ml-filter-field ml-filter-field-search">
+                  <label className="ml-filter-label">
+                    <span className="ml-label-icon">🔎</span> Tìm kiếm người dùng
+                  </label>
+                  <div className="ml-search-input-wrapper">
+                    <span className="ml-search-leading-icon">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      className="ml-filter-input"
+                      placeholder="Nhập tên, email, SĐT..."
+                      value={userFilters.keyword}
+                      onChange={(e) => setUserFilters({ ...userFilters, keyword: e.target.value })}
+                    />
+                    {userFilters.keyword && (
+                      <button
+                        type="button"
+                        className="ml-input-clear-btn"
+                        onClick={() => setUserFilters({ ...userFilters, keyword: '' })}
+                        title="Xóa tìm kiếm"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="ml-form-label" style={{ fontSize: 12, marginBottom: 4 }}>Trạng thái tài khoản:</label>
-                  <select
-                    className="ml-form-select"
-                    value={userFilters.status}
-                    onChange={(e) => setUserFilters({ ...userFilters, status: e.target.value })}
-                  >
-                    <option value="ALL">Tất cả trạng thái</option>
-                    <option value="ACTIVE">Đang hoạt động (ACTIVE)</option>
-                    <option value="SUSPENDED">Tạm khóa (SUSPENDED)</option>
-                  </select>
+                {/* 2. Role filter */}
+                <div className="ml-filter-field">
+                  <label className="ml-filter-label">
+                    <span className="ml-label-icon">🎭</span> Vai trò tài khoản
+                  </label>
+                  <div className="ml-select-wrapper">
+                    <select
+                      className="ml-filter-select"
+                      value={userFilters.role ? userFilters.role.replace(/^ROLE_/, '') : 'ALL'}
+                      onChange={(e) => setUserFilters({ ...userFilters, role: e.target.value })}
+                    >
+                      <option value="ALL">Tất cả vai trò</option>
+                      <option value="FARMER">👨‍🌾 Nông dân (FARMER)</option>
+                      <option value="CUSTOMER">🛒 Khách hàng (CUSTOMER)</option>
+                      <option value="ADMIN">🛡️ Quản trị viên (ADMIN)</option>
+                    </select>
+                    <span className="ml-select-arrow">▼</span>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="ml-form-label" style={{ fontSize: 12, marginBottom: 4 }}>Định danh KYC:</label>
-                  <select
-                    className="ml-form-select"
-                    value={userFilters.kycStatus}
-                    onChange={(e) => setUserFilters({ ...userFilters, kycStatus: e.target.value })}
+                {/* 3. Account Status */}
+                <div className="ml-filter-field">
+                  <label className="ml-filter-label">
+                    <span className="ml-label-icon">⚡</span> Trạng thái tài khoản
+                  </label>
+                  <div className="ml-select-wrapper">
+                    <select
+                      className="ml-filter-select"
+                      value={userFilters.status}
+                      onChange={(e) => setUserFilters({ ...userFilters, status: e.target.value })}
+                    >
+                      <option value="ALL">Tất cả trạng thái</option>
+                      <option value="ACTIVE">🟢 Đang hoạt động (ACTIVE)</option>
+                      <option value="SUSPENDED">🔴 Bị tạm khóa (SUSPENDED)</option>
+                    </select>
+                    <span className="ml-select-arrow">▼</span>
+                  </div>
+                </div>
+
+                {/* 4. KYC Status */}
+                <div className="ml-filter-field">
+                  <label className="ml-filter-label">
+                    <span className="ml-label-icon">🛡️</span> Định danh KYC
+                  </label>
+                  <div className="ml-select-wrapper">
+                    <select
+                      className="ml-filter-select"
+                      value={userFilters.kycStatus}
+                      onChange={(e) => setUserFilters({ ...userFilters, kycStatus: e.target.value })}
+                    >
+                      <option value="ALL">Tất cả KYC</option>
+                      <option value="VERIFIED">✅ Đã xác thực (VERIFIED)</option>
+                      <option value="PENDING">⏳ Chờ duyệt (PENDING)</option>
+                      <option value="UNVERIFIED">⚪ Chưa nộp (UNVERIFIED)</option>
+                      <option value="REJECTED">❌ Bị từ chối (REJECTED)</option>
+                    </select>
+                    <span className="ml-select-arrow">▼</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Filter Chips row */}
+              <div className="ml-quick-filters-row">
+                <span className="ml-quick-filters-title">Lọc nhanh:</span>
+                <div className="ml-quick-chips-list">
+                  <button
+                    type="button"
+                    className={`ml-filter-chip ${!hasActiveFilters ? 'active' : ''}`}
+                    onClick={handleResetUserFilters}
                   >
-                    <option value="ALL">Tất cả KYC</option>
-                    <option value="VERIFIED">Đã xác thực (VERIFIED)</option>
-                    <option value="PENDING">Chờ duyệt (PENDING)</option>
-                    <option value="UNVERIFIED">Chưa định danh (UNVERIFIED)</option>
-                    <option value="REJECTED">Bị từ chối (REJECTED)</option>
-                  </select>
+                    Tất cả
+                  </button>
+                  <button
+                    type="button"
+                    className={`ml-filter-chip ${userFilters.role === 'FARMER' || userFilters.role === 'ROLE_FARMER' ? 'active' : ''}`}
+                    onClick={() => {
+                      const isSelected = userFilters.role === 'FARMER' || userFilters.role === 'ROLE_FARMER';
+                      setUserFilters({ ...userFilters, role: isSelected ? 'ALL' : 'FARMER' });
+                    }}
+                  >
+                    👨‍🌾 Nông dân
+                  </button>
+                  <button
+                    type="button"
+                    className={`ml-filter-chip ${userFilters.role === 'CUSTOMER' || userFilters.role === 'ROLE_CUSTOMER' ? 'active' : ''}`}
+                    onClick={() => {
+                      const isSelected = userFilters.role === 'CUSTOMER' || userFilters.role === 'ROLE_CUSTOMER';
+                      setUserFilters({ ...userFilters, role: isSelected ? 'ALL' : 'CUSTOMER' });
+                    }}
+                  >
+                    🛒 Khách hàng
+                  </button>
+                  <button
+                    type="button"
+                    className={`ml-filter-chip ${userFilters.role === 'ADMIN' || userFilters.role === 'ROLE_ADMIN' ? 'active' : ''}`}
+                    onClick={() => {
+                      const isSelected = userFilters.role === 'ADMIN' || userFilters.role === 'ROLE_ADMIN';
+                      setUserFilters({ ...userFilters, role: isSelected ? 'ALL' : 'ADMIN' });
+                    }}
+                  >
+                    🛡️ Quản trị viên
+                  </button>
+                  <button
+                    type="button"
+                    className={`ml-filter-chip ${userFilters.kycStatus === 'PENDING' ? 'active warning' : ''}`}
+                    onClick={() => setUserFilters({ ...userFilters, kycStatus: userFilters.kycStatus === 'PENDING' ? 'ALL' : 'PENDING' })}
+                  >
+                    ⏳ Chờ duyệt KYC
+                  </button>
+                  <button
+                    type="button"
+                    className={`ml-filter-chip ${userFilters.status === 'SUSPENDED' ? 'active danger' : ''}`}
+                    onClick={() => setUserFilters({ ...userFilters, status: userFilters.status === 'SUSPENDED' ? 'ALL' : 'SUSPENDED' })}
+                  >
+                    🔴 Bị tạm khóa
+                  </button>
                 </div>
               </div>
             </div>
@@ -453,20 +610,59 @@ export default function UserModerationPage({ onNavigate }) {
             ======================================================== */}
         {mainTab === 'kyc' && (
           <div className="ml-kyc-management-box">
-            {/* Search Box */}
-            <div className="ml-card ml-mod-controls" style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                <input
-                  type="text"
-                  className="ml-form-input"
-                  style={{ flex: 1, minWidth: 260 }}
-                  placeholder="Tìm kiếm nông hộ theo tên, sạp, SĐT..."
-                  value={kycSearch}
-                  onChange={(e) => setKycSearch(e.target.value)}
-                />
-                <Button variant="outline" size="md" onClick={loadKyc}>
-                  🔄 Làm mới danh sách
-                </Button>
+            {/* Search Box - Tab 2 KYC */}
+            <div className="ml-user-filter-card" style={{ marginBottom: 24 }}>
+              <div className="ml-filter-card-header">
+                <div className="ml-filter-card-title-group">
+                  <div className="ml-filter-card-icon-badge" style={{ background: '#fef3c7', color: '#b45309' }}>📜</div>
+                  <div>
+                    <h3 className="ml-filter-card-title">Tra Cứu Hồ Sơ VietGAP Chờ Thẩm Định</h3>
+                    <p className="ml-filter-card-subtitle">
+                      {loadingKyc ? 'Đang tải hồ sơ...' : `Có ${filteredKycList.length} hồ sơ nông hộ đang chờ duyệt`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="ml-filter-card-actions">
+                  <button
+                    type="button"
+                    className="ml-filter-reload-btn"
+                    onClick={() => loadKyc(kycSearch)}
+                    title="Tải lại dữ liệu"
+                    disabled={loadingKyc}
+                  >
+                    <span className={loadingKyc ? 'ml-spin' : ''}>🔄</span>
+                    <span>Làm mới danh sách</span>
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 14 }}>
+                <div className="ml-search-input-wrapper" style={{ width: '100%', maxWidth: '100%' }}>
+                  <span className="ml-search-leading-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    className="ml-filter-input"
+                    placeholder="Tìm kiếm nhanh theo tên nông dân, tên gian hàng / sạp, số điện thoại..."
+                    value={kycSearch}
+                    onChange={(e) => setKycSearch(e.target.value)}
+                  />
+                  {kycSearch && (
+                    <button
+                      type="button"
+                      className="ml-input-clear-btn"
+                      onClick={() => setKycSearch('')}
+                      title="Xóa tìm kiếm"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

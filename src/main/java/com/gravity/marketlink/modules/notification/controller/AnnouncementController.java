@@ -29,10 +29,11 @@ public class AnnouncementController {
     private final AnnouncementService announcementService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Xem danh sách tin tức hệ thống đang hoạt động", description = "Public endpoint. Dành cho người dùng và khách xem bảng tin.")
+    @Operation(summary = "Xem danh sách tin tức hệ thống đang hoạt động", description = "Public endpoint. Dành cho người dùng và khách xem bảng tin, hỗ trợ tìm kiếm theo từ khóa.")
     @GetMapping("/announcements")
-    public Mono<ResponseEntity<ApiResponse<List<AnnouncementResponse>>>> getActiveAnnouncements() {
-        return announcementService.getActiveAnnouncements()
+    public Mono<ResponseEntity<ApiResponse<List<AnnouncementResponse>>>> getActiveAnnouncements(
+            @RequestParam(value = "keyword", required = false) String keyword) {
+        return announcementService.getActiveAnnouncements(keyword)
                 .collectList()
                 .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách tin tức hệ thống thành công.", list)));
     }
@@ -44,12 +45,13 @@ public class AnnouncementController {
                 .map(res -> ResponseEntity.ok(ApiResponse.success("Lấy chi tiết tin tức thành công.", res)));
     }
 
-    @Operation(summary = "Quản trị viên xem tất cả các tin tức", description = "Bao gồm cả tin tức đang bật và tắt. Yêu cầu ROLE_ADMIN.")
+    @Operation(summary = "Quản trị viên xem tất cả các tin tức", description = "Bao gồm cả tin tức đang bật và tắt. Hỗ trợ tìm kiếm từ khóa. Yêu cầu ROLE_ADMIN.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/announcements")
-    public Mono<ResponseEntity<ApiResponse<List<AnnouncementResponse>>>> getAllAnnouncementsForAdmin() {
-        return announcementService.getAllAnnouncements()
+    public Mono<ResponseEntity<ApiResponse<List<AnnouncementResponse>>>> getAllAnnouncementsForAdmin(
+            @RequestParam(value = "keyword", required = false) String keyword) {
+        return announcementService.getAllAnnouncements(keyword)
                 .collectList()
                 .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy tất cả tin tức hệ thống thành công.", list)));
     }

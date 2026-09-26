@@ -81,53 +81,64 @@ export default function MarketsPage({
     }
   ]);
 
-  // Load real markets from backend
+  // Load real markets from backend with Server-Side Search & Filters (No client-side filtering)
   useEffect(() => {
     let isMounted = true;
-    async function fetchMarkets() {
+    const timer = setTimeout(async () => {
       try {
-        const real = await marketService.getMarkets();
-        if (isMounted && real && real.length > 0) {
-          setMarketsData(real.map((m) => {
-            const isHcm = m.address && m.address.toLowerCase().includes('hồ chí minh');
-            const isEcopark = m.address && m.address.toLowerCase().includes('ecopark');
-            return {
-              ...m,
-              id: m.marketId || m.id,
-              name: m.name,
-              address: m.address,
-              city: isHcm ? 'TP. Hồ Chí Minh' : isEcopark ? 'Hưng Yên' : 'Hà Nội',
-              distance: '1.5 km',
-              operatingDays: 'Thứ 7 & Chủ Nhật',
-              operatingHours: '06:00 - 11:30',
-              stallsCount: m.stallsCount || 16,
-              imageUrl: m.imageUrl || 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=700&q=80',
-              tag: 'Chợ nông sản sinh thái',
-              verified: true,
-              description: m.description || 'Chợ phiên nông sản sạch liên kết nông dân địa phương.'
-            };
-          }));
+        let cityParam = '';
+        if (activeCity !== 'all') {
+          cityParam = activeCity;
+        }
+
+        let dayParam = '';
+        if (activeDay !== 'all') {
+          dayParam = activeDay;
+        }
+
+        const real = await marketService.getMarkets({
+          search: searchTerm.trim(),
+          city: cityParam,
+          dayOfWeek: dayParam
+        });
+
+        if (isMounted) {
+          if (real && real.length > 0) {
+            setMarketsData(real.map((m) => {
+              const isHcm = m.address && m.address.toLowerCase().includes('hồ chí minh');
+              const isEcopark = m.address && m.address.toLowerCase().includes('ecopark');
+              return {
+                ...m,
+                id: m.marketId || m.id,
+                name: m.name,
+                address: m.address,
+                city: isHcm ? 'TP. Hồ Chí Minh' : isEcopark ? 'Hưng Yên' : 'Hà Nội',
+                distance: '1.5 km',
+                operatingDays: m.operatingDays || 'Thứ 7 & Chủ Nhật',
+                operatingHours: m.operatingHours || '06:00 - 11:30',
+                stallsCount: m.stallsCount || 16,
+                imageUrl: m.imageUrl || 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=700&q=80',
+                tag: m.tag || 'Chợ nông sản sinh thái',
+                verified: true,
+                description: m.description || 'Chợ phiên nông sản sạch liên kết nông dân địa phương.'
+              };
+            }));
+          } else {
+            setMarketsData([]);
+          }
         }
       } catch (err) {
-        console.warn('Using seeded data for MarketsPage:', err);
+        console.warn('Failed to fetch filtered markets from server:', err);
       }
-    }
+    }, 200);
 
-    fetchMarkets();
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [searchTerm, activeCity, activeDay]);
 
-  const filteredMarkets = useMemo(() => {
-    return marketsData.filter((m) => {
-      const matchCity = activeCity === 'all' || matchSearch([m.city, m.address], activeCity);
-      const matchSearchQuery = !searchTerm.trim() || 
-        matchSearch([m.name, m.address, m.city, m.tag, m.description], searchTerm);
-      const matchDay = activeDay === 'all' || matchSearch(m.operatingDays, activeDay);
-      return matchCity && matchSearchQuery && matchDay;
-    });
-  }, [marketsData, activeCity, activeDay, searchTerm]);
+  const filteredMarkets = marketsData;
 
   return (
     <div className="ml-markets-page">

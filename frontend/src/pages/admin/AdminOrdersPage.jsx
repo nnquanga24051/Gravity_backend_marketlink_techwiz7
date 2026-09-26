@@ -4,6 +4,7 @@ import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 import Modal from '../../components/common/Modal';
 import adminService from '../../services/adminService';
+import marketService from '../../services/marketService';
 
 export default function AdminOrdersPage({ onNavigate }) {
   const [orders, setOrders] = useState([]);
@@ -12,6 +13,7 @@ export default function AdminOrdersPage({ onNavigate }) {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedMarketFilter, setSelectedMarketFilter] = useState('ALL');
   const [selectedDateFilter, setSelectedDateFilter] = useState('');
+  const [allMarkets, setAllMarkets] = useState([]);
 
   // Selected Order for Modal Detail
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -21,10 +23,23 @@ export default function AdminOrdersPage({ onNavigate }) {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
   };
 
+  // Load Markets for Dropdown
+  useEffect(() => {
+    marketService.getMarkets().then((res) => {
+      if (Array.isArray(res)) setAllMarkets(res);
+    }).catch(() => {});
+  }, []);
+
+  // Load orders from backend with Server-Side Search & Filters
   const loadOrders = async () => {
     setLoading(true);
     try {
-      const data = await adminService.getAllOrders();
+      const data = await adminService.getAllOrders({
+        keyword: searchKeyword.trim(),
+        status: activeTab,
+        marketId: selectedMarketFilter !== 'ALL' ? selectedMarketFilter : '',
+        pickupDate: selectedDateFilter
+      });
       setOrders(Array.isArray(data) ? data : []);
     } catch (err) {
       console.warn('Failed to load orders for admin', err);
@@ -34,11 +49,11 @@ export default function AdminOrdersPage({ onNavigate }) {
   };
 
   useEffect(() => {
-    loadOrders();
-  }, []);
-
-  // Compute Unique Markets for filter dropdown
-  const uniqueMarkets = Array.from(new Set(orders.map((o) => o.marketName).filter(Boolean)));
+    const timer = setTimeout(() => {
+      loadOrders();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchKeyword, activeTab, selectedMarketFilter, selectedDateFilter]);
 
   // KPIs
   const totalOrders = orders.length;
@@ -47,33 +62,22 @@ export default function AdminOrdersPage({ onNavigate }) {
   const pendingOrders = orders.filter((o) => o.orderStatus === 'PLACED' || o.orderStatus === 'ACCEPTED');
   const totalGMV = completedOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
 
-  // Filtered List
-  const filteredOrders = orders.filter((o) => {
-    // Status tab
-    if (activeTab === 'PENDING' && o.orderStatus !== 'PLACED' && o.orderStatus !== 'ACCEPTED') return false;
-    if (activeTab === 'READY_FOR_PICKUP' && o.orderStatus !== 'READY_FOR_PICKUP') return false;
-    if (activeTab === 'COMPLETED' && o.orderStatus !== 'COMPLETED') return false;
-    if (activeTab === 'CANCELLED' && o.orderStatus !== 'CANCELLED' && o.orderStatus !== 'DECLINED') return false;
+  // Orders are filtered entirely on server
+  const filteredOrders = orders;
 
-    // Market filter
-    if (selectedMarketFilter !== 'ALL' && o.marketName !== selectedMarketFilter) return false;
+  const handleResetFilters = () => {
+    setSearchKeyword('');
+    setSelectedMarketFilter('ALL');
+    setSelectedDateFilter('');
+    setActiveTab('ALL');
+  };
 
-    // Date filter
-    if (selectedDateFilter && o.pickupDate !== selectedDateFilter) return false;
-
-    // Search keyword
-    if (searchKeyword.trim()) {
-      const kw = searchKeyword.toLowerCase();
-      const matchCode = o.orderCode && o.orderCode.toLowerCase().includes(kw);
-      const matchCust = o.customerName && o.customerName.toLowerCase().includes(kw);
-      const matchPhone = o.customerPhone && o.customerPhone.includes(kw);
-      const matchFarmer = o.farmerName && o.farmerName.toLowerCase().includes(kw);
-      const matchStall = o.stallName && o.stallName.toLowerCase().includes(kw);
-      if (!matchCode && !matchCust && !matchPhone && !matchFarmer && !matchStall) return false;
-    }
-
-    return true;
-  });
+  const hasActiveFilters = Boolean(
+    (searchKeyword && searchKeyword.trim() !== '') ||
+    selectedMarketFilter !== 'ALL' ||
+    selectedDateFilter !== '' ||
+    activeTab !== 'ALL'
+  );
 
   const renderOrderStatusBadge = (status) => {
     switch (status) {
@@ -132,97 +136,232 @@ export default function AdminOrdersPage({ onNavigate }) {
       </div>
 
       <div className="ml-container ml-admin-orders-content">
-        {/* Navigation & Status Filter Tabs */}
-        <div className="ml-inv-main-tabs" style={{ marginBottom: 16 }}>
-          <button
-            type="button"
-            className={`ml-inv-main-tab ${activeTab === 'ALL' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ALL')}
-          >
-            📋 Tất cả đơn ({orders.length})
-          </button>
-          <button
-            type="button"
-            className={`ml-inv-main-tab ${activeTab === 'PENDING' ? 'active' : ''}`}
-            onClick={() => setActiveTab('PENDING')}
-          >
-            ⏳ Chờ chuẩn bị ({pendingOrders.length})
-          </button>
-          <button
-            type="button"
-            className={`ml-inv-main-tab ${activeTab === 'READY_FOR_PICKUP' ? 'active' : ''}`}
-            onClick={() => setActiveTab('READY_FOR_PICKUP')}
-          >
-            📦 Sẵn sàng tại sạp ({readyOrders.length})
-          </button>
-          <button
-            type="button"
-            className={`ml-inv-main-tab ${activeTab === 'COMPLETED' ? 'active' : ''}`}
-            onClick={() => setActiveTab('COMPLETED')}
-          >
-            ✅ Đã hoàn tất ({completedOrders.length})
-          </button>
-          <button
-            type="button"
-            className={`ml-inv-main-tab ${activeTab === 'CANCELLED' ? 'active' : ''}`}
-            onClick={() => setActiveTab('CANCELLED')}
-          >
-            🚫 Hủy / Từ chối ({orders.filter((o) => o.orderStatus === 'CANCELLED' || o.orderStatus === 'DECLINED').length})
-          </button>
+        {/* Navigation & Status Filter Tabs - Modern Segmented Control */}
+        <div className="ml-order-tabs-container">
+          <div className="ml-order-tabs">
+            <button
+              type="button"
+              className={`ml-order-tab ${activeTab === 'ALL' ? 'active' : ''}`}
+              onClick={() => setActiveTab('ALL')}
+            >
+              <span className="ml-order-tab-icon">📋</span>
+              <span className="ml-order-tab-label">Tất cả đơn</span>
+              <span className="ml-tab-badge ml-tab-badge-all">{orders.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`ml-order-tab ${activeTab === 'PENDING' ? 'active' : ''}`}
+              onClick={() => setActiveTab('PENDING')}
+            >
+              <span className="ml-order-tab-icon">⏳</span>
+              <span className="ml-order-tab-label">Chờ chuẩn bị</span>
+              <span className={`ml-tab-badge ${pendingOrders.length > 0 ? 'ml-tab-badge-warning' : 'ml-tab-badge-neutral'}`}>
+                {pendingOrders.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`ml-order-tab ${activeTab === 'READY_FOR_PICKUP' ? 'active' : ''}`}
+              onClick={() => setActiveTab('READY_FOR_PICKUP')}
+            >
+              <span className="ml-order-tab-icon">📦</span>
+              <span className="ml-order-tab-label">Sẵn sàng tại sạp</span>
+              <span className={`ml-tab-badge ${readyOrders.length > 0 ? 'ml-tab-badge-info' : 'ml-tab-badge-neutral'}`}>
+                {readyOrders.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`ml-order-tab ${activeTab === 'COMPLETED' ? 'active' : ''}`}
+              onClick={() => setActiveTab('COMPLETED')}
+            >
+              <span className="ml-order-tab-icon">✅</span>
+              <span className="ml-order-tab-label">Đã hoàn tất</span>
+              <span className="ml-tab-badge ml-tab-badge-success">{completedOrders.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`ml-order-tab ${activeTab === 'CANCELLED' ? 'active' : ''}`}
+              onClick={() => setActiveTab('CANCELLED')}
+            >
+              <span className="ml-order-tab-icon">🚫</span>
+              <span className="ml-order-tab-label">Hủy / Từ chối</span>
+              <span className="ml-tab-badge ml-tab-badge-danger">
+                {orders.filter((o) => o.orderStatus === 'CANCELLED' || o.orderStatus === 'DECLINED').length}
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Search & Filter Toolbar */}
-        <div className="ml-card ml-mod-controls" style={{ marginBottom: 20 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-            <div>
-              <label className="ml-form-label" style={{ fontSize: 12, marginBottom: 4 }}>Tìm kiếm đơn hàng:</label>
-              <input
-                type="text"
-                className="ml-form-input"
-                placeholder="Mã đơn, Tên khách, SĐT, Nhà vườn..."
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-              />
+        {/* Search & Filter Toolbar - Modern Redesigned Card */}
+        <div className="ml-user-filter-card">
+          {/* Card Header */}
+          <div className="ml-filter-card-header">
+            <div className="ml-filter-card-title-group">
+              <div className="ml-filter-card-icon-badge">📦</div>
+              <div>
+                <h3 className="ml-filter-card-title">Bộ Lọc & Tra Cứu Đơn Hàng</h3>
+                <p className="ml-filter-card-subtitle">
+                  {loading ? 'Đang tìm kiếm đơn hàng...' : `Tìm thấy ${orders.length} đơn hàng phù hợp với điều kiện`}
+                </p>
+              </div>
             </div>
 
-            <div>
-              <label className="ml-form-label" style={{ fontSize: 12, marginBottom: 4 }}>Điểm chợ phiên:</label>
-              <select
-                className="ml-form-select"
-                value={selectedMarketFilter}
-                onChange={(e) => setSelectedMarketFilter(e.target.value)}
+            <div className="ml-filter-card-actions">
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  className="ml-filter-reset-btn"
+                  onClick={handleResetFilters}
+                  title="Xóa tất cả bộ lọc về mặc định"
+                >
+                  <span className="ml-reset-icon">✕</span>
+                  <span>Xóa bộ lọc</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className="ml-filter-reload-btn"
+                onClick={loadOrders}
+                title="Tải lại danh sách đơn hàng"
+                disabled={loading}
               >
-                <option value="ALL">Tất cả điểm chợ ({uniqueMarkets.length})</option>
-                {uniqueMarkets.map((m, idx) => (
-                  <option key={idx} value={m}>{m}</option>
-                ))}
-              </select>
+                <span className={loading ? 'ml-spin' : ''}>🔄</span>
+                <span>Làm mới</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 3-Column Full-width Grid */}
+          <div className="ml-order-filter-grid">
+            {/* 1. Search keyword */}
+            <div className="ml-filter-field ml-filter-field-search">
+              <label className="ml-filter-label">
+                <span className="ml-label-icon">🔎</span> Tìm kiếm đơn hàng
+              </label>
+              <div className="ml-search-input-wrapper">
+                <span className="ml-search-leading-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  className="ml-filter-input"
+                  placeholder="Mã đơn, Tên khách, SĐT, Nhà vườn..."
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                />
+                {searchKeyword && (
+                  <button
+                    type="button"
+                    className="ml-input-clear-btn"
+                    onClick={() => setSearchKeyword('')}
+                    title="Xóa tìm kiếm"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div>
-              <label className="ml-form-label" style={{ fontSize: 12, marginBottom: 4 }}>Ngày hẹn nhận hàng:</label>
-              <input
-                type="date"
-                className="ml-form-input"
-                value={selectedDateFilter}
-                onChange={(e) => setSelectedDateFilter(e.target.value)}
-              />
+            {/* 2. Market filter */}
+            <div className="ml-filter-field">
+              <label className="ml-filter-label">
+                <span className="ml-label-icon">📍</span> Điểm chợ phiên
+              </label>
+              <div className="ml-select-wrapper">
+                <select
+                  className="ml-filter-select"
+                  value={selectedMarketFilter}
+                  onChange={(e) => setSelectedMarketFilter(e.target.value)}
+                >
+                  <option value="ALL">Tất cả điểm chợ ({allMarkets.length})</option>
+                  {allMarkets.map((m) => (
+                    <option key={m.marketId || m.id} value={m.marketId || m.id}>{m.name}</option>
+                  ))}
+                </select>
+                <span className="ml-select-arrow">▼</span>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <Button
-                variant="outline"
-                size="md"
-                fullWidth
+            {/* 3. Pickup Date */}
+            <div className="ml-filter-field">
+              <label className="ml-filter-label">
+                <span className="ml-label-icon">📅</span> Ngày hẹn nhận hàng
+              </label>
+              <div className="ml-date-input-wrapper">
+                <input
+                  type="date"
+                  className="ml-filter-input ml-filter-date"
+                  value={selectedDateFilter}
+                  onChange={(e) => setSelectedDateFilter(e.target.value)}
+                />
+                {selectedDateFilter && (
+                  <button
+                    type="button"
+                    className="ml-input-clear-btn"
+                    style={{ right: 30 }}
+                    onClick={() => setSelectedDateFilter('')}
+                    title="Xóa ngày lọc"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Filter Chips row */}
+          <div className="ml-quick-filters-row">
+            <span className="ml-quick-filters-title">Lọc nhanh:</span>
+            <div className="ml-quick-chips-list">
+              <button
+                type="button"
+                className={`ml-filter-chip ${!hasActiveFilters ? 'active' : ''}`}
+                onClick={handleResetFilters}
+              >
+                Tất cả
+              </button>
+              <button
+                type="button"
+                className={`ml-filter-chip ${activeTab === 'PENDING' ? 'active warning' : ''}`}
+                onClick={() => setActiveTab(activeTab === 'PENDING' ? 'ALL' : 'PENDING')}
+              >
+                ⏳ Chờ chuẩn bị ({pendingOrders.length})
+              </button>
+              <button
+                type="button"
+                className={`ml-filter-chip ${activeTab === 'READY_FOR_PICKUP' ? 'active' : ''}`}
+                onClick={() => setActiveTab(activeTab === 'READY_FOR_PICKUP' ? 'ALL' : 'READY_FOR_PICKUP')}
+              >
+                📦 Sẵn sàng tại sạp ({readyOrders.length})
+              </button>
+              <button
+                type="button"
+                className={`ml-filter-chip ${activeTab === 'COMPLETED' ? 'active' : ''}`}
+                onClick={() => setActiveTab(activeTab === 'COMPLETED' ? 'ALL' : 'COMPLETED')}
+              >
+                ✅ Đã hoàn tất ({completedOrders.length})
+              </button>
+              <button
+                type="button"
+                className={`ml-filter-chip ${activeTab === 'CANCELLED' ? 'active danger' : ''}`}
+                onClick={() => setActiveTab(activeTab === 'CANCELLED' ? 'ALL' : 'CANCELLED')}
+              >
+                🚫 Hủy / Từ chối ({orders.filter((o) => o.orderStatus === 'CANCELLED' || o.orderStatus === 'DECLINED').length})
+              </button>
+              <button
+                type="button"
+                className={`ml-filter-chip ${selectedDateFilter === new Date().toISOString().split('T')[0] ? 'active' : ''}`}
                 onClick={() => {
-                  setSearchKeyword('');
-                  setSelectedMarketFilter('ALL');
-                  setSelectedDateFilter('');
-                  loadOrders();
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  setSelectedDateFilter(selectedDateFilter === todayStr ? '' : todayStr);
                 }}
               >
-                🔄 Đặt lại bộ lọc
-              </Button>
+                📅 Nhận hôm nay
+              </button>
             </div>
           </div>
         </div>

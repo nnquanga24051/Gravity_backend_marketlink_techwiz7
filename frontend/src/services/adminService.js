@@ -58,7 +58,10 @@ export const adminService = {
     try {
       const query = new URLSearchParams();
       if (params.keyword) query.append('keyword', params.keyword);
-      if (params.role && params.role !== 'ALL') query.append('role', params.role);
+      if (params.role && params.role !== 'ALL') {
+        const cleanRole = String(params.role).replace(/^ROLE_/, '');
+        query.append('role', cleanRole);
+      }
       if (params.status && params.status !== 'ALL') query.append('status', params.status);
       if (params.kycStatus && params.kycStatus !== 'ALL') query.append('kycStatus', params.kycStatus);
 
@@ -96,11 +99,12 @@ export const adminService = {
   // 3. FARMER KYC VERIFICATION
   // ========================================================
   /**
-   * Fetch pending farmer KYC verifications
+   * Fetch pending farmer KYC verifications with optional keyword search
    */
-  async getPendingKycList() {
+  async getPendingKycList(keyword = '') {
     try {
-      const res = await apiClient.get('/admin/kyc/pending');
+      const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : '';
+      const res = await apiClient.get(`/admin/kyc/pending${qs}`);
       if (Array.isArray(res)) return res;
       if (res && Array.isArray(res.data)) return res.data;
       return [];
@@ -134,11 +138,17 @@ export const adminService = {
   // 4. PLATFORM ORDERS (ALL MARKETS & FARMERS)
   // ========================================================
   /**
-   * Fetch all orders across platform for Admin oversight
+   * Fetch all orders across platform for Admin oversight with server-side filters
    */
-  async getAllOrders() {
+  async getAllOrders({ keyword = '', status = '', marketId = '', pickupDate = '' } = {}) {
     try {
-      const res = await apiClient.get('/admin/orders');
+      const query = new URLSearchParams();
+      if (keyword) query.append('keyword', keyword);
+      if (status && status !== 'ALL') query.append('status', status);
+      if (marketId && marketId !== 'ALL') query.append('marketId', marketId);
+      if (pickupDate) query.append('pickupDate', pickupDate);
+      const qs = query.toString();
+      const res = await apiClient.get(`/admin/orders${qs ? '?' + qs : ''}`);
       if (Array.isArray(res)) return res;
       if (res && Array.isArray(res.data)) return res.data;
       return [];
@@ -223,9 +233,10 @@ export const adminService = {
   // ========================================================
   // 6. CATEGORIES MANAGEMENT
   // ========================================================
-  async getAllCategories() {
+  async getAllCategories(keyword = '') {
     try {
-      const res = await apiClient.get('/categories');
+      const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : '';
+      const res = await apiClient.get(`/categories${qs}`);
       if (Array.isArray(res)) return res;
       if (res && Array.isArray(res.data)) return res.data;
       return [];
@@ -253,9 +264,13 @@ export const adminService = {
   // ========================================================
   // 7. REVIEWS MODERATION
   // ========================================================
-  async getAllReviews() {
+  async getAllReviews({ keyword = '', filter = '' } = {}) {
     try {
-      const res = await apiClient.get('/admin/reviews');
+      const query = new URLSearchParams();
+      if (keyword) query.append('keyword', keyword);
+      if (filter && filter !== 'ALL') query.append('filter', filter);
+      const qs = query.toString();
+      const res = await apiClient.get(`/admin/reviews${qs ? '?' + qs : ''}`);
       if (Array.isArray(res)) return res;
       if (res && Array.isArray(res.data)) return res.data;
       return [];
@@ -278,9 +293,10 @@ export const adminService = {
   // ========================================================
   // 8. SYSTEM ANNOUNCEMENTS
   // ========================================================
-  async getAllAnnouncements() {
+  async getAllAnnouncements({ keyword = '' } = {}) {
     try {
-      const res = await apiClient.get('/admin/announcements');
+      const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : '';
+      const res = await apiClient.get(`/admin/announcements${qs}`);
       if (Array.isArray(res)) return res;
       if (res && Array.isArray(res.data)) return res.data;
       return [];

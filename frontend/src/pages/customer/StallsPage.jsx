@@ -210,93 +210,72 @@ export default function StallsPage({
   const [detailLoading, setDetailLoading] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
 
-  // Load Markets and Stalls from Backend
+  // Load Markets List on Mount
+  useEffect(() => {
+    marketService.getMarkets().then((m) => {
+      if (Array.isArray(m)) setMarketsList(m);
+    }).catch(() => {});
+  }, []);
+
+  // Server-Side Stalls Search & Filter (No client-side search)
   useEffect(() => {
     let isMounted = true;
-
-    async function loadData() {
+    const timer = setTimeout(async () => {
       try {
-        const [realMarkets, realProducts] = await Promise.all([
-          marketService.getMarkets(),
-          productService.getProducts()
-        ]);
+        const liveStalls = await marketService.getStalls({
+          search: searchKeyword.trim(),
+          marketId: selectedMarketId !== 'all' ? selectedMarketId : ''
+        });
 
-        if (isMounted && Array.isArray(realMarkets) && realMarkets.length > 0) {
-          setMarketsList(realMarkets);
+        if (isMounted && Array.isArray(liveStalls) && liveStalls.length > 0) {
+          const mapped = liveStalls.map((f, idx) => ({
+            id: f.assignmentId || (f.marketId * 100 + f.farmerId),
+            farmerId: f.farmerId,
+            assignmentId: f.assignmentId || idx + 1,
+            stallCode: f.stallNumber || `Sạp ${String.fromCharCode(65 + idx)}-0${idx + 1}`,
+            stallName: f.stallName || `Sạp Nông Sản ${f.farmerName || 'Bản Địa'}`,
+            farmName: f.stallName || `Nông Trại ${f.farmerName || 'Sạch'}`,
+            farmerName: f.farmerName || 'Nhà Vườn Thành Viên',
+            marketId: f.marketId,
+            marketName: f.marketName || 'Phiên Chợ Nông Sản',
+            marketCity: f.farmAddress && (f.farmAddress.includes('Hồ Chí Minh') || f.farmAddress.includes('Thủ Đức')) ? 'TP. Hồ Chí Minh' : 'Hà Nội',
+            marketAddress: f.farmAddress || '',
+            operatingDays: 'Thứ 7 & Chủ Nhật',
+            operatingHours: '06:00 - 11:30',
+            avatarUrl: f.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=200&q=80',
+            coverUrl: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=80',
+            farmAddress: f.farmAddress || '',
+            experienceYears: '10+ năm làm nông',
+            rating: 4.9,
+            reviewCount: 30 + (f.farmerId % 10) * 5,
+            specialty: 'Rau',
+            specialtyName: 'Nông Sản Tươi Sạch',
+            specialtyTags: ['Nông sản sạch', 'Thu hoạch sáng sớm', 'VietGAP'],
+            certification: 'VietGAP',
+            certifications: ['Chứng nhận VietGAP', 'Kiểm định an toàn thực phẩm', 'Canh tác sinh thái'],
+            bio: f.bio || 'Chuyên canh nông sản sạch chất lượng cao, phục vụ khách hàng đặt trước tại phiên chợ sáng.',
+            productsCount: 8
+          }));
 
-          // Fetch farmers registered at each market from backend /api/markets/{id}/farmers
-          const allFetchedStalls = [];
-          for (const m of realMarkets) {
-            const mId = m.marketId || m.id;
-            try {
-              const farmers = await marketService.getMarketFarmers(mId);
-              if (Array.isArray(farmers) && farmers.length > 0) {
-                farmers.forEach((f, idx) => {
-                  const normStall = (f.stallNumber || '').toLowerCase().replace(/[\s\-_:]+/g, '');
-                  const prodsForFarmer = Array.isArray(realProducts) 
-                    ? realProducts.filter((p) => {
-                        const matchFarmer = String(p.farmerId) === String(f.farmerId);
-                        const matchMarket = !p.marketId || String(p.marketId) === String(mId);
-                        const pNorm = (p.stallNumber || '').toLowerCase().replace(/[\s\-_:]+/g, '');
-                        const matchStall = !normStall || !pNorm || pNorm === normStall;
-                        return matchFarmer && matchMarket && matchStall;
-                      }) 
-                    : [];
-                  const specs = prodsForFarmer.map((p) => p.name);
-                  const firstCat = prodsForFarmer[0]?.categoryName || 'Rau Củ Tươi Sạch';
-
-                  allFetchedStalls.push({
-                    id: f.assignmentId || (mId * 100 + f.farmerId),
-                    farmerId: f.farmerId,
-                    assignmentId: f.assignmentId || idx + 1,
-                    stallCode: f.stallNumber || `Sạp ${String.fromCharCode(65 + idx)}-0${idx + 1}`,
-                    stallName: f.stallName || `Sạp Nông Sản ${f.farmerName || 'Bản Địa'}`,
-                    farmName: f.stallName || `Nông Trại ${f.farmerName || 'Sạch'}`,
-                    farmerName: f.farmerName || 'Nhà Vườn Thành Viên',
-                    marketId: mId,
-                    marketName: m.name,
-                    marketCity: m.address && (m.address.includes('Hồ Chí Minh') || m.address.includes('Thủ Đức')) ? 'TP. Hồ Chí Minh' : 'Hà Nội',
-                    marketAddress: m.address,
-                    operatingDays: m.operatingDays || 'Thứ 7 & Chủ Nhật',
-                    operatingHours: m.operatingHours || '06:00 - 11:30',
-                    avatarUrl: f.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=200&q=80',
-                    coverUrl: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=80',
-                    farmAddress: f.farmAddress || m.address,
-                    experienceYears: '10+ năm làm nông',
-                    rating: 4.9,
-                    reviewCount: 30 + (f.farmerId % 10) * 5,
-                    specialty: firstCat.includes('Rau') ? 'Rau' : firstCat.includes('Củ') ? 'Củ' : firstCat.includes('Trái') ? 'Trái Cây' : 'Nấm',
-                    specialtyName: firstCat,
-                    specialtyTags: specs.length > 0 ? specs : ['Nông sản sạch', 'Thu hoạch sáng sớm', 'VietGAP'],
-                    certification: 'VietGAP',
-                    certifications: ['Chứng nhận VietGAP', 'Kiểm định an toàn thực phẩm', 'Canh tác sinh thái'],
-                    bio: f.bio || 'Chuyên canh nông sản sạch chất lượng cao, phục vụ khách hàng đặt trước tại phiên chợ sáng.',
-                    productsCount: prodsForFarmer.length
-                  });
-                });
-              }
-            } catch (err) {
-              console.warn(`Error fetching stalls for market ${mId}:`, err);
-            }
+          setStalls(mapped);
+          if (!initialFarmerId && mapped.length > 0) {
+            setSelectedStall(mapped[0]);
           }
-
-          if (allFetchedStalls.length > 0) {
-            setStalls(allFetchedStalls);
-            if (!initialFarmerId) {
-              setSelectedStall(allFetchedStalls[0]);
-            }
-          }
+        } else if (isMounted && (!searchKeyword.trim() && selectedMarketId === 'all')) {
+          setStalls(defaultStalls);
+        } else if (isMounted) {
+          setStalls([]);
         }
       } catch (err) {
-        console.warn('Failed to load live stalls data:', err);
+        console.warn('Failed to load live stalls from backend:', err);
       }
-    }
+    }, 250);
 
-    loadData();
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [searchKeyword, selectedMarketId]);
 
   // Handle Initial Farmer Id if passed
   useEffect(() => {
@@ -382,46 +361,21 @@ export default function StallsPage({
     }
   };
 
-  // Filter Stalls
+  // Stalls are searched and filtered by market entirely on backend server
   const filteredStalls = stalls.filter((stall) => {
-    // 1. Keyword search (Multi-field, tone-insensitive, abbreviation & alias aware)
-    const matchesKeyword = !searchKeyword.trim() || matchSearch([
-      stall.stallName,
-      stall.farmName,
-      stall.farmerName,
-      stall.stallCode,
-      stall.marketName,
-      stall.marketCity,
-      stall.marketAddress,
-      stall.farmAddress,
-      stall.specialty,
-      stall.specialtyName,
-      ...(stall.specialtyTags || []),
-      ...(stall.certifications || []),
-      stall.bio
-    ], searchKeyword);
-
-    // 2. Market filter
-    const matchesMarket = selectedMarketId === 'all' || 
-      String(stall.marketId) === String(selectedMarketId) ||
-      matchSearch(stall.marketName, selectedMarketId);
-
-    // 3. City filter
     const matchesCity = selectedCity === 'all' ||
-      (selectedCity === 'hanoi' && matchSearch([stall.marketCity, stall.marketAddress], 'Hà Nội')) ||
-      (selectedCity === 'hcm' && matchSearch([stall.marketCity, stall.marketAddress], 'Hồ Chí Minh Thủ Đức'));
+      (selectedCity === 'hanoi' && (stall.marketCity || '').includes('Hà Nội')) ||
+      (selectedCity === 'hcm' && (stall.marketCity || '').includes('Hồ Chí Minh'));
 
-    // 4. Specialty filter
     const matchesSpecialty = selectedSpecialty === 'all' ||
-      matchSearch([stall.specialty, stall.specialtyName], selectedSpecialty);
+      stall.specialty === selectedSpecialty;
 
-    // 5. Certification filter
     const matchesCert = selectedCert === 'all' ||
-      (selectedCert === 'vietgap' && matchSearch([stall.certification, ...(stall.certifications || [])], 'VietGAP')) ||
-      (selectedCert === 'organic' && matchSearch([stall.certification, ...(stall.certifications || [])], 'Organic Hữu cơ')) ||
-      (selectedCert === 'ocop' && matchSearch([stall.certification, ...(stall.certifications || [])], 'OCOP'));
+      (selectedCert === 'vietgap' && stall.certification === 'VietGAP') ||
+      (selectedCert === 'organic' && stall.certification === 'Organic') ||
+      (selectedCert === 'ocop' && stall.certification === 'OCOP');
 
-    return matchesKeyword && matchesMarket && matchesCity && matchesSpecialty && matchesCert;
+    return matchesCity && matchesSpecialty && matchesCert;
   });
 
   // Sort Stalls

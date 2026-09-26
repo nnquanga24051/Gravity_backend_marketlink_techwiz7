@@ -34,12 +34,23 @@ export default function FarmerOrdersPage() {
     setTimeout(() => setActionSuccessMsg(''), 4000);
   };
 
-  // Load real farmer orders & summary
+  // Load real farmer orders & summary with Server-Side Search & Filter
   const loadFarmerOrders = async () => {
     setLoading(true);
     try {
+      let statusParam = '';
+      if (activeTab === 'DECLINED_CANCELLED') {
+        statusParam = 'DECLINED';
+      } else if (activeTab !== 'all') {
+        statusParam = activeTab;
+      }
+
       const [orderList, summaryData] = await Promise.all([
-        farmerService.getFarmerOrders({ pickupDate: dateFilter }),
+        farmerService.getFarmerOrders({
+          pickupDate: dateFilter,
+          status: statusParam,
+          keyword: searchQuery.trim()
+        }),
         farmerService.getFarmerSummary()
       ]);
 
@@ -87,8 +98,11 @@ export default function FarmerOrdersPage() {
   };
 
   useEffect(() => {
-    loadFarmerOrders();
-  }, [dateFilter]);
+    const timer = setTimeout(() => {
+      loadFarmerOrders();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [dateFilter, activeTab, searchQuery]);
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
@@ -123,23 +137,10 @@ export default function FarmerOrdersPage() {
     setDeclineModal({ isOpen: false, orderId: null, orderCode: '', reason: '' });
   };
 
-  const filteredOrders = orders.filter((o) => {
-    let matchTab = true;
-    if (activeTab === 'DECLINED_CANCELLED') {
-      matchTab = o.status === 'DECLINED' || o.status === 'CANCELLED';
-    } else if (activeTab !== 'all') {
-      matchTab = o.status === activeTab;
-    }
-
-    const matchSession = sessionFilter === 'all' || o.pickupSession === sessionFilter;
-    const matchSearch =
-      searchQuery === '' ||
-      o.orderCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.customerPhone.includes(searchQuery);
-
-    return matchTab && matchSession && matchSearch;
-  });
+  // Orders are searched and filtered entirely on server
+  const filteredOrders = sessionFilter === 'all'
+    ? orders
+    : orders.filter((o) => o.pickupSession === sessionFilter);
 
   const getStatusBadge = (status) => {
     switch (status) {

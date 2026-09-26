@@ -32,10 +32,16 @@ public class CategoryController {
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
 
-    @Operation(summary = "Lấy tất cả danh mục", description = "Trả về danh sách tất cả các danh mục sản phẩm (Public endpoint)")
+    @Operation(summary = "Lấy tất cả danh mục", description = "Trả về danh sách tất cả các danh mục sản phẩm (Public endpoint), hỗ trợ tìm kiếm theo từ khóa.")
     @GetMapping
-    public Mono<ResponseEntity<ApiResponse<List<Category>>>> getAllCategories() {
+    public Mono<ResponseEntity<ApiResponse<List<Category>>>> getAllCategories(
+            @RequestParam(value = "keyword", required = false) String keyword) {
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
         return categoryRepository.findAll()
+                .filter(c -> kw.isEmpty()
+                        || (c.getName() != null && c.getName().toLowerCase().contains(kw))
+                        || (c.getDescription() != null && c.getDescription().toLowerCase().contains(kw))
+                        || (c.getSlug() != null && c.getSlug().toLowerCase().contains(kw)))
                 .collectList()
                 .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh mục sản phẩm thành công.", list)));
     }

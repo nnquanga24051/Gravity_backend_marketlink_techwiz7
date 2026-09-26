@@ -3,17 +3,44 @@ import apiClient from './apiClient';
 
 export const marketService = {
   /**
-   * Fetch all active farmers markets
+   * Fetch all active farmers markets with optional keyword search and filters
    */
-  async getMarkets() {
+  async getMarkets({ search = '', city = '', dayOfWeek = '' } = {}) {
     try {
-      const res = await apiClient.get('/markets');
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (city && city !== 'all') params.append('city', city);
+      if (dayOfWeek && dayOfWeek !== 'all') params.append('dayOfWeek', dayOfWeek);
+
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const res = await apiClient.get(`/markets${qs}`);
       if (Array.isArray(res)) return res;
       if (res && Array.isArray(res.data)) return res.data;
       if (res && Array.isArray(res.value)) return res.value;
       return [];
     } catch (err) {
       console.warn('Failed to fetch markets, returning fallback array', err);
+      return [];
+    }
+  },
+
+  /**
+   * Fetch farmer stalls across all markets or by marketId with search keyword
+   */
+  async getStalls({ search = '', marketId = '' } = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (marketId && marketId !== 'all') params.append('marketId', marketId);
+
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const res = await apiClient.get(`/markets/stalls${qs}`);
+      if (Array.isArray(res)) return res;
+      if (res && Array.isArray(res.data)) return res.data;
+      if (res && Array.isArray(res.value)) return res.value;
+      return [];
+    } catch (err) {
+      console.warn('Failed to fetch stalls from backend', err);
       return [];
     }
   },

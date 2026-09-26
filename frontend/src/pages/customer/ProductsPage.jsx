@@ -143,14 +143,13 @@ export default function ProductsPage({
     }
   ]);
 
-  // Fetch real data on mount
+  // Fetch categories and markets metadata on mount
   useEffect(() => {
     let isMounted = true;
-    async function loadBackendData() {
+    async function loadMetadata() {
       try {
-        const [cats, prods, mrkts] = await Promise.all([
+        const [cats, mrkts] = await Promise.all([
           productService.getCategories(),
-          productService.getProducts(),
           marketService.getMarkets()
         ]);
 
@@ -168,7 +167,38 @@ export default function ProductsPage({
               name: m.name
             })));
           }
+        }
+      } catch (err) {
+        console.warn('Using fallback categories/markets for ProductsPage:', err);
+      }
+    }
 
+    loadMetadata();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Server-Side Search & Filter for Products (No client-side search)
+  useEffect(() => {
+    let isMounted = true;
+    const timer = setTimeout(async () => {
+      try {
+        // Resolve marketId if selectedMarket is an ID or market name
+        let targetMarketId = '';
+        if (selectedMarket !== 'all') {
+          const matched = markets.find((m) => String(m.id) === String(selectedMarket) || m.name === selectedMarket);
+          targetMarketId = matched ? matched.id : (!isNaN(selectedMarket) ? selectedMarket : '');
+        }
+
+        const prods = await productService.getProducts({
+          keyword: searchTerm.trim(),
+          categoryId: selectedCategory !== 'all' ? selectedCategory : '',
+          marketId: targetMarketId,
+          status: 'AVAILABLE'
+        });
+
+        if (isMounted) {
           if (prods && prods.length > 0) {
             setProducts(prods.map((p) => ({
               ...p,
@@ -181,59 +211,37 @@ export default function ProductsPage({
               farmerName: p.farmerStallName || p.farmerName || 'Nông Trại Thành Viên',
               stallCode: p.stallCode || 'Sạp Tiêu Chuẩn',
               marketName: p.marketName || 'Phiên Chợ Nông Sản',
-              stockQuantity: p.currentStock || 25,
+              stockQuantity: p.currentStock || p.stockQuantity || 25,
               harvestTime: 'Thu hoạch sáng sớm',
               imageUrl: p.imageUrl,
               organicCertified: true,
               description: p.description || 'Nông sản canh tác tự nhiên đạt chuẩn an toàn.'
             })));
+          } else {
+            setProducts([]);
           }
         }
       } catch (err) {
-        console.warn('Using fallback data for ProductsPage:', err);
+        console.warn('Failed to fetch filtered products from server', err);
       }
-    }
+    }, 250);
 
-    loadBackendData();
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [searchTerm, selectedCategory, selectedMarket, markets]);
 
-  // Filter & Sort (Multi-field, tone-free, abbreviation and alias aware)
+  // Client only sorts and checks price bounds (Search & Categories are completely processed by backend server)
   const filteredProducts = useMemo(() => {
     return products
-      .filter((p) => {
-        const matchSearchQuery =
-          !searchTerm.trim() ||
-          matchSearch([
-            p.name,
-            p.farmerName,
-            p.categoryName,
-            p.marketName,
-            p.stallCode,
-            p.description
-          ], searchTerm);
-
-        const matchCategory =
-          selectedCategory === 'all' ||
-          String(p.categoryId) === String(selectedCategory) ||
-          matchSearch([p.categoryName], selectedCategory);
-
-        const matchMarket =
-          selectedMarket === 'all' ||
-          matchSearch([p.marketName], selectedMarket);
-
-        const matchPrice = p.price <= priceMax;
-
-        return matchSearchQuery && matchCategory && matchMarket && matchPrice;
-      })
+      .filter((p) => p.price <= priceMax)
       .sort((a, b) => {
         if (sortBy === 'price_asc') return a.price - b.price;
         if (sortBy === 'price_desc') return b.price - a.price;
-        return b.stockQuantity - a.stockQuantity;
+        return (b.stockQuantity || 0) - (a.stockQuantity || 0);
       });
-  }, [products, searchTerm, selectedCategory, selectedMarket, sortBy, priceMax]);
+  }, [products, sortBy, priceMax]);
 
   const getCartQty = (prodId) => {
     const found = cartItems.find((item) => item.id === prodId);

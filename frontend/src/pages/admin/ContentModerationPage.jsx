@@ -15,6 +15,7 @@ export default function ContentModerationPage({ onNavigate }) {
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [reviewFilter, setReviewFilter] = useState('ALL'); // 'ALL' | 'LOW_RATING' | 'HIDDEN' | 'VISIBLE'
+  const [reviewSearch, setReviewSearch] = useState('');
 
   // ========================================================
   // 2. CATEGORIES STATE
@@ -23,6 +24,7 @@ export default function ContentModerationPage({ onNavigate }) {
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [categorySearch, setCategorySearch] = useState('');
   const [categoryForm, setCategoryForm] = useState({
     name: '',
     slug: '',
@@ -36,6 +38,7 @@ export default function ContentModerationPage({ onNavigate }) {
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [announcementSearch, setAnnouncementSearch] = useState('');
   const [announcementForm, setAnnouncementForm] = useState({
     title: '',
     content: '',
@@ -67,11 +70,14 @@ export default function ContentModerationPage({ onNavigate }) {
     setTimeout(() => setNotification({ type: '', text: '' }), 4000);
   };
 
-  // Load reviews from backend
+  // Load reviews from backend with Server-Side Search & Filter
   const loadReviews = async () => {
     setLoadingReviews(true);
     try {
-      const data = await adminService.getAllReviews();
+      const data = await adminService.getAllReviews({
+        keyword: reviewSearch.trim(),
+        filter: reviewFilter
+      });
       setReviews(Array.isArray(data) ? data : []);
     } catch (err) {
       console.warn('Failed to load reviews', err);
@@ -80,11 +86,11 @@ export default function ContentModerationPage({ onNavigate }) {
     }
   };
 
-  // Load categories from backend
+  // Load categories from backend with Server-Side Search
   const loadCategories = async () => {
     setLoadingCategories(true);
     try {
-      const data = await adminService.getAllCategories();
+      const data = await adminService.getAllCategories(categorySearch.trim());
       setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       console.warn('Failed to load categories', err);
@@ -93,11 +99,13 @@ export default function ContentModerationPage({ onNavigate }) {
     }
   };
 
-  // Load announcements from backend
+  // Load announcements from backend with Server-Side Search
   const loadAnnouncements = async () => {
     setLoadingAnnouncements(true);
     try {
-      const data = await adminService.getAllAnnouncements();
+      const data = await adminService.getAllAnnouncements({
+        keyword: announcementSearch.trim()
+      });
       setAnnouncements(Array.isArray(data) ? data : []);
     } catch (err) {
       console.warn('Failed to load announcements', err);
@@ -107,10 +115,19 @@ export default function ContentModerationPage({ onNavigate }) {
   };
 
   useEffect(() => {
-    if (activeTab === 'reviews') loadReviews();
-    if (activeTab === 'categories') loadCategories();
-    if (activeTab === 'announcements') loadAnnouncements();
-  }, [activeTab]);
+    if (activeTab === 'reviews') {
+      const timer = setTimeout(() => loadReviews(), 250);
+      return () => clearTimeout(timer);
+    }
+    if (activeTab === 'categories') {
+      const timer = setTimeout(() => loadCategories(), 250);
+      return () => clearTimeout(timer);
+    }
+    if (activeTab === 'announcements') {
+      const timer = setTimeout(() => loadAnnouncements(), 250);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, reviewSearch, reviewFilter, categorySearch, announcementSearch]);
 
   // ========================================================
   // REVIEWS ACTIONS
@@ -126,12 +143,8 @@ export default function ContentModerationPage({ onNavigate }) {
     }
   };
 
-  const filteredReviews = reviews.filter((r) => {
-    if (reviewFilter === 'LOW_RATING') return (r.rating || 5) <= 2;
-    if (reviewFilter === 'HIDDEN') return r.isHidden === true;
-    if (reviewFilter === 'VISIBLE') return !r.isHidden;
-    return true;
-  });
+  // Reviews are filtered entirely on server-side
+  const filteredReviews = reviews;
 
   // ========================================================
   // CATEGORIES ACTIONS
@@ -335,39 +348,54 @@ export default function ContentModerationPage({ onNavigate }) {
             ======================================================== */}
         {activeTab === 'reviews' && (
           <div className="ml-reviews-mod-box">
-            {/* Filter Sub-bar */}
+            {/* Filter & Search Bar */}
             <div className="ml-card ml-mod-controls" style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontWeight: 600, fontSize: 13, color: '#475569' }}>Bộ lọc hiển thị:</span>
-                <button
-                  type="button"
-                  className={`ml-filter-chip ${reviewFilter === 'ALL' ? 'active' : ''}`}
-                  onClick={() => setReviewFilter('ALL')}
-                >
-                  Tất cả ({reviews.length})
-                </button>
-                <button
-                  type="button"
-                  className={`ml-filter-chip ${reviewFilter === 'LOW_RATING' ? 'active' : ''}`}
-                  onClick={() => setReviewFilter('LOW_RATING')}
-                >
-                  Đánh giá thấp (1-2★) ({reviews.filter((r) => (r.rating || 5) <= 2).length})
-                </button>
-                <button
-                  type="button"
-                  className={`ml-filter-chip ${reviewFilter === 'HIDDEN' ? 'active' : ''}`}
-                  onClick={() => setReviewFilter('HIDDEN')}
-                >
-                  Đang bị ẩn ({reviews.filter((r) => r.isHidden).length})
-                </button>
-                <button
-                  type="button"
-                  className={`ml-filter-chip ${reviewFilter === 'VISIBLE' ? 'active' : ''}`}
-                  onClick={() => setReviewFilter('VISIBLE')}
-                >
-                  Đang hiển thị ({reviews.filter((r) => !r.isHidden).length})
-                </button>
-                <div style={{ marginLeft: 'auto' }}>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, fontSize: 13, color: '#475569' }}>Bộ lọc hiển thị:</span>
+                  <button
+                    type="button"
+                    className={`ml-filter-chip ${reviewFilter === 'ALL' ? 'active' : ''}`}
+                    onClick={() => setReviewFilter('ALL')}
+                  >
+                    Tất cả ({reviews.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`ml-filter-chip ${reviewFilter === 'LOW_RATING' ? 'active' : ''}`}
+                    onClick={() => setReviewFilter('LOW_RATING')}
+                  >
+                    Đánh giá thấp (1-2★) ({reviews.filter((r) => (r.rating || 5) <= 2).length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`ml-filter-chip ${reviewFilter === 'HIDDEN' ? 'active' : ''}`}
+                    onClick={() => setReviewFilter('HIDDEN')}
+                  >
+                    Đang bị ẩn ({reviews.filter((r) => r.isHidden).length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`ml-filter-chip ${reviewFilter === 'VISIBLE' ? 'active' : ''}`}
+                    onClick={() => setReviewFilter('VISIBLE')}
+                  >
+                    Đang hiển thị ({reviews.filter((r) => !r.isHidden).length})
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="text"
+                    className="ml-form-input"
+                    style={{ minWidth: 260 }}
+                    placeholder="Tìm theo khách, nông dân, nội dung..."
+                    value={reviewSearch}
+                    onChange={(e) => setReviewSearch(e.target.value)}
+                  />
+                  {reviewSearch && (
+                    <Button variant="ghost" size="sm" onClick={() => setReviewSearch('')}>
+                      ✕
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" onClick={loadReviews}>
                     🔄 Tải lại
                   </Button>
@@ -455,9 +483,21 @@ export default function ContentModerationPage({ onNavigate }) {
             ======================================================== */}
         {activeTab === 'categories' && (
           <div className="ml-categories-mod-box">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 14, color: '#64748b' }}>
-                Quản lý các phân loại ngành hàng nông sản để người mua dễ dàng tìm kiếm trên chợ phiên.
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flex: 1 }}>
+                <input
+                  type="text"
+                  className="ml-form-input"
+                  style={{ maxWidth: 320 }}
+                  placeholder="Tìm theo tên danh mục, đường dẫn, mô tả..."
+                  value={categorySearch}
+                  onChange={(e) => setCategorySearch(e.target.value)}
+                />
+                {categorySearch && (
+                  <Button variant="ghost" size="sm" onClick={() => setCategorySearch('')}>
+                    ✕
+                  </Button>
+                )}
               </div>
               <Button variant="primary" size="md" onClick={() => handleOpenCategoryModal()}>
                 + Thêm danh mục mới
@@ -522,9 +562,21 @@ export default function ContentModerationPage({ onNavigate }) {
             ======================================================== */}
         {activeTab === 'announcements' && (
           <div className="ml-announcements-mod-box">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 14, color: '#64748b' }}>
-                Phát thông báo vận hành, chính sách mới hoặc cảnh báo thời tiết tới bà con nông dân và khách mua hàng.
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flex: 1 }}>
+                <input
+                  type="text"
+                  className="ml-form-input"
+                  style={{ maxWidth: 320 }}
+                  placeholder="Tìm theo tiêu đề, nội dung bản tin..."
+                  value={announcementSearch}
+                  onChange={(e) => setAnnouncementSearch(e.target.value)}
+                />
+                {announcementSearch && (
+                  <Button variant="ghost" size="sm" onClick={() => setAnnouncementSearch('')}>
+                    ✕
+                  </Button>
+                )}
               </div>
               <Button variant="primary" size="md" onClick={() => handleOpenAnnouncementModal()}>
                 📢 Đăng bản tin mới

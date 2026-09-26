@@ -6,11 +6,18 @@ export const farmerService = {
   // 1. PRODUCTS & INVENTORY
   // ==========================================
   /**
-   * Fetch products belonging to the logged-in farmer
+   * Fetch products belonging to the logged-in farmer with optional search keyword and filters
    */
-  async getFarmerProducts() {
+  async getFarmerProducts({ keyword = '', categoryId = '', marketId = '', status = '' } = {}) {
     try {
-      const res = await apiClient.get('/farmer/products');
+      const params = new URLSearchParams();
+      if (keyword) params.append('keyword', keyword);
+      if (categoryId && categoryId !== 'all') params.append('categoryId', categoryId);
+      if (marketId && marketId !== 'all') params.append('marketId', marketId);
+      if (status && status !== 'all') params.append('status', status);
+
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const res = await apiClient.get(`/farmer/products${qs}`);
       let list = [];
       if (Array.isArray(res)) list = res;
       else if (res && Array.isArray(res.data)) list = res.data;
@@ -66,13 +73,14 @@ export const farmerService = {
   // 2. ORDERS & SUMMARY INSIGHTS
   // ==========================================
   /**
-   * Farmer: View incoming orders for their stall
+   * Farmer: View incoming orders for their stall with optional keyword search and filters
    */
-  async getFarmerOrders({ pickupDate = '', status = '' } = {}) {
+  async getFarmerOrders({ pickupDate = '', status = '', keyword = '' } = {}) {
     try {
       const params = new URLSearchParams();
       if (pickupDate) params.append('pickupDate', pickupDate);
       if (status && status !== 'all') params.append('status', status);
+      if (keyword) params.append('keyword', keyword);
       const qs = params.toString() ? `?${params.toString()}` : '';
 
       const res = await apiClient.get(`/farmer/orders${qs}`);
@@ -199,10 +207,16 @@ export const farmerService = {
   /**
    * Farmer: View weekly stock templates
    */
-  async getFarmerStockTemplates(marketId = null) {
+  async getFarmerStockTemplates(params = {}) {
     try {
-      const query = marketId ? `?marketId=${marketId}` : '';
-      const res = await apiClient.get(`/farmer/stock-templates${query}`);
+      const query = new URLSearchParams();
+      const marketId = typeof params === 'object' ? params.marketId : params;
+      const keyword = typeof params === 'object' ? params.keyword : '';
+      if (marketId && marketId !== 'all') query.append('marketId', marketId);
+      if (keyword) query.append('keyword', keyword);
+
+      const qs = query.toString() ? `?${query.toString()}` : '';
+      const res = await apiClient.get(`/farmer/stock-templates${qs}`);
       if (Array.isArray(res)) return res;
       if (res && Array.isArray(res.data)) return res.data;
       return [];
@@ -282,11 +296,12 @@ export const farmerService = {
   },
 
   /**
-   * Fetch public reviews for a farmer stall
+   * Fetch public reviews for a farmer stall, supporting keyword search
    */
-  async getFarmerReviews(farmerId) {
+  async getFarmerReviews(farmerId, keyword = '') {
     try {
-      const res = await apiClient.get(`/reviews/farmer/${farmerId}`);
+      const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : '';
+      const res = await apiClient.get(`/reviews/farmer/${farmerId}${qs}`);
       if (Array.isArray(res)) return res;
       if (res && Array.isArray(res.data)) return res.data;
       return [];

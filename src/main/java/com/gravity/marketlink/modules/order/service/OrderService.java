@@ -390,22 +390,68 @@ public class OrderService {
                 .then();
     }
 
-    public Flux<OrderDetailResponse> getCustomerOrders(Long customerId) {
+    public Flux<OrderDetailResponse> getCustomerOrders(Long customerId, String keyword, String status) {
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
         return orderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId)
-                .flatMap(this::enrichOrderDetail);
+                .flatMap(this::enrichOrderDetail)
+                .filter(o -> {
+                    if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status.trim())) {
+                        String st = status.trim().toUpperCase();
+                        if ("READY".equals(st)) {
+                            if (!"READY".equals(o.getOrderStatus()) && !"READY_FOR_PICKUP".equals(o.getOrderStatus())) return false;
+                        } else if ("PENDING".equals(st)) {
+                            if (!"PENDING".equals(o.getOrderStatus()) && !"PLACED".equals(o.getOrderStatus()) && !"ACCEPTED".equals(o.getOrderStatus())) return false;
+                        } else {
+                            if (!st.equalsIgnoreCase(o.getOrderStatus())) return false;
+                        }
+                    }
+                    if (!kw.isEmpty()) {
+                        boolean matchCode = o.getOrderCode() != null && o.getOrderCode().toLowerCase().contains(kw);
+                        boolean matchMarket = o.getMarketName() != null && o.getMarketName().toLowerCase().contains(kw);
+                        boolean matchFarmer = o.getFarmerName() != null && o.getFarmerName().toLowerCase().contains(kw);
+                        boolean matchItems = o.getItems() != null && o.getItems().stream()
+                                .anyMatch(it -> it.getProductName() != null && it.getProductName().toLowerCase().contains(kw));
+                        if (!matchCode && !matchMarket && !matchFarmer && !matchItems) return false;
+                    }
+                    return true;
+                });
+    }
+
+    public Flux<OrderDetailResponse> getCustomerOrders(Long customerId) {
+        return getCustomerOrders(customerId, null, null);
+    }
+
+    public Flux<OrderDetailResponse> getFarmerOrders(Long farmerId, LocalDate pickupDate, String status, String keyword) {
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
+        return orderRepository.findByFarmerIdOrderByCreatedAtDesc(farmerId)
+                .filter(o -> pickupDate == null || pickupDate.equals(o.getPickupDate()))
+                .filter(o -> {
+                    if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status.trim())) {
+                        String st = status.trim().toUpperCase();
+                        if ("DECLINED_CANCELLED".equals(st)) {
+                            return "DECLINED".equalsIgnoreCase(o.getOrderStatus()) || "CANCELLED".equalsIgnoreCase(o.getOrderStatus());
+                        }
+                        return st.equalsIgnoreCase(o.getOrderStatus());
+                    }
+                    return true;
+                })
+                .flatMap(this::enrichOrderDetail)
+                .filter(o -> {
+                    if (!kw.isEmpty()) {
+                        boolean matchCode = o.getOrderCode() != null && o.getOrderCode().toLowerCase().contains(kw);
+                        boolean matchCust = o.getCustomerName() != null && o.getCustomerName().toLowerCase().contains(kw);
+                        boolean matchPhone = o.getCustomerPhone() != null && o.getCustomerPhone().contains(kw);
+                        boolean matchNote = o.getNote() != null && o.getNote().toLowerCase().contains(kw);
+                        boolean matchItems = o.getItems() != null && o.getItems().stream()
+                                .anyMatch(it -> it.getProductName() != null && it.getProductName().toLowerCase().contains(kw));
+                        if (!matchCode && !matchCust && !matchPhone && !matchNote && !matchItems) return false;
+                    }
+                    return true;
+                });
     }
 
     public Flux<OrderDetailResponse> getFarmerOrders(Long farmerId, LocalDate pickupDate, String status) {
-        Flux<Order> orderFlux;
-        if (pickupDate != null) {
-            orderFlux = orderRepository.findByFarmerIdAndPickupDateOrderByCreatedAtDesc(farmerId, pickupDate);
-        } else if (status != null && !status.isBlank()) {
-            orderFlux = orderRepository.findByFarmerIdAndOrderStatusOrderByCreatedAtDesc(farmerId, status.toUpperCase());
-        } else {
-            orderFlux = orderRepository.findByFarmerIdOrderByCreatedAtDesc(farmerId);
-        }
-
-        return orderFlux.flatMap(this::enrichOrderDetail);
+        return getFarmerOrders(farmerId, pickupDate, status, null);
     }
 
     public Mono<OrderDetailResponse> getOrderById(Long orderId, Long currentUserId, boolean isFarmer) {
@@ -422,9 +468,43 @@ public class OrderService {
                 });
     }
 
-    public Flux<OrderDetailResponse> getAllOrdersForAdmin() {
+    public Flux<OrderDetailResponse> getAllOrdersForAdmin(String keyword, String status, Long marketId, LocalDate pickupDate) {
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
         return orderRepository.findAll()
-                .flatMap(this::enrichOrderDetail);
+                .filter(o -> pickupDate == null || pickupDate.equals(o.getPickupDate()))
+                .filter(o -> marketId == null || marketId.equals(o.getMarketId()))
+                .filter(o -> {
+                    if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status.trim())) {
+                        String st = status.trim().toUpperCase();
+                        if ("PENDING".equals(st)) {
+                            return "PLACED".equalsIgnoreCase(o.getOrderStatus()) || "ACCEPTED".equalsIgnoreCase(o.getOrderStatus());
+                        }
+                        if ("CANCELLED".equals(st)) {
+                            return "CANCELLED".equalsIgnoreCase(o.getOrderStatus()) || "DECLINED".equalsIgnoreCase(o.getOrderStatus());
+                        }
+                        return st.equalsIgnoreCase(o.getOrderStatus());
+                    }
+                    return true;
+                })
+                .flatMap(this::enrichOrderDetail)
+                .filter(o -> {
+                    if (!kw.isEmpty()) {
+                        boolean matchCode = o.getOrderCode() != null && o.getOrderCode().toLowerCase().contains(kw);
+                        boolean matchCust = o.getCustomerName() != null && o.getCustomerName().toLowerCase().contains(kw);
+                        boolean matchPhone = o.getCustomerPhone() != null && o.getCustomerPhone().contains(kw);
+                        boolean matchFarmer = o.getFarmerName() != null && o.getFarmerName().toLowerCase().contains(kw);
+                        boolean matchStall = o.getStallName() != null && o.getStallName().toLowerCase().contains(kw);
+                        boolean matchMarket = o.getMarketName() != null && o.getMarketName().toLowerCase().contains(kw);
+                        boolean matchItems = o.getItems() != null && o.getItems().stream()
+                                .anyMatch(it -> it.getProductName() != null && it.getProductName().toLowerCase().contains(kw));
+                        if (!matchCode && !matchCust && !matchPhone && !matchFarmer && !matchStall && !matchMarket && !matchItems) return false;
+                    }
+                    return true;
+                });
+    }
+
+    public Flux<OrderDetailResponse> getAllOrdersForAdmin() {
+        return getAllOrdersForAdmin(null, null, null, null);
     }
 
     public Mono<OrderSummaryResponse> getFarmerSummary(Long farmerId) {

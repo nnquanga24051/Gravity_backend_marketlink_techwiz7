@@ -11,11 +11,16 @@ export const orderService = {
   },
 
   /**
-   * Customer: View personal pre-orders history
+   * Customer: View personal pre-orders history with optional search keyword and status filter
    */
-  async getMyOrders() {
+  async getMyOrders({ keyword = '', status = '' } = {}) {
     try {
-      const res = await apiClient.get('/customer/orders');
+      const params = new URLSearchParams();
+      if (keyword) params.append('keyword', keyword);
+      if (status && status !== 'all') params.append('status', status);
+
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const res = await apiClient.get(`/customer/orders${qs}`);
       if (Array.isArray(res)) return res;
       if (res && Array.isArray(res.data)) return res.data;
       return [];
@@ -44,11 +49,12 @@ export const orderService = {
   /**
    * Farmer: View incoming orders for their stall
    */
-  async getFarmerOrders({ pickupDate = '', status = '' } = {}) {
+  async getFarmerOrders({ pickupDate = '', status = '', keyword = '' } = {}) {
     try {
       const params = new URLSearchParams();
       if (pickupDate) params.append('pickupDate', pickupDate);
-      if (status) params.append('status', status);
+      if (status && status !== 'all') params.append('status', status);
+      if (keyword) params.append('keyword', keyword);
       const qs = params.toString() ? `?${params.toString()}` : '';
 
       const res = await apiClient.get(`/farmer/orders${qs}`);

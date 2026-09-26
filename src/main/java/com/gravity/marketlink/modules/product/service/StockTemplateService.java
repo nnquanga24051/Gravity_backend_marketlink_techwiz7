@@ -25,12 +25,21 @@ public class StockTemplateService {
     private final ProductRepository productRepository;
     private final MarketRepository marketRepository;
 
-    public Flux<WeeklyStockTemplateResponse> getTemplates(Long farmerId, Long marketId) {
+    public Flux<WeeklyStockTemplateResponse> getTemplates(Long farmerId, Long marketId, String keyword) {
         Flux<WeeklyStockTemplate> templateFlux = (marketId != null)
                 ? templateRepository.findByFarmerIdAndMarketId(farmerId, marketId)
                 : templateRepository.findByFarmerId(farmerId);
 
-        return templateFlux.flatMap(this::enrichTemplateResponse);
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
+
+        return templateFlux.flatMap(this::enrichTemplateResponse)
+                .filter(t -> kw.isEmpty()
+                        || (t.getProductName() != null && t.getProductName().toLowerCase().contains(kw))
+                        || (t.getMarketName() != null && t.getMarketName().toLowerCase().contains(kw)));
+    }
+
+    public Flux<WeeklyStockTemplateResponse> getTemplates(Long farmerId, Long marketId) {
+        return getTemplates(farmerId, marketId, null);
     }
 
     @Transactional

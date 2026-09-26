@@ -27,7 +27,6 @@ export default function AuthModal({
   // Forgot password / OTP states
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [devOtpHint, setDevOtpHint] = useState('');
   const [countdown, setCountdown] = useState(0);
 
   // Status
@@ -43,7 +42,6 @@ export default function AuthModal({
       setSuccessMsg('');
       setOtpSent(false);
       setOtpCode('');
-      setDevOtpHint('');
     }
   }, [isOpen, initialMode]);
 
@@ -158,10 +156,7 @@ export default function AuthModal({
       const res = await authService.sendOtp(email.trim(), 'PASSWORD_RESET');
       setOtpSent(true);
       setCountdown(60);
-      setSuccessMsg(res?.message || 'Mã OTP đã được gửi đến email của bạn.');
-      if (res?.devCode) {
-        setDevOtpHint(res.devCode);
-      }
+      setSuccessMsg(res?.message || 'Mã xác minh OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư đến (Inbox) hoặc Spam.');
     } catch (err) {
       console.warn('Send OTP error:', err);
       setErrorMsg(err.message || 'Không thể gửi mã OTP. Vui lòng kiểm tra lại email.');
@@ -561,18 +556,12 @@ export default function AuthModal({
             ) : (
               // Step 2: Input OTP & New Password
               <form onSubmit={handleResetPassword} className="ml-auth-form">
-                {devOtpHint && (
-                  <div className="ml-dev-otp-banner">
-                    <span>💡 Mã OTP môi trường Dev: <strong>{devOtpHint}</strong></span>
-                    <button
-                      type="button"
-                      className="ml-dev-otp-copy-btn"
-                      onClick={() => setOtpCode(devOtpHint)}
-                    >
-                      Điền ngay
-                    </button>
+                <div className="ml-email-otp-notice">
+                  <span className="ml-email-otp-notice-icon">📬</span>
+                  <div className="ml-email-otp-notice-text">
+                    Mã xác minh bảo mật đã gửi tới <strong>{email}</strong>. Vui lòng kiểm tra hộp thư đến (Inbox) hoặc thư mục Spam/Rác.
                   </div>
-                )}
+                </div>
 
                 <div className="ml-form-group">
                   <div className="ml-form-label-row">

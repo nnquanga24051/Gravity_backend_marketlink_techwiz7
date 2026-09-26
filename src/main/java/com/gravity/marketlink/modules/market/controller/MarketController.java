@@ -44,10 +44,21 @@ public class MarketController {
     // PUBLIC APIS (Dành cho Khách hàng & Ứng dụng bản đồ)
     // ===================================================================
 
-    @Operation(summary = "Lấy danh sách chợ nông sản (Map Pin)", description = "Trả về danh sách tất cả các điểm chợ đang hoạt động kèm tọa độ GPS (Latitude, Longitude) để hiển thị lên Google Maps / Bản đồ.")
+    @Operation(summary = "Lấy danh sách chợ nông sản (Map Pin)", description = "Trả về danh sách tất cả các điểm chợ đang hoạt động kèm tọa độ GPS (Latitude, Longitude), hỗ trợ tìm kiếm theo tên, địa chỉ, thành phố và ngày họp.")
     @GetMapping("/api/markets")
-    public Flux<Market> getAllMarkets() {
-        return marketService.getAllActiveMarkets();
+    public Flux<Market> getAllMarkets(
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "city", required = false) String city,
+            @RequestParam(value = "dayOfWeek", required = false) Integer dayOfWeek) {
+        return marketService.getAllActiveMarkets(search, city, dayOfWeek);
+    }
+
+    @Operation(summary = "Xem & Tìm kiếm sạp nông dân trên toàn sàn hoặc theo chợ", description = "Tìm kiếm nhanh các sạp nông dân theo từ khóa (tên sạp, tên chủ nông trại, địa chỉ trang trại) hoặc mã chợ.")
+    @GetMapping("/api/markets/stalls")
+    public Flux<FarmerAtMarketResponse> getStalls(
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "marketId", required = false) Long marketId) {
+        return marketService.getAllStalls(search, marketId);
     }
 
     @Operation(summary = "Lấy chi tiết chợ & Lịch họp chợ", description = "Trả về thông tin chi tiết của một chợ cụ thể kèm danh sách lịch họp chợ định kỳ trong tuần và số lượng sạp nông dân.")

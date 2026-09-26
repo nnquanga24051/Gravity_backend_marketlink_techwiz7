@@ -113,7 +113,8 @@ public class KycService {
                 });
     }
 
-    public Flux<PendingFarmerKycResponse> getPendingKycList() {
+    public Flux<PendingFarmerKycResponse> getPendingKycList(String keyword) {
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
         return userRepository.findByKycStatusOrderByCreatedAtDesc("PENDING")
                 .flatMap(user -> farmerProfileRepository.findByFarmerId(user.getUserId())
                         .defaultIfEmpty(FarmerProfile.builder()
@@ -141,7 +142,17 @@ public class KycService {
                                             .documentCount(docs.size())
                                             .lastSubmittedAt(lastSubmit)
                                             .build();
-                                })));
+                                })))
+                .filter(res -> kw.isEmpty()
+                        || (res.getFullName() != null && res.getFullName().toLowerCase().contains(kw))
+                        || (res.getEmail() != null && res.getEmail().toLowerCase().contains(kw))
+                        || (res.getPhoneNumber() != null && res.getPhoneNumber().contains(kw))
+                        || (res.getStallName() != null && res.getStallName().toLowerCase().contains(kw))
+                        || (res.getFarmAddress() != null && res.getFarmAddress().toLowerCase().contains(kw)));
+    }
+
+    public Flux<PendingFarmerKycResponse> getPendingKycList() {
+        return getPendingKycList(null);
     }
 
     @Transactional

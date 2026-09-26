@@ -115,9 +115,19 @@ public class ReviewService {
                 });
     }
 
-    public Flux<ReviewResponse> getFarmerReviews(Long farmerId) {
+    public Flux<ReviewResponse> getFarmerReviews(Long farmerId, String keyword) {
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
         return reviewRepository.findByFarmerIdAndIsHiddenFalseOrderByCreatedAtDesc(farmerId)
-                .flatMap(this::enrichReview);
+                .flatMap(this::enrichReview)
+                .filter(r -> kw.isEmpty()
+                        || (r.getComment() != null && r.getComment().toLowerCase().contains(kw))
+                        || (r.getCustomerName() != null && r.getCustomerName().toLowerCase().contains(kw))
+                        || (r.getProductName() != null && r.getProductName().toLowerCase().contains(kw))
+                        || (r.getFarmerReply() != null && r.getFarmerReply().toLowerCase().contains(kw)));
+    }
+
+    public Flux<ReviewResponse> getFarmerReviews(Long farmerId) {
+        return getFarmerReviews(farmerId, null);
     }
 
     public Flux<ReviewResponse> getProductReviews(Long productId) {
@@ -125,14 +135,45 @@ public class ReviewService {
                 .flatMap(this::enrichReview);
     }
 
-    public Flux<ReviewResponse> getCustomerReviews(Long customerId) {
+    public Flux<ReviewResponse> getCustomerReviews(Long customerId, String keyword) {
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
         return reviewRepository.findByCustomerIdOrderByCreatedAtDesc(customerId)
-                .flatMap(this::enrichReview);
+                .flatMap(this::enrichReview)
+                .filter(r -> kw.isEmpty()
+                        || (r.getComment() != null && r.getComment().toLowerCase().contains(kw))
+                        || (r.getProductName() != null && r.getProductName().toLowerCase().contains(kw))
+                        || (r.getStallName() != null && r.getStallName().toLowerCase().contains(kw)));
+    }
+
+    public Flux<ReviewResponse> getCustomerReviews(Long customerId) {
+        return getCustomerReviews(customerId, null);
+    }
+
+    public Flux<ReviewResponse> getAllReviewsForAdmin(String keyword, String filter) {
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
+        return reviewRepository.findAllByOrderByCreatedAtDesc()
+                .flatMap(this::enrichReview)
+                .filter(r -> {
+                    if (filter != null && !filter.isBlank() && !"ALL".equalsIgnoreCase(filter.trim())) {
+                        String f = filter.trim().toUpperCase();
+                        if ("LOW_RATING".equals(f) && (r.getRating() == null || r.getRating() > 2)) return false;
+                        if ("HIDDEN".equals(f) && !Boolean.TRUE.equals(r.getIsHidden())) return false;
+                        if ("VISIBLE".equals(f) && Boolean.TRUE.equals(r.getIsHidden())) return false;
+                    }
+                    if (!kw.isEmpty()) {
+                        boolean matchComment = r.getComment() != null && r.getComment().toLowerCase().contains(kw);
+                        boolean matchCust = r.getCustomerName() != null && r.getCustomerName().toLowerCase().contains(kw);
+                        boolean matchStall = r.getStallName() != null && r.getStallName().toLowerCase().contains(kw);
+                        boolean matchProd = r.getProductName() != null && r.getProductName().toLowerCase().contains(kw);
+                        boolean matchReply = r.getFarmerReply() != null && r.getFarmerReply().toLowerCase().contains(kw);
+                        if (!matchComment && !matchCust && !matchStall && !matchProd && !matchReply) return false;
+                    }
+                    return true;
+                });
     }
 
     public Flux<ReviewResponse> getAllReviewsForAdmin() {
-        return reviewRepository.findAllByOrderByCreatedAtDesc()
-                .flatMap(this::enrichReview);
+        return getAllReviewsForAdmin(null, null);
     }
 
     @Transactional

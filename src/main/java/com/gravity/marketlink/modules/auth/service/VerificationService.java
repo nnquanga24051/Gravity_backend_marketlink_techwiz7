@@ -26,6 +26,7 @@ public class VerificationService {
     private final UserRepository userRepository;
     private final UserVerificationRepository userVerificationRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public Mono<OtpResponse> sendOtp(SendOtpRequest request) {
@@ -52,12 +53,26 @@ public class VerificationService {
 
                     return userVerificationRepository.save(verification)
                             .doOnSuccess(saved -> log.info("Đã tạo mã OTP [{}] loại [{}] cho người dùng ID [{}]", otpCode, type, user.getUserId()))
+                            .flatMap(saved -> emailService.sendOtpEmail(user.getEmail(), user.getFullName(), otpCode, type)
+                                    .thenReturn(saved)
+                                    .onErrorResume(err -> {
+                                        log.error("Lỗi khi gửi email OTP đến {}: {}", user.getEmail(), err.getMessage());
+                                        return Mono.error(new RuntimeException("Không thể gửi email OTP đến " + user.getEmail() + ". Chi tiết: " + err.getMessage()));
+                                    }))
                             .map(saved -> OtpResponse.builder()
                                     .success(true)
-                                    .message("Mã xác minh OTP đã được tạo và gửi thành công (hiệu lực 10 phút).")
-                                    .devCode(otpCode)
+                                    .message("Mã xác minh OTP đã được gửi đến email " + maskEmail(user.getEmail()) + ". Vui lòng kiểm tra hộp thư đến (Inbox) hoặc mục Spam.")
+                                    .devCode(null)
                                     .build());
                 });
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) return email;
+        String[] parts = email.split("@");
+        String name = parts[0];
+        if (name.length() <= 2) return name.charAt(0) + "***@" + parts[1];
+        return name.charAt(0) + "***" + name.charAt(name.length() - 1) + "@" + parts[1];
     }
 
     public Mono<OtpResponse> verifyOtp(VerifyOtpRequest request) {

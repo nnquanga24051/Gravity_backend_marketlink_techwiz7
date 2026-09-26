@@ -168,16 +168,67 @@ export default function HomePage({
     }
   ]);
 
-  // Load Real Data from Backend on Mount
+  // Server-Side Products Fetch & Search (Debounced, no client-side filtering)
   useEffect(() => {
     let isMounted = true;
-
-    async function loadData() {
+    const timer = setTimeout(async () => {
       try {
-        const [realMarkets, realProducts] = await Promise.all([
-          marketService.getMarkets(),
-          productService.getProducts()
-        ]);
+        const realProducts = await productService.getProducts({
+          keyword: searchKeyword.trim(),
+          categoryId: (activeCategory !== 'all' && !isNaN(activeCategory)) ? activeCategory : '',
+          status: 'AVAILABLE'
+        });
+
+        if (isMounted) {
+          if (realProducts && realProducts.length > 0) {
+            setProducts(realProducts.map((p) => ({
+              ...p,
+              id: p.productId || p.id,
+              name: p.name,
+              categoryName: p.categoryName || 'Nông sản mùa vụ',
+              price: p.price,
+              unit: p.unit || 'kg',
+              farmerName: p.farmerStallName || p.farmerName || 'Nông Trại Thành Viên',
+              stallCode: p.stallCode || 'Sạp Tiêu Chuẩn',
+              marketName: p.marketName || 'Phiên Chợ Nông Sản',
+              stockQuantity: p.currentStock || p.stockQuantity || 25,
+              harvestTime: p.harvestTime || 'Thu hoạch sáng sớm',
+              imageUrl: p.imageUrl,
+              organicCertified: true
+            })));
+          } else {
+            setProducts([]);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load server-filtered products for HomePage:', err);
+      }
+    }, 250);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [searchKeyword, activeCategory]);
+
+  // Server-Side Markets Fetch & Search (Debounced, no client-side filtering)
+  useEffect(() => {
+    let isMounted = true;
+    const timer = setTimeout(async () => {
+      try {
+        let cityParam = '';
+        if (marketCityFilter === 'hanoi' || selectedArea === 'hanoi') cityParam = 'Hà Nội';
+        else if (marketCityFilter === 'hcm' || selectedArea === 'hcm') cityParam = 'Hồ Chí Minh';
+        else if (selectedArea === 'ecopark') cityParam = 'Hưng Yên';
+
+        let dayParam = '';
+        if (selectedMarketDay === 'sat') dayParam = 'Thứ 7';
+        else if (selectedMarketDay === 'sun') dayParam = 'Chủ Nhật';
+
+        const realMarkets = await marketService.getMarkets({
+          city: cityParam,
+          dayOfWeek: dayParam
+        });
 
         if (isMounted) {
           if (realMarkets && realMarkets.length > 0) {
@@ -196,36 +247,20 @@ export default function HomePage({
               verified: true,
               description: m.description || 'Chợ phiên nông sản sạch chất lượng cao.'
             })));
-          }
-
-          if (realProducts && realProducts.length > 0) {
-            setProducts(realProducts.map((p) => ({
-              ...p,
-              id: p.productId || p.id,
-              name: p.name,
-              categoryName: p.categoryName || 'Nông sản mùa vụ',
-              price: p.price,
-              unit: p.unit || 'kg',
-              farmerName: p.farmerStallName || p.farmerName || 'Nông Trại Thành Viên',
-              stallCode: p.stallCode || 'Sạp Tiêu Chuẩn',
-              marketName: p.marketName || 'Phiên Chợ Nông Sản',
-              stockQuantity: p.currentStock || 25,
-              harvestTime: p.harvestTime || 'Thu hoạch sáng sớm',
-              imageUrl: p.imageUrl,
-              organicCertified: true
-            })));
+          } else {
+            setMarkets([]);
           }
         }
       } catch (err) {
-        console.warn('Using seeded data for HomePage:', err);
+        console.warn('Failed to load server-filtered markets for HomePage:', err);
       }
-    }
+    }, 200);
 
-    loadData();
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [marketCityFilter, selectedArea, selectedMarketDay]);
 
   // IntersectionObserver for Smooth Scroll Reveal
   useEffect(() => {
@@ -252,46 +287,9 @@ export default function HomePage({
     };
   }, [products, markets, activeCategory, marketCityFilter, selectedArea, selectedMarketDay]);
 
-  // Filtering products (Multi-field, tone-free, alias-aware)
-  const filteredProducts = products.filter((p) => {
-    const matchesKeyword = !searchKeyword.trim() || matchSearch([
-      p.name,
-      p.farmerName,
-      p.marketName,
-      p.categoryName,
-      p.category,
-      p.stallCode,
-      p.description
-    ], searchKeyword);
-
-    const matchesCat = activeCategory === 'all' || 
-      matchSearch([p.categoryName, p.category], activeCategory);
-
-    const matchesArea = selectedArea === 'all' ||
-      (selectedArea === 'hanoi' && matchSearch([p.marketName, p.farmerName], 'Ba Đình Tây Hồ Ba Vì Sa Pa Hà Nội')) ||
-      (selectedArea === 'hcm' && matchSearch([p.marketName, p.farmerName], 'Thảo Điền Đà Lạt Hồ Chí Minh Thủ Đức')) ||
-      (selectedArea === 'ecopark' && matchSearch([p.marketName], 'Ecopark Hưng Yên'));
-
-    return matchesKeyword && matchesCat && matchesArea;
-  });
-
-  // Filtering markets for featured section
-  const displayedMarkets = markets.filter((m) => {
-    const matchesCity = marketCityFilter === 'all' || 
-      (marketCityFilter === 'hanoi' && matchSearch([m.city, m.address], 'Hà Nội')) ||
-      (marketCityFilter === 'hcm' && matchSearch([m.city, m.address], 'Hồ Chí Minh Thủ Đức'));
-
-    const matchesArea = selectedArea === 'all' ||
-      (selectedArea === 'hanoi' && matchSearch([m.city, m.address], 'Hà Nội')) ||
-      (selectedArea === 'hcm' && matchSearch([m.city, m.address], 'Hồ Chí Minh Thủ Đức')) ||
-      (selectedArea === 'ecopark' && matchSearch([m.name, m.address], 'Ecopark Hưng Yên'));
-
-    const matchesDay = selectedMarketDay === 'all' ||
-      (selectedMarketDay === 'sat' && matchSearch(m.operatingDays, 'Thứ 7')) ||
-      (selectedMarketDay === 'sun' && matchSearch(m.operatingDays, 'Chủ Nhật'));
-
-    return matchesCity && matchesArea && matchesDay;
-  });
+  // Products and Markets are filtered completely on backend server
+  const filteredProducts = products;
+  const displayedMarkets = markets;
 
   const getCartQty = (prodId) => {
     const found = cartItems.find((item) => item.id === prodId);

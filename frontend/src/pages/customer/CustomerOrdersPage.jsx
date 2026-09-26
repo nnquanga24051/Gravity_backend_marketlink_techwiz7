@@ -13,6 +13,7 @@ export default function CustomerOrdersPage({
   onNavigate
 }) {
   const [activeTab, setActiveTab] = useState('all');
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [orders, setOrders] = useState([]);
   const [selectedModifyOrder, setSelectedModifyOrder] = useState(null);
   const [selectedReviewOrder, setSelectedReviewOrder] = useState(null);
@@ -20,11 +21,19 @@ export default function CustomerOrdersPage({
   const [loading, setLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState('');
 
-  // Load real orders from backend
+  // Load real orders from backend with Server-Side Search & Filters
   const loadOrders = async () => {
     setLoading(true);
     try {
-      const realOrders = await orderService.getMyOrders();
+      let statusParam = '';
+      if (activeTab === 'READY') statusParam = 'READY_FOR_PICKUP';
+      else if (activeTab === 'PENDING') statusParam = 'PLACED';
+      else if (activeTab !== 'all') statusParam = activeTab;
+
+      const realOrders = await orderService.getMyOrders({
+        keyword: searchKeyword.trim(),
+        status: statusParam
+      });
       if (realOrders && realOrders.length > 0) {
         setOrders(realOrders.map((o) => ({
           id: o.orderId || o.id,
@@ -67,15 +76,14 @@ export default function CustomerOrdersPage({
   };
 
   useEffect(() => {
-    loadOrders();
-  }, []);
+    const timer = setTimeout(() => {
+      loadOrders();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchKeyword, activeTab]);
 
-  const filteredOrders = orders.filter((o) => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'READY') return o.status === 'READY' || o.status === 'READY_FOR_PICKUP';
-    if (activeTab === 'PENDING') return o.status === 'PENDING' || o.status === 'PLACED' || o.status === 'ACCEPTED';
-    return o.status === activeTab;
-  });
+  // Orders are filtered entirely on server-side
+  const filteredOrders = orders;
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
@@ -158,24 +166,47 @@ export default function CustomerOrdersPage({
             Theo dõi trạng thái thu hoạch và đóng gói từ nhà vườn, lấy mã QR xuất trình tại sạp và thanh toán tiền mặt trực tiếp khi đến chợ.
           </p>
 
-          {/* Status Tabs */}
-          <div className="ml-orders-tabs">
-            {[
-              { key: 'all', label: `Tất cả (${orders.length})` },
-              { key: 'READY', label: '🌿 Sẵn sàng tại sạp' },
-              { key: 'PENDING', label: '⏳ Chờ chốt đơn' },
-              { key: 'COMPLETED', label: '✓ Đã nhận hàng' },
-              { key: 'CANCELLED', label: '✕ Đã hủy' }
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                className={`ml-order-tab ${activeTab === tab.key ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.key)}
-              >
-                {tab.label}
-              </button>
-            ))}
+          {/* Status Tabs & Search Toolbar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
+            <div className="ml-orders-tabs" style={{ margin: 0 }}>
+              {[
+                { key: 'all', label: `Tất cả (${orders.length})` },
+                { key: 'READY', label: '🌿 Sẵn sàng tại sạp' },
+                { key: 'PENDING', label: '⏳ Chờ chốt đơn' },
+                { key: 'COMPLETED', label: '✓ Đã nhận hàng' },
+                { key: 'CANCELLED', label: '✕ Đã hủy' }
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className={`ml-order-tab ${activeTab === tab.key ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="text"
+                className="ml-products-search-input"
+                style={{ width: 280, padding: '8px 14px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5 }}
+                placeholder="Tìm mã đơn, tên nông sản, sạp..."
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+              />
+              {searchKeyword && (
+                <button
+                  type="button"
+                  className="ml-search-clear"
+                  onClick={() => setSearchKeyword('')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#64748b' }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

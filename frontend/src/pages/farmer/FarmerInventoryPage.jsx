@@ -42,13 +42,17 @@ export default function FarmerInventoryPage({ onNavigate }) {
     setTimeout(() => setActionSuccessMsg(''), 4000);
   };
 
-  // Load real products & assigned markets & stock templates
-  const loadData = async () => {
+  // Load real products & assigned markets & stock templates with Server-Side Search & Filters
+  const loadData = async (kw = searchKeyword, cat = selectedCategory, stall = selectedStallFilter) => {
     setLoading(true);
     try {
       const [prods, templates, markets] = await Promise.all([
-        farmerService.getFarmerProducts(),
-        farmerService.getFarmerStockTemplates(),
+        farmerService.getFarmerProducts({
+          keyword: (kw || '').trim(),
+          categoryId: (cat !== 'all' && !isNaN(cat)) ? cat : '',
+          marketId: (stall !== 'all' && !isNaN(stall)) ? stall : ''
+        }),
+        farmerService.getFarmerStockTemplates((kw || '').trim()),
         farmerService.getMyMarketAssignments()
       ]);
 
@@ -95,8 +99,11 @@ export default function FarmerInventoryPage({ onNavigate }) {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    const timer = setTimeout(() => {
+      loadData(searchKeyword, selectedCategory, selectedStallFilter);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchKeyword, selectedCategory, selectedStallFilter]);
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
@@ -231,14 +238,8 @@ export default function FarmerInventoryPage({ onNavigate }) {
 
   const [selectedStallFilter, setSelectedStallFilter] = useState('all');
 
-  const filteredProducts = products.filter((p) => {
-    const matchSearch = searchKeyword === '' || p.name.toLowerCase().includes(searchKeyword.toLowerCase());
-    const matchCat = selectedCategory === 'all' || p.category === selectedCategory || (p.categoryName && p.categoryName.toLowerCase().includes(selectedCategory.toLowerCase()));
-    const matchStall = selectedStallFilter === 'all' ||
-      String(p.marketId) === String(selectedStallFilter) ||
-      (p.stallNumber && p.stallNumber === selectedStallFilter);
-    return matchSearch && matchCat && matchStall;
-  });
+  // Products are filtered entirely on server-side
+  const filteredProducts = products;
 
   return (
     <div className="ml-farmer-inv-page">

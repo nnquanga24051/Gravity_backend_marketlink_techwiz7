@@ -28,19 +28,20 @@ public class StockTemplateController {
     private final StockTemplateService stockTemplateService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Lấy danh sách định mức tồn kho mẫu của nông dân", description = "Lấy các cấu hình định mức lặp lại hàng tuần theo từng phiên chợ (marketId tùy chọn).")
+    @Operation(summary = "Lấy danh sách định mức tồn kho mẫu của nông dân", description = "Lấy các cấu hình định mức lặp lại hàng tuần theo từng phiên chợ (marketId tùy chọn) và từ khóa tìm kiếm.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping
     public Mono<ResponseEntity<ApiResponse<List<WeeklyStockTemplateResponse>>>> getTemplates(
             Authentication authentication,
-            @RequestParam(value = "marketId", required = false) Long marketId) {
+            @RequestParam(value = "marketId", required = false) Long marketId,
+            @RequestParam(value = "keyword", required = false) String keyword) {
         if (authentication == null || authentication.getName() == null) {
             return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
         }
 
         return userRepository.findByEmail(authentication.getName())
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
-                .flatMap(user -> stockTemplateService.getTemplates(user.getUserId(), marketId).collectList())
+                .flatMap(user -> stockTemplateService.getTemplates(user.getUserId(), marketId, keyword).collectList())
                 .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách mẫu định mức tồn kho thành công.", list)));
     }
 

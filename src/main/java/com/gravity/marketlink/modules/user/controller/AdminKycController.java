@@ -30,10 +30,11 @@ public class AdminKycController {
     private final KycService kycService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Xem danh sách hồ sơ KYC chờ duyệt", description = "Lấy tất cả các nông dân đang có trạng thái KYC là PENDING cùng số lượng tài liệu đã nộp.")
+    @Operation(summary = "Xem danh sách hồ sơ KYC chờ duyệt", description = "Lấy tất cả các nông dân đang có trạng thái KYC là PENDING cùng số lượng tài liệu đã nộp, hỗ trợ tìm kiếm từ khóa.")
     @GetMapping("/pending")
-    public Mono<ResponseEntity<ApiResponse<List<PendingFarmerKycResponse>>>> getPendingKycList() {
-        return kycService.getPendingKycList()
+    public Mono<ResponseEntity<ApiResponse<List<PendingFarmerKycResponse>>>> getPendingKycList(
+            @RequestParam(value = "keyword", required = false) String keyword) {
+        return kycService.getPendingKycList(keyword)
                 .collectList()
                 .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách hồ sơ KYC chờ duyệt thành công.", list)));
     }

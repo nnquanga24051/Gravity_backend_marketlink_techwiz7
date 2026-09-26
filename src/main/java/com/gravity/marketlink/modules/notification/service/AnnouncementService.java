@@ -24,14 +24,30 @@ public class AnnouncementService {
     private final SystemAnnouncementRepository announcementRepository;
     private final UserRepository userRepository;
 
-    public Flux<AnnouncementResponse> getActiveAnnouncements() {
+    public Flux<AnnouncementResponse> getActiveAnnouncements(String keyword) {
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
         return announcementRepository.findByIsActiveTrueOrderByPublishedAtDesc()
-                .flatMap(this::enrichAnnouncement);
+                .flatMap(this::enrichAnnouncement)
+                .filter(a -> kw.isEmpty()
+                        || (a.getTitle() != null && a.getTitle().toLowerCase().contains(kw))
+                        || (a.getContent() != null && a.getContent().toLowerCase().contains(kw)));
+    }
+
+    public Flux<AnnouncementResponse> getActiveAnnouncements() {
+        return getActiveAnnouncements(null);
+    }
+
+    public Flux<AnnouncementResponse> getAllAnnouncements(String keyword) {
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
+        return announcementRepository.findAllByOrderByPublishedAtDesc()
+                .flatMap(this::enrichAnnouncement)
+                .filter(a -> kw.isEmpty()
+                        || (a.getTitle() != null && a.getTitle().toLowerCase().contains(kw))
+                        || (a.getContent() != null && a.getContent().toLowerCase().contains(kw)));
     }
 
     public Flux<AnnouncementResponse> getAllAnnouncements() {
-        return announcementRepository.findAllByOrderByPublishedAtDesc()
-                .flatMap(this::enrichAnnouncement);
+        return getAllAnnouncements(null);
     }
 
     public Mono<AnnouncementResponse> getAnnouncementById(Long id) {
