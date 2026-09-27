@@ -4,13 +4,27 @@ import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import farmerService from '../../services/farmerService';
 
-export default function FarmerOrdersPage() {
+export default function FarmerOrdersPage({
+  initialOrderId,
+  initialOrderCode,
+  initialSearch,
+  onNavigate
+} = {}) {
   const [activeTab, setActiveTab] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
   const [sessionFilter, setSessionFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => initialSearch || initialOrderCode || (initialOrderId ? String(initialOrderId) : ''));
   const [loading, setLoading] = useState(false);
   const [actionSuccessMsg, setActionSuccessMsg] = useState('');
+
+  useEffect(() => {
+    const targetQuery = initialOrderCode || (initialOrderId ? String(initialOrderId) : '');
+    if (targetQuery) {
+      setSearchQuery(targetQuery);
+      setActiveTab('all');
+      setDateFilter('');
+    }
+  }, [initialOrderId, initialOrderCode]);
 
   // Decline modal state
   const [declineModal, setDeclineModal] = useState({
@@ -220,6 +234,26 @@ export default function FarmerOrdersPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="ml-farmer-search-input"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="ml-clear-search-btn"
+                  onClick={() => setSearchQuery('')}
+                  title="Xóa tìm kiếm để xem tất cả đơn"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    padding: '0 8px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
             <div className="ml-farmer-date-filter">

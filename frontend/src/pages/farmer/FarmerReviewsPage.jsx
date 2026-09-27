@@ -173,8 +173,32 @@ export default function FarmerReviewsPage() {
               <div key={rev.id} className="ml-card ml-rev-feed-card">
                 <div className="ml-rev-feed-top">
                   <div className="ml-rev-user">
-                    <span className="ml-rev-uavatar">{rev.customerAvatar}</span>
-                    <div>
+                    <div className="ml-rev-uavatar-wrap">
+                      {rev.customerAvatar && (rev.customerAvatar.startsWith('http') || rev.customerAvatar.startsWith('/') || rev.customerAvatar.includes('/')) ? (
+                        <img
+                          src={rev.customerAvatar}
+                          alt={rev.customerName || 'Khách hàng'}
+                          className="ml-rev-uavatar-img"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <span
+                        className="ml-rev-uavatar-fallback"
+                        style={{
+                          display: rev.customerAvatar && (rev.customerAvatar.startsWith('http') || rev.customerAvatar.startsWith('/') || rev.customerAvatar.includes('/'))
+                            ? 'none'
+                            : 'flex'
+                        }}
+                      >
+                        {rev.customerAvatar && !rev.customerAvatar.startsWith('http') && !rev.customerAvatar.startsWith('/') && rev.customerAvatar.length <= 4
+                          ? rev.customerAvatar
+                          : (rev.customerName ? rev.customerName.charAt(0).toUpperCase() : '👤')}
+                      </span>
+                    </div>
+                    <div className="ml-rev-user-meta">
                       <h4 className="ml-rev-uname">{rev.customerName}</h4>
                       <span className="ml-rev-udate">
                         {rev.productName ? `Đã mua: ${rev.productName} • ` : ''}Ghé nhận lúc: {rev.date}

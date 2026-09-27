@@ -40,6 +40,7 @@ import ImageUploadStudio from './components/ImageUploadStudio';
 // Services
 import orderService from './services/orderService';
 import authService from './services/authService';
+import notificationService from './services/notificationService';
 
 export default function App() {
   // Sanitize potentially corrupted UTF-8 string like 'Nguy?n Nh?t Quang'
@@ -69,6 +70,12 @@ export default function App() {
 
   // Navigation & UI state
   const [activeNav, setActiveNav] = useState('home');
+  const [navParams, setNavParams] = useState({});
+
+  const handleNavigate = (navKey, params = {}) => {
+    setActiveNav(navKey);
+    setNavParams(params || {});
+  };
   const [selectedLocation, setSelectedLocation] = useState('Hà Nội');
   const [selectedMarketFilter, setSelectedMarketFilter] = useState('all');
   const [selectedFarmerFilter, setSelectedFarmerFilter] = useState(null);
@@ -141,16 +148,124 @@ export default function App() {
     verifySession();
   }, []);
 
-  const addToast = (title, message, type = 'success') => {
+  const addToast = (title, message, type = 'success', onClick = null) => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, title, message, type }]);
+    setToasts((prev) => [...prev, { id, title, message, type, onClick }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+    }, 4500);
   };
 
   const removeToast = (id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  // Real-time Push Notifications (SSE)
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
+
+  useEffect(() => {
+    if (!token || currentRole === 'GUEST') {
+      setNotifications([]);
+      setUnreadCount(0);
+      setIsLiveConnected(false);
+      return;
+    }
+
+    // 1. Fetch initial notification history & unread count
+    const loadNotifications = async () => {
+      try {
+        const [list, count] = await Promise.all([
+          notificationService.getMyNotifications(),
+          notificationService.getUnreadCount()
+        ]);
+        setNotifications(list || []);
+        setUnreadCount(count || 0);
+      } catch (err) {
+        console.debug('Failed to fetch initial notifications:', err);
+      }
+    };
+
+    loadNotifications();
+
+    // 2. Subscribe to real-time SSE push notification stream
+    const unsubscribe = notificationService.subscribePushStream(token, {
+      onConnected: () => {
+        setIsLiveConnected(true);
+      },
+      onNotification: (newNotif) => {
+        setIsLiveConnected(true);
+        setNotifications((prev) => [
+          newNotif,
+          ...prev.filter((n) => n.notificationId !== newNotif.notificationId)
+        ]);
+        setUnreadCount((prev) => prev + 1);
+
+        // Calculate role-appropriate target navigation for toast click
+        const activeRole = (currentRole || localStorage.getItem('ml_role') || 'CUSTOMER').toUpperCase().replace('ROLE_', '');
+        const notifType = (newNotif.type || '').toUpperCase();
+        const title = (newNotif.title || '').toLowerCase();
+        const message = (newNotif.message || '').toLowerCase();
+
+        let targetNav = activeRole === 'FARMER' ? 'farmer-orders' : activeRole === 'ADMIN' ? 'admin-orders' : 'orders';
+        if (notifType.startsWith('REVIEW') || title.includes('đánh giá') || message.includes('đánh giá')) {
+          targetNav = activeRole === 'FARMER' ? 'farmer-reviews' : activeRole === 'ADMIN' ? 'admin-content' : 'my-reviews';
+        } else if (notifType === 'RESTOCK_ALERT' || title.includes('tồn kho')) {
+          targetNav = activeRole === 'FARMER' ? 'farmer-inventory' : 'products';
+        }
+
+        const orderCodeMatch = ((newNotif.title || '') + ' ' + (newNotif.message || '')).match(/ORD-[\w-]+/i);
+        const code = orderCodeMatch ? orderCodeMatch[0] : (newNotif.referenceId ? String(newNotif.referenceId) : '');
+
+        addToast(
+          newNotif.title || 'Thông báo mới',
+          newNotif.message,
+          'success',
+          () => handleNavigate(targetNav, { orderId: newNotif.referenceId, orderCode: code })
+        );
+      },
+      onError: () => {
+        setIsLiveConnected(false);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [token, currentRole]);
+
+  const handleNotificationRead = async (id) => {
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.notificationId === id ? { ...n, isRead: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      console.warn('Failed to mark notification as read:', err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.warn('Failed to mark all notifications as read:', err);
+    }
+  };
+
+  const handleNewTestPush = (newNotif) => {
+    if (newNotif) {
+      setNotifications((prev) => [
+        newNotif,
+        ...prev.filter((n) => n.notificationId !== newNotif.notificationId)
+      ]);
+      setUnreadCount((prev) => prev + 1);
+      addToast(newNotif.title, newNotif.message, 'success');
+    }
   };
 
   // Cart operations
@@ -347,8 +462,14 @@ export default function App() {
         onSelectLocation={setSelectedLocation}
         onOpenAuthModal={handleOpenAuthModal}
         activeNav={activeNav}
-        onNavigate={(navKey) => setActiveNav(navKey)}
+        onNavigate={handleNavigate}
         onLogout={handleLogout}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        onNotificationRead={handleNotificationRead}
+        onMarkAllRead={handleMarkAllRead}
+        onNewTestPush={handleNewTestPush}
+        isLiveConnected={isLiveConnected}
       />
 
       {/* Mobile Navigation Drawer */}
@@ -361,7 +482,7 @@ export default function App() {
         selectedLocation={selectedLocation}
         onSelectLocation={setSelectedLocation}
         activeNav={activeNav}
-        onNavigate={(navKey) => setActiveNav(navKey)}
+        onNavigate={handleNavigate}
         onOpenAuthModal={handleOpenAuthModal}
         onLogout={handleLogout}
       />
@@ -421,6 +542,8 @@ export default function App() {
 
         {activeNav === 'orders' && (
           <CustomerOrdersPage
+            initialOrderId={navParams.orderId}
+            initialOrderCode={navParams.orderCode}
             onReorder={(order) => {
               const reorderedItems = order.items.map((it) => ({
                 id: it.id,
@@ -440,7 +563,7 @@ export default function App() {
                 'success'
               );
             }}
-            onNavigate={(nav) => setActiveNav(nav)}
+            onNavigate={handleNavigate}
           />
         )}
 
@@ -448,28 +571,30 @@ export default function App() {
           <CustomerDashboardPage
             userName={userName}
             userEmail={token ? (localStorage.getItem('ml_email') || 'customer@marketlink.vn') : 'khach@marketlink.vn'}
-            onNavigate={(nav) => setActiveNav(nav)}
+            onNavigate={handleNavigate}
             onAddToCart={handleAddToCart}
           />
         )}
 
         {activeNav === 'my-reviews' && (
           <CustomerReviewsPage
-            onNavigate={(nav) => setActiveNav(nav)}
+            onNavigate={handleNavigate}
           />
         )}
 
         {/* Farmer Views */}
         {activeNav === 'farmer-dashboard' && (
           <FarmerDashboardPage
-            onNavigate={(nav) => setActiveNav(nav)}
+            onNavigate={handleNavigate}
             onOpenAddProduct={() => setActiveNav('farmer-inventory')}
           />
         )}
 
         {activeNav === 'farmer-orders' && (
           <FarmerOrdersPage
-            onNavigate={(nav) => setActiveNav(nav)}
+            initialOrderId={navParams.orderId}
+            initialOrderCode={navParams.orderCode}
+            onNavigate={handleNavigate}
           />
         )}
 
@@ -532,7 +657,9 @@ export default function App() {
 
         {activeNav === 'admin-orders' && (
           <AdminOrdersPage
-            onNavigate={(nav) => setActiveNav(nav)}
+            initialOrderId={navParams.orderId}
+            initialOrderCode={navParams.orderCode}
+            onNavigate={handleNavigate}
           />
         )}
 

@@ -24,6 +24,9 @@ public class UpdateProfileRequest {
     @Size(max = 20, message = "Số điện thoại không hợp lệ")
     private String phoneNumber;
 
+    @Schema(description = "Đường dẫn ảnh đại diện (Avatar URL)", example = "https://images.unsplash.com/photo-1534528741775-53994a69daeb")
+    private String avatarUrl;
+
     // --- Thông tin dành riêng cho Khách hàng (Customer) ---
     @Schema(description = "Địa chỉ giao hàng mặc định (Dành cho Customer)", example = "Số 123 Đường Láng, Đống Đa, Hà Nội")
     private String defaultAddress;

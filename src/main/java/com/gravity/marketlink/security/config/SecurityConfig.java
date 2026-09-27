@@ -52,6 +52,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/auth/**").permitAll()
                                                 .requestMatchers("/api/ai/**").permitAll()
                                                 .requestMatchers("/api/upload/**").permitAll()
+                                                .requestMatchers("/api/notifications/stream").permitAll()
                                                 .requestMatchers(HttpMethod.GET, 
                                                                 "/api/markets/**",
                                                                 "/api/categories/**", 

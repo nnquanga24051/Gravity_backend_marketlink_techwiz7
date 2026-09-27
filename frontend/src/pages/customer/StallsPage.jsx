@@ -590,8 +590,29 @@ export default function StallsPage({
                     <div key={rev.reviewId || rev.id || i} className="ml-detail-review-card">
                       <div className="ml-review-head">
                         <div className="ml-reviewer-info">
-                          <div className="ml-reviewer-avatar-circle">
-                            {(rev.customerName || 'K').charAt(0).toUpperCase()}
+                          <div className="ml-reviewer-avatar-circle" style={{ overflow: 'hidden', padding: 0 }}>
+                            {rev.customerAvatar && (rev.customerAvatar.startsWith('http') || rev.customerAvatar.startsWith('/') || rev.customerAvatar.includes('/')) ? (
+                              <img
+                                src={rev.customerAvatar}
+                                alt={rev.customerName || 'Khách'}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <span
+                              style={{
+                                display: rev.customerAvatar && (rev.customerAvatar.startsWith('http') || rev.customerAvatar.startsWith('/') || rev.customerAvatar.includes('/')) ? 'none' : 'flex',
+                                width: '100%',
+                                height: '100%',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              {(rev.customerName || 'K').charAt(0).toUpperCase()}
+                            </span>
                           </div>
                           <div>
                             <div className="ml-reviewer-name-txt">{rev.customerName || 'Khách hàng MarketLink'}</div>

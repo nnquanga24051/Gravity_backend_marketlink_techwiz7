@@ -23,6 +23,7 @@ export default function FarmerInventoryPage({ onNavigate }) {
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedStallFilter, setSelectedStallFilter] = useState('all');
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -235,8 +236,6 @@ export default function FarmerInventoryPage({ onNavigate }) {
       }
     }
   };
-
-  const [selectedStallFilter, setSelectedStallFilter] = useState('all');
 
   // Products are filtered entirely on server-side
   const filteredProducts = products;

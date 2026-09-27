@@ -9,7 +9,12 @@ export default function Toast({ toasts = [], onRemove }) {
       {toasts.map((toast) => (
         <div 
           key={toast.id} 
-          className={`ml-toast ml-toast--${toast.type || 'success'}`}
+          className={`ml-toast ml-toast--${toast.type || 'success'} ${toast.onClick ? 'is-clickable' : ''}`}
+          onClick={(e) => {
+            if (e.target.closest('.ml-toast-close')) return;
+            if (toast.onClick) toast.onClick();
+          }}
+          style={toast.onClick ? { cursor: 'pointer' } : {}}
         >
           <span className="ml-toast-icon">
             {toast.type === 'error' ? '⚠️' : toast.type === 'info' ? 'ℹ️' : '🌿'}

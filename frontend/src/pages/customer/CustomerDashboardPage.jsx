@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './CustomerDashboardPage.css';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
+import ImageUploadInput from '../../components/ImageUploadInput';
 import customerService from '../../services/customerService';
 import orderService from '../../services/orderService';
 import marketService from '../../services/marketService';
@@ -22,6 +23,15 @@ export default function CustomerDashboardPage({
   const [phone, setPhone] = useState('');
   const [defaultAddress, setDefaultAddress] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Edit Profile Modal State
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    phone: '',
+    defaultAddress: '',
+    avatarUrl: ''
+  });
 
   // Metrics & Orders
   const [orders, setOrders] = useState([]);
@@ -66,6 +76,12 @@ export default function CustomerDashboardPage({
           setFullName(profData.fullName || propUserName || '');
           setPhone(profData.phoneNumber || '');
           setDefaultAddress(profData.defaultAddress || '');
+          setEditForm({
+            fullName: profData.fullName || propUserName || '',
+            phone: profData.phoneNumber || '',
+            defaultAddress: profData.defaultAddress || '',
+            avatarUrl: profData.avatarUrl || ''
+          });
         }
 
         if (myOrders && myOrders.length > 0) {
@@ -102,7 +118,75 @@ export default function CustomerDashboardPage({
     setTimeout(() => setStatusMessage(''), 4500);
   };
 
-  // Handle Profile Update
+  // Open & populate edit modal
+  const handleOpenEditProfileModal = () => {
+    setEditForm({
+      fullName: profile?.fullName || fullName || '',
+      phone: profile?.phoneNumber || phone || '',
+      defaultAddress: profile?.defaultAddress || defaultAddress || '',
+      avatarUrl: profile?.avatarUrl || ''
+    });
+    setIsEditProfileModalOpen(true);
+  };
+
+  // Save changes from modal
+  const handleSaveProfileModal = async (e) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    try {
+      const updatePayload = {
+        fullName: editForm.fullName.trim(),
+        phoneNumber: editForm.phone.trim(),
+        defaultAddress: editForm.defaultAddress.trim(),
+        avatarUrl: editForm.avatarUrl ? editForm.avatarUrl.trim() : null
+      };
+
+      const updated = await customerService.updateProfile(updatePayload);
+
+      // If avatar was updated, ensure avatar endpoint is also notified
+      if (editForm.avatarUrl && editForm.avatarUrl !== profile?.avatarUrl) {
+        try {
+          await customerService.updateAvatar(editForm.avatarUrl.trim());
+        } catch (avErr) {
+          console.warn('Avatar update fallback note:', avErr);
+        }
+      }
+
+      const nextAvatar = editForm.avatarUrl ? editForm.avatarUrl.trim() : (updated?.avatarUrl || profile?.avatarUrl);
+      const nextFullName = editForm.fullName.trim();
+      const nextPhone = editForm.phone.trim();
+      const nextAddress = editForm.defaultAddress.trim();
+
+      setProfile((prev) => ({
+        ...prev,
+        ...(updated || {}),
+        fullName: nextFullName,
+        phoneNumber: nextPhone,
+        defaultAddress: nextAddress,
+        avatarUrl: nextAvatar
+      }));
+      setFullName(nextFullName);
+      setPhone(nextPhone);
+      setDefaultAddress(nextAddress);
+
+      if (nextFullName) {
+        localStorage.setItem('ml_name', nextFullName);
+      }
+      if (nextAvatar) {
+        localStorage.setItem('ml_avatar', nextAvatar);
+      }
+
+      setIsEditProfileModalOpen(false);
+      showStatus('✓ Đã cập nhật hồ sơ và ảnh đại diện thành công!');
+    } catch (err) {
+      console.error('Update profile error:', err);
+      alert(err?.message || 'Không thể cập nhật hồ sơ lúc này.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // Handle Profile Update (inline form)
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setSavingProfile(true);
@@ -110,10 +194,15 @@ export default function CustomerDashboardPage({
       const updated = await customerService.updateProfile({
         fullName,
         phoneNumber: phone,
-        defaultAddress
+        defaultAddress,
+        avatarUrl: profile?.avatarUrl || null
       });
       if (updated) {
-        setProfile(updated);
+        setProfile((prev) => ({
+          ...prev,
+          ...updated,
+          fullName: updated.fullName || fullName
+        }));
         localStorage.setItem('ml_name', updated.fullName || fullName);
       }
       showStatus('✓ Đã cập nhật thông tin cá nhân thành công!');
@@ -243,16 +332,23 @@ export default function CustomerDashboardPage({
       <div className="ml-dashboard-banner">
         <div className="ml-container ml-dashboard-banner-inner">
           <div className="ml-user-profile-header">
-            <div className="ml-dashboard-avatar">
+            <div
+              className="ml-dashboard-avatar ml-dashboard-avatar--clickable"
+              onClick={handleOpenEditProfileModal}
+              title="Nhấn để đổi ảnh đại diện & thông tin cá nhân"
+            >
               {profile?.avatarUrl ? (
                 <img
                   src={profile.avatarUrl}
                   alt={displayUserName}
-                  style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                  className="ml-dashboard-avatar-img"
                 />
               ) : (
-                '🛒'
+                <span className="ml-dashboard-avatar-fallback">🛒</span>
               )}
+              <span className="ml-dashboard-avatar-badge" title="Đổi ảnh đại diện">
+                📷
+              </span>
             </div>
             <div>
               <div className="ml-dashboard-user-greeting">Tài khoản khách hàng</div>
@@ -266,6 +362,14 @@ export default function CustomerDashboardPage({
           </div>
 
           <div className="ml-dashboard-quick-actions">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleOpenEditProfileModal}
+              className="ml-btn-header-edit-profile"
+            >
+              ✏️ Chỉnh sửa hồ sơ
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -281,7 +385,7 @@ export default function CustomerDashboardPage({
               ⭐ Đánh giá của tôi
             </Button>
             <Button
-              variant="primary"
+              variant="outline"
               size="sm"
               onClick={() => onNavigate('products')}
             >
@@ -668,45 +772,128 @@ export default function CustomerDashboardPage({
           {/* Tab 4: Profile Settings */}
           {activeTab === 'profile' && (
             <div className="ml-card ml-profile-settings-card">
-              <h3 className="ml-subcard-title">Cập nhật hồ sơ & địa chỉ nhận hàng</h3>
-              <form onSubmit={handleUpdateProfile} className="ml-profile-form">
-                <div className="ml-form-group">
-                  <label className="ml-form-label">Họ và tên của bạn:</label>
-                  <input
-                    type="text"
-                    className="ml-form-input"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
+              <div className="ml-profile-settings-header-flex">
+                <div>
+                  <h3 className="ml-subcard-title">Cài đặt hồ sơ & địa chỉ nhận hàng</h3>
+                  <p className="ml-profile-settings-subdesc">
+                    Quản lý thông tin tài khoản, ảnh đại diện và địa chỉ nhận hàng nông sản tại các phiên chợ
+                  </p>
                 </div>
-
-                <div className="ml-form-group">
-                  <label className="ml-form-label">Số điện thoại liên hệ (để nông dân liên hệ khi có rau):</label>
-                  <input
-                    type="text"
-                    className="ml-form-input"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="VD: 0912 345 678"
-                  />
-                </div>
-
-                <div className="ml-form-group">
-                  <label className="ml-form-label">Địa chỉ mặc định:</label>
-                  <input
-                    type="text"
-                    className="ml-form-input"
-                    value={defaultAddress}
-                    onChange={(e) => setDefaultAddress(e.target.value)}
-                    placeholder="VD: 123 Đường Láng, Đống Đa, Hà Nội"
-                  />
-                </div>
-
-                <Button type="submit" variant="primary" size="md" loading={savingProfile}>
-                  Lưu thay đổi hồ sơ
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  onClick={handleOpenEditProfileModal}
+                  className="ml-btn-open-modal-settings"
+                >
+                  ✏️ Chỉnh sửa hồ sơ (Mở hộp thoại)
                 </Button>
-              </form>
+              </div>
+
+              {/* Profile Overview Card */}
+              <div className="ml-profile-overview-box">
+                <div
+                  className="ml-overview-avatar-wrapper"
+                  onClick={handleOpenEditProfileModal}
+                  title="Nhấn để đổi ảnh đại diện"
+                >
+                  {profile?.avatarUrl ? (
+                    <img
+                      src={profile.avatarUrl}
+                      alt={displayUserName}
+                      className="ml-overview-avatar-img"
+                    />
+                  ) : (
+                    <div className="ml-overview-avatar-placeholder">🛒</div>
+                  )}
+                  <span className="ml-overview-camera-icon">📷</span>
+                </div>
+
+                <div className="ml-overview-info">
+                  <div className="ml-overview-name-row">
+                    <h4 className="ml-overview-name">{displayUserName}</h4>
+                    <span className="ml-overview-badge">Khách hàng thành viên</span>
+                  </div>
+                  <div className="ml-overview-meta-list">
+                    <div className="ml-overview-meta-item">
+                      <span className="ml-meta-label">Email tài khoản:</span>
+                      <strong className="ml-meta-value">✉️ {displayUserEmail}</strong>
+                    </div>
+                    <div className="ml-overview-meta-item">
+                      <span className="ml-meta-label">Số điện thoại liên hệ:</span>
+                      <strong className="ml-meta-value">📞 {phone || 'Chưa cập nhật'}</strong>
+                    </div>
+                    <div className="ml-overview-meta-item">
+                      <span className="ml-meta-label">Địa chỉ nhận hàng mặc định:</span>
+                      <span className="ml-meta-value">📍 {defaultAddress || 'Chưa thiết lập địa chỉ'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="ml-overview-actions">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenEditProfileModal}
+                  >
+                    ✏️ Thay đổi
+                  </Button>
+                </div>
+              </div>
+
+              {/* Quick Inline Update Form */}
+              <div className="ml-profile-inline-form-wrap">
+                <h4 className="ml-inline-form-title">📝 Cập nhật nhanh thông tin:</h4>
+                <form onSubmit={handleUpdateProfile} className="ml-profile-form">
+                  <div className="ml-form-group">
+                    <label className="ml-form-label">Họ và tên của bạn:</label>
+                    <input
+                      type="text"
+                      className="ml-form-input"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="ml-form-group">
+                    <label className="ml-form-label">Số điện thoại liên hệ (để nông dân liên hệ khi có rau):</label>
+                    <input
+                      type="text"
+                      className="ml-form-input"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="VD: 0912 345 678"
+                    />
+                  </div>
+
+                  <div className="ml-form-group">
+                    <label className="ml-form-label">Địa chỉ mặc định:</label>
+                    <input
+                      type="text"
+                      className="ml-form-input"
+                      value={defaultAddress}
+                      onChange={(e) => setDefaultAddress(e.target.value)}
+                      placeholder="VD: 123 Đường Láng, Đống Đa, Hà Nội"
+                    />
+                  </div>
+
+                  <div className="ml-inline-form-actions">
+                    <Button type="submit" variant="primary" size="md" loading={savingProfile}>
+                      Lưu thay đổi hồ sơ
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="md"
+                      onClick={handleOpenEditProfileModal}
+                    >
+                      🖼️ Đổi ảnh đại diện (Mở hộp thoại)
+                    </Button>
+                  </div>
+                </form>
+              </div>
 
               {/* Password Change Subform */}
               <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--color-border-light)' }}>
@@ -756,6 +943,147 @@ export default function CustomerDashboardPage({
           )}
         </div>
       </div>
+
+      {/* ================= MODAL: EDIT CUSTOMER PROFILE & AVATAR ================= */}
+      {isEditProfileModalOpen && (
+        <div className="ml-modal-overlay" onClick={() => setIsEditProfileModalOpen(false)}>
+          <div
+            className="ml-modal-box ml-customer-edit-modal-box"
+            style={{ maxWidth: '640px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ml-modal-header">
+              <div>
+                <h3>✏️ Chỉnh sửa hồ sơ & Ảnh đại diện</h3>
+                <p className="ml-modal-subtitle">
+                  Cập nhật họ và tên, số điện thoại, địa chỉ nhận hàng và hình ảnh đại diện của bạn
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ml-modal-close"
+                onClick={() => setIsEditProfileModalOpen(false)}
+                aria-label="Đóng hộp thoại"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfileModal} className="ml-modal-form">
+              <div className="ml-modal-body">
+                {/* Avatar Uploader Section */}
+                <div className="ml-customer-modal-avatar-section">
+                  <div className="ml-customer-modal-avatar-preview">
+                    {editForm.avatarUrl ? (
+                      <img
+                        src={editForm.avatarUrl}
+                        alt="Avatar Preview"
+                        className="ml-customer-modal-avatar-img"
+                      />
+                    ) : (
+                      <div className="ml-customer-modal-avatar-placeholder">
+                        🛒
+                      </div>
+                    )}
+                  </div>
+                  <div className="ml-customer-modal-avatar-controls">
+                    <label className="ml-form-label" style={{ fontWeight: 700 }}>
+                      Ảnh đại diện tài khoản (Avatar):
+                    </label>
+                    <ImageUploadInput
+                      folder="avatars"
+                      value={editForm.avatarUrl}
+                      onChange={(url) => setEditForm((prev) => ({ ...prev, avatarUrl: url }))}
+                      onUploadSuccess={(url) => setEditForm((prev) => ({ ...prev, avatarUrl: url }))}
+                      helpText="Tải lên ảnh chân dung cá nhân (JPG, PNG, WebP) hoặc dán đường dẫn ảnh trực tiếp"
+                    />
+                  </div>
+                </div>
+
+                <div className="ml-form-group">
+                  <label className="ml-form-label">Họ và tên của bạn:</label>
+                  <div className="ml-input-wrapper">
+                    <span className="ml-input-icon">👤</span>
+                    <input
+                      type="text"
+                      className="ml-form-input ml-form-input--icon"
+                      value={editForm.fullName}
+                      onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                      placeholder="VD: Nguyễn Nhựt Quang"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="ml-form-grid-2">
+                  <div className="ml-form-group">
+                    <label className="ml-form-label">Email tài khoản (Cố định):</label>
+                    <div className="ml-input-wrapper">
+                      <span className="ml-input-icon">✉️</span>
+                      <input
+                        type="email"
+                        className="ml-form-input ml-form-input--icon"
+                        value={displayUserEmail}
+                        disabled
+                        style={{ backgroundColor: 'var(--color-bg-base)', cursor: 'not-allowed', opacity: 0.8 }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="ml-form-group">
+                    <label className="ml-form-label">Số điện thoại liên hệ:</label>
+                    <div className="ml-input-wrapper">
+                      <span className="ml-input-icon">📞</span>
+                      <input
+                        type="text"
+                        className="ml-form-input ml-form-input--icon"
+                        value={editForm.phone}
+                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                        placeholder="VD: 0901234567"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="ml-form-group">
+                  <label className="ml-form-label">Địa chỉ nhận hàng mặc định:</label>
+                  <div className="ml-input-wrapper">
+                    <span className="ml-input-icon">📍</span>
+                    <input
+                      type="text"
+                      className="ml-form-input ml-form-input--icon"
+                      value={editForm.defaultAddress}
+                      onChange={(e) => setEditForm({ ...editForm, defaultAddress: e.target.value })}
+                      placeholder="VD: 123 Đường Láng, Đống Đa, Hà Nội"
+                    />
+                  </div>
+                  <span className="ml-form-help">
+                    Địa chỉ này sẽ được dùng để tự động điền khi bạn đặt mua nông sản tại các sạp chợ.
+                  </span>
+                </div>
+              </div>
+
+              <div className="ml-modal-actions">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsEditProfileModalOpen(false)}
+                  disabled={savingProfile}
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={savingProfile}
+                >
+                  {savingProfile ? 'Đang lưu...' : 'Lưu thay đổi hồ sơ'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

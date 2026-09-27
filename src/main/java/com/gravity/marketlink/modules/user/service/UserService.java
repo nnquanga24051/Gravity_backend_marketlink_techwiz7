@@ -62,6 +62,10 @@ public class UserService {
 
                     Mono<Integer> updateUserMono = userRepository.updateBasicInfo(user.getUserId(), newFullName, newPhone, now);
 
+                    if (StringUtils.hasText(request.getAvatarUrl())) {
+                        updateUserMono = updateUserMono.then(userRepository.updateAvatar(user.getUserId(), request.getAvatarUrl().trim(), now));
+                    }
+
                     // Cập nhật chi tiết theo role
                     return updateUserMono
                             .then(userRoleRepository.findRolesByUserId(user.getUserId())

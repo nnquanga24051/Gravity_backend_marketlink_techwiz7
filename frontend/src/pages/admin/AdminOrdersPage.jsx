@@ -6,11 +6,18 @@ import Modal from '../../components/common/Modal';
 import adminService from '../../services/adminService';
 import marketService from '../../services/marketService';
 
-export default function AdminOrdersPage({ onNavigate }) {
+export default function AdminOrdersPage({ onNavigate, initialOrderId } = {}) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('ALL'); // 'ALL' | 'PENDING' | 'ACCEPTED' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'CANCELLED'
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState(() => (initialOrderId ? String(initialOrderId) : ''));
+
+  useEffect(() => {
+    if (initialOrderId) {
+      setSearchKeyword(String(initialOrderId));
+      setActiveTab('ALL');
+    }
+  }, [initialOrderId]);
   const [selectedMarketFilter, setSelectedMarketFilter] = useState('ALL');
   const [selectedDateFilter, setSelectedDateFilter] = useState('');
   const [allMarkets, setAllMarkets] = useState([]);

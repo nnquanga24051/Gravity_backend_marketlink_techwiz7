@@ -9,17 +9,28 @@ import orderService from '../../services/orderService';
 import customerService from '../../services/customerService';
 
 export default function CustomerOrdersPage({
+  initialOrderId,
+  initialOrderCode,
+  initialSearch,
   onReorder,
   onNavigate
-}) {
+} = {}) {
   const [activeTab, setActiveTab] = useState('all');
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState(() => initialSearch || initialOrderCode || (initialOrderId ? String(initialOrderId) : ''));
   const [orders, setOrders] = useState([]);
   const [selectedModifyOrder, setSelectedModifyOrder] = useState(null);
   const [selectedReviewOrder, setSelectedReviewOrder] = useState(null);
   const [selectedQrOrder, setSelectedQrOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState('');
+
+  useEffect(() => {
+    const target = initialOrderCode || (initialOrderId ? String(initialOrderId) : '');
+    if (target) {
+      setSearchKeyword(target);
+      setActiveTab('all');
+    }
+  }, [initialOrderId, initialOrderCode]);
 
   // Load real orders from backend with Server-Side Search & Filters
   const loadOrders = async () => {

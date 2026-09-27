@@ -30,8 +30,8 @@
 }
 
 .ml-dashboard-avatar {
-  width: 64px;
-  height: 64px;
+  width: 68px;
+  height: 68px;
   background-color: var(--color-primary-surface);
   border: 2px solid var(--color-primary-light);
   border-radius: var(--radius-full);
@@ -40,6 +40,57 @@
   justify-content: center;
   font-size: 28px;
   flex-shrink: 0;
+  position: relative;
+  transition: all var(--transition-fast, 0.2s ease);
+}
+
+.ml-dashboard-avatar--clickable {
+  cursor: pointer;
+}
+
+.ml-dashboard-avatar--clickable:hover {
+  transform: scale(1.05);
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.25);
+}
+
+.ml-dashboard-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.ml-dashboard-avatar-fallback {
+  font-size: 30px;
+}
+
+.ml-dashboard-avatar-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 24px;
+  height: 24px;
+  background-color: #16a34a;
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.ml-dashboard-avatar--clickable:hover .ml-dashboard-avatar-badge {
+  transform: scale(1.15);
+  background-color: #15803d;
+}
+
+.ml-btn-header-edit-profile {
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
 }
 
 .ml-dashboard-user-greeting {
@@ -467,5 +518,292 @@
   padding: 4px 8px;
   border-radius: var(--radius-sm);
   font-family: monospace;
+}
+
+/* ========================================================
+   TAB 4: PROFILE SETTINGS HEADER & OVERVIEW BOX
+   ======================================================== */
+.ml-profile-settings-header-flex {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+@media (min-width: 640px) {
+  .ml-profile-settings-header-flex {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.ml-profile-settings-subdesc {
+  margin: 4px 0 0 0;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+}
+
+.ml-btn-open-modal-settings {
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.2);
+}
+
+/* Profile Visual Overview Box */
+.ml-profile-overview-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-xl, 16px);
+  padding: var(--space-5);
+  margin-bottom: var(--space-6);
+  box-shadow: 0 4px 15px rgba(22, 163, 74, 0.06);
+}
+
+@media (min-width: 640px) {
+  .ml-profile-overview-box {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.ml-overview-avatar-wrapper {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 3px solid #16a34a;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.ml-overview-avatar-wrapper:hover {
+  transform: scale(1.06);
+  border-color: #15803d;
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.3);
+}
+
+.ml-overview-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.ml-overview-avatar-placeholder {
+  font-size: 32px;
+}
+
+.ml-overview-camera-icon {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 26px;
+  height: 26px;
+  background-color: #16a34a;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.ml-overview-info {
+  flex: 1;
+}
+
+.ml-overview-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.ml-overview-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+.ml-overview-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.ml-overview-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.ml-overview-meta-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--color-text-body);
+}
+
+.ml-meta-label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.ml-meta-value {
+  color: var(--color-text-main);
+}
+
+.ml-overview-actions {
+  flex-shrink: 0;
+}
+
+/* Quick inline update container */
+.ml-profile-inline-form-wrap {
+  background-color: var(--color-bg-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+.ml-inline-form-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.ml-inline-form-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* ========================================================
+   MODAL STYLES: CUSTOMER PROFILE & AVATAR EDIT (SIMILAR TO FARMER)
+   ======================================================== */
+.ml-customer-edit-modal-box {
+  background-color: #ffffff;
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: mlModalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  margin: auto;
+  position: relative;
+}
+
+/* Avatar upload area in Modal */
+.ml-customer-modal-avatar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%);
+  border: 1px dashed #16a34a;
+  border-radius: var(--radius-lg, 12px);
+  padding: 16px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+@media (min-width: 520px) {
+  .ml-customer-modal-avatar-section {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.ml-customer-modal-avatar-preview {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #16a34a;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+}
+
+.ml-customer-modal-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ml-customer-modal-avatar-placeholder {
+  font-size: 38px;
+}
+
+.ml-customer-modal-avatar-controls {
+  flex: 1;
+  width: 100%;
+}
+
+.ml-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.ml-input-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.ml-form-input--icon {
+  padding-left: 38px !important;
+}
+
+.ml-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 600px) {
+  .ml-form-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ml-form-help {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  line-height: 1.4;
 }
 

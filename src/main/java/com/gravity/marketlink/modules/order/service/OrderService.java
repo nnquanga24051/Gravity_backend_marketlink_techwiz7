@@ -406,12 +406,13 @@ public class OrderService {
                         }
                     }
                     if (!kw.isEmpty()) {
+                        boolean matchId = o.getOrderId() != null && o.getOrderId().toString().contains(kw);
                         boolean matchCode = o.getOrderCode() != null && o.getOrderCode().toLowerCase().contains(kw);
                         boolean matchMarket = o.getMarketName() != null && o.getMarketName().toLowerCase().contains(kw);
                         boolean matchFarmer = o.getFarmerName() != null && o.getFarmerName().toLowerCase().contains(kw);
                         boolean matchItems = o.getItems() != null && o.getItems().stream()
                                 .anyMatch(it -> it.getProductName() != null && it.getProductName().toLowerCase().contains(kw));
-                        if (!matchCode && !matchMarket && !matchFarmer && !matchItems) return false;
+                        if (!matchId && !matchCode && !matchMarket && !matchFarmer && !matchItems) return false;
                     }
                     return true;
                 });
@@ -438,13 +439,14 @@ public class OrderService {
                 .flatMap(this::enrichOrderDetail)
                 .filter(o -> {
                     if (!kw.isEmpty()) {
+                        boolean matchId = o.getOrderId() != null && o.getOrderId().toString().contains(kw);
                         boolean matchCode = o.getOrderCode() != null && o.getOrderCode().toLowerCase().contains(kw);
                         boolean matchCust = o.getCustomerName() != null && o.getCustomerName().toLowerCase().contains(kw);
                         boolean matchPhone = o.getCustomerPhone() != null && o.getCustomerPhone().contains(kw);
                         boolean matchNote = o.getNote() != null && o.getNote().toLowerCase().contains(kw);
                         boolean matchItems = o.getItems() != null && o.getItems().stream()
                                 .anyMatch(it -> it.getProductName() != null && it.getProductName().toLowerCase().contains(kw));
-                        if (!matchCode && !matchCust && !matchPhone && !matchNote && !matchItems) return false;
+                        if (!matchId && !matchCode && !matchCust && !matchPhone && !matchNote && !matchItems) return false;
                     }
                     return true;
                 });

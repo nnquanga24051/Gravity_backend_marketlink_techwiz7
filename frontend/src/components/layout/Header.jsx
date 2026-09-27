@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './Header.css';
 import Button from '../common/Button';
+import NotificationBell from './NotificationBell';
 
 export default function Header({
   currentRole = 'GUEST',
@@ -14,7 +15,13 @@ export default function Header({
   onOpenAuthModal,
   activeNav = 'home',
   onNavigate,
-  onLogout
+  onLogout,
+  notifications = [],
+  unreadCount = 0,
+  onNotificationRead,
+  onMarkAllRead,
+  onNewTestPush,
+  isLiveConnected = true
 }) {
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showLocationMenu, setShowLocationMenu] = useState(false);
@@ -304,6 +311,20 @@ export default function Header({
               </div>
               <span className="ml-cart-label">Giỏ đặt trước</span>
             </button>
+          )}
+
+          {/* Real-time Push Notification Bell (Authenticated Users) */}
+          {currentRole !== 'GUEST' && (
+            <NotificationBell
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onNotificationRead={onNotificationRead}
+              onMarkAllRead={onMarkAllRead}
+              onNewTestPush={onNewTestPush}
+              isLiveConnected={isLiveConnected}
+              onNavigate={onNavigate}
+              currentRole={currentRole}
+            />
           )}
 
           {/* Authenticated User Menu or Guest Auth Buttons */}
