@@ -6,8 +6,10 @@ import MarketDetailModal from '../components/customer/MarketDetailModal';
 import MarketStallsModal from '../components/customer/MarketStallsModal';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
+import Modal from '../components/common/Modal';
 import marketService from '../services/marketService';
 import productService from '../services/productService';
+import announcementService from '../services/announcementService';
 import { matchSearch, POPULAR_PRODUCT_KEYWORDS } from '../utils/searchUtils';
 import { formatImageUrl } from '../services/apiClient';
 
@@ -24,6 +26,23 @@ export default function HomePage({
   const [selectedMarketDay, setSelectedMarketDay] = useState('all');
   const [activeCategory, setActiveCategory] = useState('all');
   const [marketCityFilter, setMarketCityFilter] = useState('all');
+
+  // Announcements state
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcementTab, setAnnouncementTab] = useState('all');
+  const [readingAnnouncement, setReadingAnnouncement] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    announcementService.getActiveAnnouncements()
+      .then((data) => {
+        if (isMounted && Array.isArray(data)) {
+          setAnnouncements(data);
+        }
+      })
+      .catch((err) => console.warn('Could not load announcements', err));
+    return () => { isMounted = false; };
+  }, []);
 
   // Modals state
   const [scheduleMapMarket, setScheduleMapMarket] = useState(null);
@@ -513,6 +532,120 @@ export default function HomePage({
       </section>
 
       {/* ========================================================
+          ANNOUNCEMENTS & NEWS (Bản tin & Thông báo chợ phiên)
+          ======================================================== */}
+      {announcements && announcements.length > 0 && (
+        <section className="ml-announcements-home-section" style={{ background: '#f8fafc', padding: '44px 0', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+          <div className="ml-container">
+            <div className="ml-section-header with-action">
+              <div>
+                <span className="ml-section-subtitle">Thông báo từ Ban quản lý</span>
+                <h2 className="ml-section-title">📢 Bản Tin & Sự Kiện Chợ Phiên</h2>
+                <p className="ml-section-desc">
+                  Lịch họp chợ, quy chuẩn nông sản sạch và các chính sách vận hành mới nhất.
+                </p>
+              </div>
+
+              {/* Filter tabs */}
+              <div className="ml-filter-tabs" style={{ margin: 0 }}>
+                <button
+                  type="button"
+                  className={`ml-filter-tab ${announcementTab === 'all' ? 'active' : ''}`}
+                  onClick={() => setAnnouncementTab('all')}
+                >
+                  Tất cả ({announcements.length})
+                </button>
+                <button
+                  type="button"
+                  className={`ml-filter-tab ${announcementTab === 'MARKET_EVENT' ? 'active' : ''}`}
+                  onClick={() => setAnnouncementTab('MARKET_EVENT')}
+                >
+                  🎪 Sự kiện chợ
+                </button>
+                <button
+                  type="button"
+                  className={`ml-filter-tab ${announcementTab === 'POLICY' ? 'active' : ''}`}
+                  onClick={() => setAnnouncementTab('POLICY')}
+                >
+                  📋 Chính sách
+                </button>
+                <button
+                  type="button"
+                  className={`ml-filter-tab ${announcementTab === 'GENERAL' ? 'active' : ''}`}
+                  onClick={() => setAnnouncementTab('GENERAL')}
+                >
+                  📢 Tin chung
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 18 }}>
+              {announcements
+                .filter(a => announcementTab === 'all' || a.type === announcementTab)
+                .slice(0, 3)
+                .map((a) => (
+                  <div
+                    key={a.announcementId || a.id}
+                    className="ml-card"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      borderLeft: a.priority === 'PINNED' ? '4px solid #f59e0b' : a.priority === 'URGENT' ? '4px solid #ef4444' : '4px solid #10b981',
+                      background: '#ffffff',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                    }}
+                    onClick={() => setReadingAnnouncement(a)}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#0284c7', background: '#e0f2fe', padding: '3px 8px', borderRadius: 4 }}>
+                          {a.type === 'MARKET_EVENT' ? '🎪 Sự kiện chợ' : a.type === 'POLICY' ? '📋 Chính sách' : a.type === 'MAINTENANCE' ? '⚙️ Bảo trì' : '📢 Tin chung'}
+                        </span>
+                        {a.priority === 'PINNED' && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '2px 6px', borderRadius: 4 }}>
+                            📌 Ghim đầu
+                          </span>
+                        )}
+                        {a.priority === 'URGENT' && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#b91c1c', background: '#fee2e2', padding: '2px 6px', borderRadius: 4 }}>
+                            🚨 Khẩn cấp
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 8px 0', lineHeight: 1.4 }}>
+                        {a.title}
+                      </h3>
+
+                      <p style={{
+                        fontSize: 13.5,
+                        color: '#64748b',
+                        lineHeight: 1.55,
+                        margin: 0,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
+                        {a.content}
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 10, fontSize: 12, color: '#94a3b8' }}>
+                      <span>📅 {a.publishedAt ? a.publishedAt.substring(0, 10) : ''}</span>
+                      <span style={{ color: '#059669', fontWeight: 600 }}>Đọc bản tin →</span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ========================================================
           4. FEATURED MARKETS (Chợ phiên tiêu biểu)
           ======================================================== */}
       <section className="ml-markets-section">
@@ -814,6 +947,122 @@ export default function HomePage({
       </section>
 
       {/* ========================================================
+          5b. SYSTEM ANNOUNCEMENTS SECTION (Bản tin chợ phiên)
+          ======================================================== */}
+      {announcements && announcements.length > 0 && (
+        <section className="ml-home-announcements-section" style={{ background: '#f8fafc', padding: '60px 0', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+          <div className="ml-container">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', background: '#ecfdf5', color: '#059669', borderRadius: '9999px', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
+                  <span>📢</span>
+                  <span>Kênh Phát Ngôn & Thông Báo Chính Thức</span>
+                </div>
+                <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a', margin: '4px 0 8px' }}>
+                  Bản Tin Chợ Phiên & Lịch Họp Mới Nhất
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '15px', maxWidth: '600px', margin: 0 }}>
+                  Cập nhật thông tin nhanh từ Ban quản trị: lịch mở cổng nhận hàng, tiêu chuẩn kiểm định an toàn và các sự kiện chợ cuối tuần.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => onNavigate && onNavigate('announcements')}
+              >
+                Xem tất cả bản tin ({announcements.length}) →
+              </Button>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              gap: '20px'
+            }}>
+              {announcements.slice(0, 3).map((item) => {
+                const isPinned = item.priority === 'PINNED';
+                const isUrgent = item.priority === 'URGENT';
+                const annId = item.announcementId || item.id;
+                return (
+                  <div
+                    key={annId}
+                    onClick={() => setReadingAnnouncement(item)}
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: '16px',
+                      padding: '24px',
+                      border: isPinned ? '2px solid #f59e0b' : isUrgent ? '2px solid #ef4444' : '1px solid #e2e8f0',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'transform 0.2s, box-shadow 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05)';
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {isPinned && (
+                          <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#fef3c7', color: '#b45309' }}>
+                            📌 Ghim
+                          </span>
+                        )}
+                        {isUrgent && (
+                          <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#fee2e2', color: '#b91c1c' }}>
+                            🚨 Khẩn cấp
+                          </span>
+                        )}
+                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: '#f1f5f9', color: '#475569' }}>
+                          {item.type === 'MARKET_EVENT' ? '🎪 Sự kiện' : item.type === 'POLICY' ? '📋 Quy chuẩn' : item.type === 'MAINTENANCE' ? '⚙️ Kỹ thuật' : '📢 Tin chung'}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                        📅 {item.publishedAt ? item.publishedAt.substring(0, 10) : ''}
+                      </span>
+                    </div>
+
+                    <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1e293b', marginBottom: '8px', lineHeight: 1.4 }}>
+                      {item.title}
+                    </h3>
+
+                    <p style={{
+                      fontSize: '14px',
+                      color: '#64748b',
+                      lineHeight: 1.6,
+                      flex: 1,
+                      margin: '0 0 16px',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}>
+                      {item.content}
+                    </p>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: 'auto' }}>
+                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                        ✍️ {item.adminName || 'Ban Quản Trị'}
+                      </span>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#059669' }}>
+                        Đọc chi tiết →
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ========================================================
           6. FARMER CTA SECTION (Kêu gọi nông dân tham gia)
           ======================================================== */}
       <section className="ml-farmer-cta">
@@ -913,6 +1162,47 @@ export default function HomePage({
             }
           }}
         />
+      )}
+
+      {/* 3. Modal Đọc Bản Tin Thông Báo Hệ Thống */}
+      {readingAnnouncement && (
+        <Modal
+          isOpen={!!readingAnnouncement}
+          onClose={() => setReadingAnnouncement(null)}
+          title={readingAnnouncement.title}
+          subtitle={`Phát hành bởi ${readingAnnouncement.adminName || 'Ban Quản Trị MarketLink'} • ${readingAnnouncement.publishedAt ? readingAnnouncement.publishedAt.substring(0, 10) : ''}`}
+          maxWidth="640px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Badge variant={readingAnnouncement.priority === 'PINNED' ? 'warning' : readingAnnouncement.priority === 'URGENT' ? 'urgent' : 'ready'}>
+                {readingAnnouncement.priority === 'PINNED' ? '📌 Bản tin được ghim' : readingAnnouncement.priority === 'URGENT' ? '🚨 Thông báo khẩn' : '📢 Thông báo chính thức'}
+              </Badge>
+              <Badge variant="outline">
+                {readingAnnouncement.type === 'MARKET_EVENT' ? '🎪 Sự kiện chợ phiên' : readingAnnouncement.type === 'POLICY' ? '📋 Tiêu chuẩn & Quy chuẩn' : readingAnnouncement.type === 'MAINTENANCE' ? '⚙️ Kỹ thuật' : '📢 Tin tức chung'}
+              </Badge>
+            </div>
+
+            <div style={{
+              background: '#f8fafc',
+              padding: '16px 20px',
+              borderRadius: 8,
+              border: '1px solid #e2e8f0',
+              fontSize: 15,
+              lineHeight: 1.7,
+              color: '#1e293b',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {readingAnnouncement.content}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button variant="primary" size="md" onClick={() => setReadingAnnouncement(null)}>
+                Đã hiểu
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

@@ -20,4 +20,8 @@ public class AnnouncementResponse {
     private String content;
     private Boolean isActive;
     private LocalDateTime publishedAt;
+    private String type;
+    private String targetRole;
+    private String priority;
+    private LocalDateTime createdAt;
 }

@@ -126,6 +126,13 @@ export default function MobileDrawer({
               >
                 👨‍🌾 Gian hàng nông dân
               </button>
+              <button 
+                type="button"
+                className={`ml-drawer-nav-item ${activeNav === 'announcements' ? 'active' : ''}`}
+                onClick={() => { onNavigate('announcements'); onClose(); }}
+              >
+                📢 Bản tin & Thông báo chợ
+              </button>
               {currentRole === 'CUSTOMER' && (
                 <>
                   <button 

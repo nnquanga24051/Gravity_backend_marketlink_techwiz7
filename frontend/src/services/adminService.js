@@ -301,9 +301,16 @@ export const adminService = {
   // ========================================================
   // 8. SYSTEM ANNOUNCEMENTS
   // ========================================================
-  async getAllAnnouncements({ keyword = '' } = {}) {
+  async getAllAnnouncements({ keyword = '', type = '', targetRole = '', isActive = null } = {}) {
     try {
-      const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : '';
+      const params = new URLSearchParams();
+      if (keyword) params.append('keyword', keyword);
+      if (type && type !== 'all') params.append('type', type);
+      if (targetRole && targetRole !== 'all') params.append('targetRole', targetRole);
+      if (isActive !== null && isActive !== undefined && isActive !== 'all') {
+        params.append('isActive', isActive);
+      }
+      const qs = params.toString() ? `?${params.toString()}` : '';
       const res = await apiClient.get(`/admin/announcements${qs}`);
       if (Array.isArray(res)) return res;
       if (res && Array.isArray(res.data)) return res.data;
@@ -321,6 +328,12 @@ export const adminService = {
 
   async updateAnnouncement(id, data) {
     const res = await apiClient.put(`/admin/announcements/${id}`, data);
+    return res.data || res;
+  },
+
+  async toggleAnnouncementStatus(id, isActive = null) {
+    const qs = isActive !== null && isActive !== undefined ? `?isActive=${isActive}` : '';
+    const res = await apiClient.patch(`/admin/announcements/${id}/toggle-status${qs}`);
     return res.data || res;
   },
 

@@ -20,4 +20,13 @@ public class AnnouncementRequest {
 
     @Builder.Default
     private Boolean isActive = true;
+
+    @Builder.Default
+    private String type = "GENERAL";
+
+    @Builder.Default
+    private String targetRole = "ALL";
+
+    @Builder.Default
+    private String priority = "NORMAL";
 }

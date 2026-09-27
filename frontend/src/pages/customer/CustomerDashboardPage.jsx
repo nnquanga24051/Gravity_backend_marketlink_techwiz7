@@ -6,6 +6,8 @@ import ImageUploadInput from '../../components/ImageUploadInput';
 import customerService from '../../services/customerService';
 import orderService from '../../services/orderService';
 import marketService from '../../services/marketService';
+import announcementService from '../../services/announcementService';
+import Modal from '../../components/common/Modal';
 
 export default function CustomerDashboardPage({
   userName: propUserName,
@@ -54,19 +56,24 @@ export default function CustomerDashboardPage({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
 
+  // Announcements
+  const [announcements, setAnnouncements] = useState([]);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+
   // Initial load
   useEffect(() => {
     let isMounted = true;
     async function loadDashboardData() {
       setLoading(true);
       try {
-        const [profData, myOrders, favFarmers, favProds, famMembers, famInvs] = await Promise.all([
+        const [profData, myOrders, favFarmers, favProds, famMembers, famInvs, annList] = await Promise.all([
           customerService.getProfile(),
           orderService.getMyOrders(),
           customerService.getFavorites('FARMER'),
           customerService.getFavorites('PRODUCT'),
           customerService.getFamilyMembers(),
-          customerService.getFamilyInvitations()
+          customerService.getFamilyInvitations(),
+          announcementService.getActiveAnnouncements()
         ]);
 
         if (!isMounted) return;
@@ -100,6 +107,7 @@ export default function CustomerDashboardPage({
         if (favProds) setFavoriteProducts(favProds);
         if (famMembers) setFamilyMembers(famMembers);
         if (famInvs) setFamilyInvitations(famInvs);
+        if (annList) setAnnouncements(Array.isArray(annList) ? annList : []);
       } catch (err) {
         console.warn('Dashboard data fetch warning', err);
       } finally {
@@ -387,6 +395,13 @@ export default function CustomerDashboardPage({
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setActiveTab('announcements')}
+            >
+              📢 Bản tin ({announcements.length})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => onNavigate('products')}
             >
               🥦 Đặt thêm nông sản
@@ -507,6 +522,13 @@ export default function CustomerDashboardPage({
               onClick={() => setActiveTab('profile')}
             >
               ⚙️ Cài đặt hồ sơ & địa chỉ
+            </button>
+            <button
+              type="button"
+              className={`ml-dash-tab ${activeTab === 'announcements' ? 'active' : ''}`}
+              onClick={() => setActiveTab('announcements')}
+            >
+              📢 Bản tin chợ ({announcements.length})
             </button>
           </div>
 
@@ -941,6 +963,104 @@ export default function CustomerDashboardPage({
               </div>
             </div>
           )}
+
+          {/* Tab 5: Announcements */}
+          {activeTab === 'announcements' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
+                    📢 Bản Tin & Thông Báo Chợ Phiên
+                  </h3>
+                  <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '14px' }}>
+                    Các thông báo chính thức từ ban quản trị MarketLink về lịch chợ, quy chuẩn an toàn và chính sách nhận hàng.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigate && onNavigate('announcements')}
+                >
+                  Mở trang bản tin toàn diện ↗
+                </Button>
+              </div>
+
+              {announcements.length === 0 ? (
+                <div className="ml-card ml-orders-empty">
+                  <span className="ml-orders-empty-icon">📢</span>
+                  <h3>Chưa có thông báo mới nào</h3>
+                  <p>Khi ban quản lý gửi thông báo về lịch họp chợ hoặc sự kiện nông sản, thông tin sẽ hiển thị tại đây.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+                  {announcements.map((item) => {
+                    const isPinned = item.priority === 'PINNED';
+                    const isUrgent = item.priority === 'URGENT';
+                    const annId = item.announcementId || item.id;
+                    return (
+                      <div
+                        key={annId}
+                        className="ml-card"
+                        style={{
+                          padding: '24px',
+                          border: isPinned ? '2px solid #f59e0b' : isUrgent ? '2px solid #ef4444' : '1px solid #e2e8f0',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          transition: 'transform 0.2s, box-shadow 0.2s'
+                        }}
+                        onClick={() => setSelectedAnnouncement(item)}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {isPinned && (
+                              <Badge variant="warning">📌 Ghim quan trọng</Badge>
+                            )}
+                            {isUrgent && (
+                              <Badge variant="urgent">🚨 Khẩn cấp</Badge>
+                            )}
+                            <Badge variant="outline">
+                              {item.type === 'MARKET_EVENT' ? '🎪 Sự kiện' : item.type === 'POLICY' ? '📋 Tiêu chuẩn' : item.type === 'MAINTENANCE' ? '⚙️ Kỹ thuật' : '📢 Tin chung'}
+                            </Badge>
+                          </div>
+                          <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                            📅 {item.publishedAt ? item.publishedAt.substring(0, 10) : ''}
+                          </span>
+                        </div>
+
+                        <h4 style={{ fontSize: '17px', fontWeight: 700, color: '#1e293b', marginBottom: '8px', lineHeight: 1.4 }}>
+                          {item.title}
+                        </h4>
+
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#64748b',
+                          lineHeight: 1.6,
+                          flex: 1,
+                          margin: '0 0 16px',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {item.content}
+                        </p>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: 'auto' }}>
+                          <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                            ✍️ {item.adminName || 'Ban Quản Trị'}
+                          </span>
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: '#059669' }}>
+                            Xem chi tiết →
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1083,6 +1203,53 @@ export default function CustomerDashboardPage({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Announcement Detail Modal */}
+      {selectedAnnouncement && (
+        <Modal
+          isOpen={!!selectedAnnouncement}
+          onClose={() => setSelectedAnnouncement(null)}
+          title={selectedAnnouncement.title}
+          subtitle={`Phát hành bởi ${selectedAnnouncement.adminName || 'Ban Quản Trị MarketLink'} • Ngày ${selectedAnnouncement.publishedAt ? selectedAnnouncement.publishedAt.substring(0, 10) : ''}`}
+          maxWidth="640px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Badge variant={selectedAnnouncement.priority === 'PINNED' ? 'warning' : selectedAnnouncement.priority === 'URGENT' ? 'urgent' : 'ready'}>
+                {selectedAnnouncement.priority === 'PINNED' ? '📌 Bản tin được ghim' : selectedAnnouncement.priority === 'URGENT' ? '🚨 Thông báo khẩn' : '📢 Thông báo chính thức'}
+              </Badge>
+              <Badge variant="outline">
+                {selectedAnnouncement.type === 'MARKET_EVENT' ? '🎪 Sự kiện chợ phiên' : selectedAnnouncement.type === 'POLICY' ? '📋 Tiêu chuẩn & Quy chuẩn' : selectedAnnouncement.type === 'MAINTENANCE' ? '⚙️ Kỹ thuật' : '📢 Tin tức chung'}
+              </Badge>
+            </div>
+
+            <div style={{
+              background: '#f8fafc',
+              padding: '16px 20px',
+              borderRadius: 8,
+              border: '1px solid #e2e8f0',
+              fontSize: 15,
+              lineHeight: 1.7,
+              color: '#1e293b',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {selectedAnnouncement.content}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <Button variant="outline" size="md" onClick={() => {
+                setSelectedAnnouncement(null);
+                if (onNavigate) onNavigate('announcements');
+              }}>
+                Mở trang bản tin toàn diện
+              </Button>
+              <Button variant="primary" size="md" onClick={() => setSelectedAnnouncement(null)}>
+                Đã hiểu
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

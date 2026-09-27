@@ -421,6 +421,9 @@ CREATE TABLE `system_announcements` (
   `content` text NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `published_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `type` varchar(50) NOT NULL DEFAULT 'GENERAL',
+  `target_role` varchar(50) NOT NULL DEFAULT 'ALL',
+  `priority` varchar(20) NOT NULL DEFAULT 'NORMAL',
   PRIMARY KEY (`announcement_id`),
   KEY `fk_sa_admin` (`admin_id`),
   CONSTRAINT `fk_sa_admin` FOREIGN KEY (`admin_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE

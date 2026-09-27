@@ -38,12 +38,17 @@ export default function ContentModerationPage({ onNavigate }) {
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [viewingAnnouncement, setViewingAnnouncement] = useState(null);
   const [announcementSearch, setAnnouncementSearch] = useState('');
+  const [announcementTypeFilter, setAnnouncementTypeFilter] = useState('all');
+  const [announcementRoleFilter, setAnnouncementRoleFilter] = useState('all');
+  const [announcementStatusFilter, setAnnouncementStatusFilter] = useState('all');
   const [announcementForm, setAnnouncementForm] = useState({
     title: '',
     content: '',
     type: 'GENERAL', // 'GENERAL' | 'MARKET_EVENT' | 'POLICY' | 'MAINTENANCE'
     targetRole: 'ALL', // 'ALL' | 'FARMER' | 'CUSTOMER'
+    priority: 'NORMAL', // 'NORMAL' | 'PINNED' | 'URGENT'
     isActive: true
   });
 
@@ -99,12 +104,15 @@ export default function ContentModerationPage({ onNavigate }) {
     }
   };
 
-  // Load announcements from backend with Server-Side Search
+  // Load announcements from backend with Server-Side Search and Multi-Filtering
   const loadAnnouncements = async () => {
     setLoadingAnnouncements(true);
     try {
       const data = await adminService.getAllAnnouncements({
-        keyword: announcementSearch.trim()
+        keyword: announcementSearch.trim(),
+        type: announcementTypeFilter,
+        targetRole: announcementRoleFilter,
+        isActive: announcementStatusFilter === 'all' ? null : announcementStatusFilter === 'true'
       });
       setAnnouncements(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -127,7 +135,7 @@ export default function ContentModerationPage({ onNavigate }) {
       const timer = setTimeout(() => loadAnnouncements(), 250);
       return () => clearTimeout(timer);
     }
-  }, [activeTab, reviewSearch, reviewFilter, categorySearch, announcementSearch]);
+  }, [activeTab, reviewSearch, reviewFilter, categorySearch, announcementSearch, announcementTypeFilter, announcementRoleFilter, announcementStatusFilter]);
 
   // ========================================================
   // REVIEWS ACTIONS
@@ -213,6 +221,7 @@ export default function ContentModerationPage({ onNavigate }) {
         content: ann.content || '',
         type: ann.type || 'GENERAL',
         targetRole: ann.targetRole || 'ALL',
+        priority: ann.priority || 'NORMAL',
         isActive: ann.isActive !== undefined ? ann.isActive : true
       });
     } else {
@@ -221,6 +230,7 @@ export default function ContentModerationPage({ onNavigate }) {
         content: '',
         type: 'GENERAL',
         targetRole: 'ALL',
+        priority: 'NORMAL',
         isActive: true
       });
     }
@@ -246,6 +256,16 @@ export default function ContentModerationPage({ onNavigate }) {
       loadAnnouncements();
     } catch (err) {
       showToast('error', 'Lỗi lưu thông báo: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleToggleAnnouncementStatus = async (id, currentStatus) => {
+    try {
+      await adminService.toggleAnnouncementStatus(id, !currentStatus);
+      showToast('success', currentStatus ? 'Đã ẩn bản tin khỏi bảng tin công khai.' : 'Đã hiển thị bản tin công khai.');
+      loadAnnouncements();
+    } catch (err) {
+      showToast('error', 'Lỗi đổi trạng thái bản tin: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -562,41 +582,123 @@ export default function ContentModerationPage({ onNavigate }) {
             ======================================================== */}
         {activeTab === 'announcements' && (
           <div className="ml-announcements-mod-box">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flex: 1 }}>
-                <input
-                  type="text"
-                  className="ml-form-input"
-                  style={{ maxWidth: 320 }}
-                  placeholder="Tìm theo tiêu đề, nội dung bản tin..."
-                  value={announcementSearch}
-                  onChange={(e) => setAnnouncementSearch(e.target.value)}
-                />
-                {announcementSearch && (
-                  <Button variant="ghost" size="sm" onClick={() => setAnnouncementSearch('')}>
-                    ✕
+            {/* Filter and Action Bar */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flex: 1, minWidth: 260 }}>
+                  <input
+                    type="text"
+                    className="ml-form-input"
+                    style={{ maxWidth: 360 }}
+                    placeholder="Tìm theo tiêu đề, nội dung bản tin..."
+                    value={announcementSearch}
+                    onChange={(e) => setAnnouncementSearch(e.target.value)}
+                  />
+                  {announcementSearch && (
+                    <Button variant="ghost" size="sm" onClick={() => setAnnouncementSearch('')}>
+                      ✕
+                    </Button>
+                  )}
+                </div>
+                <Button variant="primary" size="md" onClick={() => handleOpenAnnouncementModal()}>
+                  📢 Đăng bản tin mới
+                </Button>
+              </div>
+
+              {/* Multi-Filter Selectors */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', background: '#f8fafc', padding: '10px 14px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>🔍 Bộ lọc:</span>
+                
+                <select
+                  className="ml-form-select"
+                  style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }}
+                  value={announcementTypeFilter}
+                  onChange={(e) => setAnnouncementTypeFilter(e.target.value)}
+                >
+                  <option value="all">Tất cả phân loại</option>
+                  <option value="MARKET_EVENT">🎪 Sự kiện chợ phiên</option>
+                  <option value="POLICY">📋 Chính sách & An toàn</option>
+                  <option value="MAINTENANCE">⚙️ Bảo trì hệ thống</option>
+                  <option value="GENERAL">📢 Tin tức chung</option>
+                </select>
+
+                <select
+                  className="ml-form-select"
+                  style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }}
+                  value={announcementRoleFilter}
+                  onChange={(e) => setAnnouncementRoleFilter(e.target.value)}
+                >
+                  <option value="all">Tất cả đối tượng nhận</option>
+                  <option value="ALL">🌐 Toàn bộ sàn</option>
+                  <option value="FARMER">🌾 Chỉ Nông Dân</option>
+                  <option value="CUSTOMER">🛒 Chỉ Khách Hàng</option>
+                </select>
+
+                <select
+                  className="ml-form-select"
+                  style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }}
+                  value={announcementStatusFilter}
+                  onChange={(e) => setAnnouncementStatusFilter(e.target.value)}
+                >
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="true">✅ Đang hiển thị</option>
+                  <option value="false">🔒 Đã ẩn</option>
+                </select>
+
+                {(announcementSearch || announcementTypeFilter !== 'all' || announcementRoleFilter !== 'all' || announcementStatusFilter !== 'all') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    style={{ fontSize: 12, color: '#64748b' }}
+                    onClick={() => {
+                      setAnnouncementSearch('');
+                      setAnnouncementTypeFilter('all');
+                      setAnnouncementRoleFilter('all');
+                      setAnnouncementStatusFilter('all');
+                    }}
+                  >
+                    🔄 Đặt lại bộ lọc
                   </Button>
                 )}
+
+                <span style={{ marginLeft: 'auto', fontSize: 12, color: '#64748b' }}>
+                  Tìm thấy <strong>{announcements.length}</strong> bản tin
+                </span>
               </div>
-              <Button variant="primary" size="md" onClick={() => handleOpenAnnouncementModal()}>
-                📢 Đăng bản tin mới
-              </Button>
             </div>
 
             {loadingAnnouncements ? (
               <div className="ml-inv-loading">Đang tải bản tin hệ thống...</div>
             ) : announcements.length === 0 ? (
               <div className="ml-card" style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
-                Chưa có bản tin nào. Hãy bấm "Đăng bản tin mới" để phát thông báo tới toàn sàn.
+                <p style={{ margin: '0 0 12px 0', fontSize: 15 }}>Không tìm thấy bản tin nào phù hợp với điều kiện tìm kiếm.</p>
+                <Button variant="outline" size="sm" onClick={() => handleOpenAnnouncementModal()}>
+                  ➕ Đăng bản tin mới ngay
+                </Button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
                 {announcements.map((a) => {
                   const annId = a.announcementId || a.id;
+                  const isPinned = a.priority === 'PINNED';
+                  const isUrgent = a.priority === 'URGENT';
+
                   return (
-                    <div key={annId} className="ml-card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#1e293b' }}>
+                    <div
+                      key={annId}
+                      className="ml-card"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                        borderLeft: isPinned ? '4px solid #f59e0b' : isUrgent ? '4px solid #ef4444' : '4px solid #10b981',
+                        transition: 'box-shadow 0.2s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#1e293b', lineHeight: 1.4 }}>
+                          {isPinned && <span title="Được ghim lên đầu">📌 </span>}
+                          {isUrgent && <span title="Khẩn cấp">🚨 </span>}
                           {a.title}
                         </h3>
                         <Badge variant={a.isActive !== false ? 'ready' : 'neutral'} dot>
@@ -604,34 +706,75 @@ export default function ContentModerationPage({ onNavigate }) {
                         </Badge>
                       </div>
 
-                      <div style={{ fontSize: 12, display: 'flex', gap: 8, color: '#64748b' }}>
-                        <span>Loại: <strong>{a.type || 'GENERAL'}</strong></span>
+                      <div style={{ fontSize: 12, display: 'flex', gap: 6, color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                          {a.type === 'MARKET_EVENT' ? '🎪 Sự kiện chợ' : a.type === 'POLICY' ? '📋 Chính sách' : a.type === 'MAINTENANCE' ? '⚙️ Bảo trì' : '📢 Tin chung'}
+                        </span>
                         <span>•</span>
-                        <span>Đối tượng: <strong>{a.targetRole || 'ALL'}</strong></span>
+                        <span style={{ background: '#f8fafc', padding: '2px 6px', borderRadius: 4 }}>
+                          Đối tượng: <strong>{a.targetRole === 'FARMER' ? 'Nông dân' : a.targetRole === 'CUSTOMER' ? 'Khách hàng' : 'Toàn sàn'}</strong>
+                        </span>
                         <span>•</span>
-                        <span>{a.createdAt ? a.createdAt.substring(0, 10) : ''}</span>
+                        <span>{a.publishedAt ? a.publishedAt.substring(0, 10) : a.createdAt ? a.createdAt.substring(0, 10) : ''}</span>
+                        {a.adminName && (
+                          <>
+                            <span>•</span>
+                            <span title="Người đăng">{a.adminName}</span>
+                          </>
+                        )}
                       </div>
 
-                      <p style={{ fontSize: 13.5, color: '#475569', margin: '4px 0', lineHeight: 1.5, flex: 1 }}>
+                      <p style={{
+                        fontSize: 13.5,
+                        color: '#475569',
+                        margin: '2px 0',
+                        lineHeight: 1.55,
+                        flex: 1,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
                         {a.content}
                       </p>
 
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenAnnouncementModal(a)}
-                        >
-                          ✏️ Chỉnh sửa
-                        </Button>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 10, gap: 6, flexWrap: 'wrap' }}>
                         <Button
                           variant="ghost"
                           size="sm"
-                          style={{ color: '#b91c1c' }}
-                          onClick={() => handleDeleteAnnouncement(annId, a.title)}
+                          onClick={() => setViewingAnnouncement(a)}
+                          style={{ fontSize: 12, color: '#2563eb' }}
                         >
-                          ✕ Xóa
+                          👁️ Chi tiết
                         </Button>
+
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title={a.isActive !== false ? 'Bấm để ẩn bản tin' : 'Bấm để hiển thị bản tin'}
+                            onClick={() => handleToggleAnnouncementStatus(annId, a.isActive !== false)}
+                            style={{ fontSize: 12, color: a.isActive !== false ? '#d97706' : '#16a34a' }}
+                          >
+                            {a.isActive !== false ? '🔒 Ẩn tin' : '👁️ Hiện tin'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenAnnouncementModal(a)}
+                            style={{ fontSize: 12 }}
+                          >
+                            ✏️ Sửa
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            style={{ color: '#b91c1c', fontSize: 12 }}
+                            onClick={() => handleDeleteAnnouncement(annId, a.title)}
+                          >
+                            ✕ Xóa
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -760,7 +903,7 @@ export default function ContentModerationPage({ onNavigate }) {
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
               <div className="ml-form-group">
                 <label className="ml-form-label">Phân loại:</label>
                 <select
@@ -768,10 +911,10 @@ export default function ContentModerationPage({ onNavigate }) {
                   value={announcementForm.type}
                   onChange={(e) => setAnnouncementForm({ ...announcementForm, type: e.target.value })}
                 >
-                  <option value="GENERAL">Tin chung (GENERAL)</option>
-                  <option value="MARKET_EVENT">Sự kiện chợ phiên (MARKET_EVENT)</option>
-                  <option value="POLICY">Chính sách & An toàn (POLICY)</option>
-                  <option value="MAINTENANCE">Bảo trì hệ thống (MAINTENANCE)</option>
+                  <option value="GENERAL">📢 Tin chung</option>
+                  <option value="MARKET_EVENT">🎪 Sự kiện chợ phiên</option>
+                  <option value="POLICY">📋 Chính sách & An toàn</option>
+                  <option value="MAINTENANCE">⚙️ Bảo trì hệ thống</option>
                 </select>
               </div>
 
@@ -782,9 +925,22 @@ export default function ContentModerationPage({ onNavigate }) {
                   value={announcementForm.targetRole}
                   onChange={(e) => setAnnouncementForm({ ...announcementForm, targetRole: e.target.value })}
                 >
-                  <option value="ALL">Toàn bộ sàn (Tất cả mọi người)</option>
-                  <option value="FARMER">Chỉ Nông Dân / Chủ sạp</option>
-                  <option value="CUSTOMER">Chỉ Khách Mua Hàng</option>
+                  <option value="ALL">🌐 Toàn bộ sàn</option>
+                  <option value="FARMER">🌾 Chỉ Nông Dân</option>
+                  <option value="CUSTOMER">🛒 Chỉ Khách Mua</option>
+                </select>
+              </div>
+
+              <div className="ml-form-group">
+                <label className="ml-form-label">Mức độ ưu tiên:</label>
+                <select
+                  className="ml-form-select"
+                  value={announcementForm.priority}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, priority: e.target.value })}
+                >
+                  <option value="NORMAL">📝 Bình thường</option>
+                  <option value="PINNED">📌 Ghim lên đầu</option>
+                  <option value="URGENT">🚨 Khẩn cấp</option>
                 </select>
               </div>
             </div>
@@ -793,7 +949,7 @@ export default function ContentModerationPage({ onNavigate }) {
               <label className="ml-form-label">Nội dung chi tiết bản tin:</label>
               <textarea
                 className="ml-form-textarea"
-                rows={5}
+                rows={6}
                 placeholder="Nhập nội dung đầy đủ của thông báo..."
                 value={announcementForm.content}
                 onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
@@ -822,6 +978,66 @@ export default function ContentModerationPage({ onNavigate }) {
               </Button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {/* ========================================================
+          MODAL: VIEW ANNOUNCEMENT DETAILS
+          ======================================================== */}
+      {viewingAnnouncement && (
+        <Modal
+          isOpen={!!viewingAnnouncement}
+          onClose={() => setViewingAnnouncement(null)}
+          title={viewingAnnouncement.title}
+          subtitle={`Đăng bởi ${viewingAnnouncement.adminName || 'Ban Quản Trị'} • ${viewingAnnouncement.publishedAt ? viewingAnnouncement.publishedAt.substring(0, 16).replace('T', ' ') : ''}`}
+          maxWidth="620px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Badge variant={viewingAnnouncement.priority === 'PINNED' ? 'warning' : viewingAnnouncement.priority === 'URGENT' ? 'urgent' : 'neutral'}>
+                {viewingAnnouncement.priority === 'PINNED' ? '📌 Được ghim đầu' : viewingAnnouncement.priority === 'URGENT' ? '🚨 Khẩn cấp' : '📝 Bản tin chuẩn'}
+              </Badge>
+              <Badge variant="outline">
+                Phân loại: {viewingAnnouncement.type === 'MARKET_EVENT' ? '🎪 Sự kiện chợ phiên' : viewingAnnouncement.type === 'POLICY' ? '📋 Chính sách & An toàn' : viewingAnnouncement.type === 'MAINTENANCE' ? '⚙️ Bảo trì hệ thống' : '📢 Tin tức chung'}
+              </Badge>
+              <Badge variant="outline">
+                Đối tượng: {viewingAnnouncement.targetRole === 'FARMER' ? '🌾 Chỉ Nông Dân' : viewingAnnouncement.targetRole === 'CUSTOMER' ? '🛒 Chỉ Khách Mua Hàng' : '🌐 Toàn bộ sàn'}
+              </Badge>
+              <Badge variant={viewingAnnouncement.isActive !== false ? 'ready' : 'neutral'} dot>
+                {viewingAnnouncement.isActive !== false ? 'Đang hiển thị' : 'Đã ẩn'}
+              </Badge>
+            </div>
+
+            <div style={{
+              background: '#f8fafc',
+              padding: 16,
+              borderRadius: 8,
+              border: '1px solid #e2e8f0',
+              fontSize: 14.5,
+              lineHeight: 1.7,
+              color: '#334155',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {viewingAnnouncement.content}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => {
+                  const ann = viewingAnnouncement;
+                  setViewingAnnouncement(null);
+                  handleOpenAnnouncementModal(ann);
+                }}
+              >
+                ✏️ Chỉnh sửa bản tin này
+              </Button>
+              <Button variant="primary" size="md" onClick={() => setViewingAnnouncement(null)}>
+                Đóng
+              </Button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

@@ -251,6 +251,18 @@ export default function NotificationBell({
               >
                 Chưa đọc ({unreadCount})
               </button>
+              <button
+                type="button"
+                className="ml-notif-tab"
+                onClick={() => {
+                  setIsOpen(false);
+                  if (onNavigate) onNavigate('announcements');
+                }}
+                style={{ color: '#2563eb', fontWeight: 600 }}
+                title="Xem các bản tin & thông báo chợ mới nhất"
+              >
+                📢 Bản tin chợ
+              </button>
             </div>
           </div>
 
@@ -307,9 +319,18 @@ export default function NotificationBell({
           </div>
 
           {/* Footer */}
-          <div className="ml-notif-footer">
-            <span>MarketLink Real-time Push v2.0</span>
-            <span style={{ color: '#16a34a' }}>● Đã kết nối luồng đẩy</span>
+          <div className="ml-notif-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                if (onNavigate) onNavigate('announcements');
+              }}
+              style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', fontWeight: 600, padding: 0 }}
+            >
+              📢 Xem tất cả bản tin chợ →
+            </button>
+            <span style={{ color: '#16a34a' }}>● Đã kết nối</span>
           </div>
         </div>
       )}

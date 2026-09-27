@@ -36,4 +36,16 @@ public class SystemAnnouncement {
 
     @Column("published_at")
     private LocalDateTime publishedAt;
+
+    @Column("type")
+    @Builder.Default
+    private String type = "GENERAL";
+
+    @Column("target_role")
+    @Builder.Default
+    private String targetRole = "ALL";
+
+    @Column("priority")
+    @Builder.Default
+    private String priority = "NORMAL";
 }

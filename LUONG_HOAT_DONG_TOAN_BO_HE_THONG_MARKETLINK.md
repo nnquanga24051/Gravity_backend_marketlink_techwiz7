@@ -1,7 +1,7 @@
 # TÀI LIỆU ĐẶC TẢ CHI TIẾT LUỒNG HOẠT ĐỘNG & CÔNG NGHỆ TOÀN BỘ HỆ THỐNG MARKETLINK
 > **Nền Tảng Thương Mại Điện Tử Nông Sản Sạch & Kết Nối Phiên Chợ Tương Tác (Farmers Market Pre-Order Platform)**  
 > **Dự án:** MarketLink • **Đơn vị phát triển:** Gravity Team (Techwiz 7)  
-> **Phiên bản:** 3.0.0 (Cập nhật đầy đủ Real-time SSE Push Notification, Email OTP Verification, Inventory Lifecycle & AI Assistant)  
+> **Phiên bản:** 3.1.0 (Cập nhật Real-time SSE Push, Email OTP, AI Assistant, Admin User Creation, System Announcements Omnichannel & SSL/HTTPS)  
 > **Thời gian cập nhật:** Tháng 09/2026  
 
 ---
@@ -11,7 +11,7 @@
 1. [TỔNG QUAN KIẾN TRÚC & NỀN TẢNG CÔNG NGHỆ CHUNG](#1-tổng-quan-kiến-trúc--nền-tảng-công-nghệ-chung)
 2. [SƠ ĐỒ TỔNG THỂ KIẾN TRÚC HỆ THỐNG](#2-sơ-đồ-tổng-thể-kiến-trúc-hệ-thống)
 3. [MA TRẬN CÔNG NGHỆ THEO TỪNG CHỨC NĂNG](#3-ma-trận-công-nghệ-theo-từng-chức-năng)
-4. [CHI TIẾT LUỒNG HOẠT ĐỘNG 34 CHỨC NĂNG RIÊNG BIỆT](#4-chi-tiết-luồng-hoạt-động-34-chức-năng-riêng-biệt)
+4. [CHI TIẾT LUỒNG HOẠT ĐỘNG 37 CHỨC NĂNG RIÊNG BIỆT](#4-chi-tiết-luồng-hoạt-động-37-chức-năng-riêng-biệt)
    - [PHÂN HỆ I: XÁC THỰC, BẢO MẬT & TÀI KHOẢN](#phân-hệ-i-xác-thực-bảo-mật--tài-khoản)
      - [CN 01: Đăng ký Tài khoản (Customer & Farmer)](#cn-01-đăng-ký-tài-khoản-customer--farmer)
      - [CN 02: Đăng nhập & Cấp phát JWT Access/Refresh Token](#cn-02-đăng-nhập--cấp-phát-jwt-accessrefresh-token)
@@ -54,6 +54,9 @@
      - [CN 32: Kiểm duyệt & Khóa Sản phẩm Vi phạm (Product Moderation)](#cn-32-kiểm-duyệt--khóa-sản-phẩm-vi-phạm-product-moderation)
      - [CN 33: Quản trị Tài khoản Người dùng & Khóa Truy cập](#cn-33-quản-trị-tài-khoản-người-dùng--khóa-truy-cập)
      - [CN 34: Dashboard Thống kê Doanh thu & Chỉ số Hệ thống](#cn-34-dashboard-thống-kê-doanh-thu--chỉ-số-hệ-thống)
+     - [CN 35: Quản trị Tạo Người dùng Mới & Phân quyền Trực tiếp](#cn-35-quản-trị-tạo-người-dùng-mới--phân-quyền-trực-tiếp)
+     - [CN 36: Quản trị Bản tin & Thông báo Chợ phiên (System Announcements Admin CRUD)](#cn-36-quản-trị-bản-tin--thông-báo-chợ-phiên-system-announcements-admin-crud)
+     - [CN 37: Kênh Đón nhận Bản tin Chợ phiên Đa Điểm chạm cho Khách hàng (Customer Announcements Omnichannel)](#cn-37-kênh-đón-nhận-bản-tin-chợ-phiên-đa-điểm-chạm-cho-khách-hàng-customer-announcements-omnichannel)
 5. [QUY TRÌNH DEPLOY & HẠ TẦNG VẬN HÀNH VPS PRODUCTION](#5-quy-trình-deploy--hạ-tầng-vận-hành-vps-production)
 
 ---
@@ -208,10 +211,13 @@ graph TB
 | **32** | Kiểm duyệt Nông sản | AdminProductService, Moderate API | Admin Moderation Toggle | Status: AVAILABLE / BANNED |
 | **33** | Quản trị Người dùng | UserRepository, Lock/Unlock Switch | User Management Grid | Active / Locked Flag, Role Change |
 | **34** | Dashboard Doanh thu | Reactive Aggregation, DatabaseClient SQL | Stat Cards, Revenue Metric Widgets | BigDecimal Sum, Count Streams |
+| **35** | Tạo Người dùng Admin | UserService, UserRepository, BCryptPasswordEncoder | Modal Thêm Người dùng, Role Select | REST POST JSON, Validation |
+| **36** | Quản trị Bản tin Chợ | AnnouncementService, SystemAnnouncementRepository | ContentModerationPage (Tab Bản tin), Modal CRUD | Reactive Flux/Mono, Priority & Role Tags |
+| **37** | Bản tin Khách hàng | Public Announcement API, Priority & Role Filters | AnnouncementsPage, Home Section, Drawer, Bell | Omnichannel UI, Dynamic Keyword Search |
 
 ---
 
-## 4. CHI TIẾT LUỒNG HOẠT ĐỘNG 34 CHỨC NĂNG RIÊNG BIỆT
+## 4. CHI TIẾT LUỒNG HOẠT ĐỘNG 37 CHỨC NĂNG RIÊNG BIỆT
 
 ---
 
@@ -817,22 +823,83 @@ sequenceDiagram
      * Top các nhà vườn có doanh số và đánh giá cao nhất.
   2. Dữ liệu được trả về dưới dạng JSON và vẽ thành các thẻ chỉ số trực quan.
 
+#### CN 35: Quản trị Tạo Người dùng Mới & Phân quyền Trực tiếp
+* **Mục đích:** Cho phép Quản trị viên (Admin) tạo nhanh tài khoản cho Khách hàng, Nông dân hoặc Quản trị viên mới trực tiếp từ trang Admin User Moderation mà không cần qua quy trình đăng ký xác thực bên ngoài.
+* **Công nghệ sử dụng:**
+  * Backend: `AdminUserController`, `UserService`, `UserRepository`, Spring Security `BCryptPasswordEncoder`, Reactive Transaction (`Mono<UserResponse>`).
+  * Frontend: Modal Form "Thêm người dùng mới", Input Validation, Role Selector (`CUSTOMER`, `FARMER`, `ADMIN`).
+* **API Endpoint:** `POST /api/admin/users`
+* **Bảng CSDL:** `users`, `roles`, `user_roles`, `farmer_profiles`.
+* **Luồng xử lý từng bước:**
+  1. Admin nhấn nút "+ Thêm người dùng mới" trên bảng quản trị tài khoản (`UserModerationPage`).
+  2. Điền thông tin: Họ và tên, Email, Tên đăng nhập (username), Số điện thoại, Mật khẩu ban đầu và Vai trò (`ROLE_CUSTOMER`, `ROLE_FARMER`, `ROLE_ADMIN`).
+  3. Frontend validate định dạng email, số điện thoại, mật khẩu tối thiểu 6 ký tự.
+  4. Backend kiểm tra trùng lặp email và username trong CSDL MySQL. Nếu đã tồn tại, trả về `400 Bad Request` kèm thông báo lỗi rõ ràng.
+  5. Mã hóa mật khẩu an toàn với BCrypt và lưu bản ghi người dùng với trạng thái `ACTIVE`.
+  6. Gán quyền tương ứng vào bảng `user_roles`. Nếu chọn `ROLE_FARMER`, hệ thống tự động khởi tạo hồ sơ nông dân `farmer_profiles` liên kết với tài khoản.
+  7. Bảng danh sách người dùng được cập nhật tức thời mà không cần reload trang.
+
+#### CN 36: Quản trị Bản tin & Thông báo Chợ phiên (System Announcements Admin CRUD)
+* **Mục đích:** Kênh phát ngôn chính thức từ Ban quản trị MarketLink để đăng tải thông báo lịch họp chợ, tiêu chuẩn an toàn thực phẩm VietGAP, lịch bảo trì hệ thống và các sự kiện chợ nông sản cuối tuần. Cung cấp đầy đủ tính năng CRUD và tìm kiếm cho Admin.
+* **Công nghệ sử dụng:**
+  * Backend: `AnnouncementController`, `AnnouncementService`, `SystemAnnouncementRepository` (Spring Data R2DBC), Spring Security `@PreAuthorize("hasRole('ADMIN')")`.
+  * Frontend: `ContentModerationPage` (Tab Quản lý Thông báo hệ thống), Modal Thêm/Sửa bản tin, Real-time Debounced Search, Type/Role/Priority Chips.
+* **API Endpoints:**
+  * `GET /api/admin/announcements` (Lấy toàn bộ thông báo, hỗ trợ tìm kiếm keyword, type, targetRole, isActive)
+  * `POST /api/admin/announcements` (Đăng thông báo mới)
+  * `PUT /api/admin/announcements/{id}` (Cập nhật nội dung, tiêu đề, mức ưu tiên, đối tượng)
+  * `DELETE /api/admin/announcements/{id}` (Xóa vĩnh viễn thông báo)
+  * `PATCH /api/admin/announcements/{id}/toggle` (Bật/Tắt trạng thái kích hoạt)
+* **Bảng CSDL:** `system_announcements`, `users`.
+* **Các thuộc tính nâng cao:**
+  * `priority`: `PINNED` (📌 Ghim quan trọng), `URGENT` (🚨 Khẩn cấp), `NORMAL` (Thông thường).
+  * `type`: `MARKET_EVENT` (🎪 Sự kiện chợ phiên), `POLICY` (📋 Tiêu chuẩn & Quy chuẩn), `GENERAL` (📢 Tin chung), `MAINTENANCE` (⚙️ Bảo trì kỹ thuật).
+  * `target_role`: `ALL` (🌐 Toàn sàn), `CUSTOMER` (🛒 Người mua hàng), `FARMER` (🌾 Nhà vườn).
+* **Luồng xử lý từng bước:**
+  1. Admin mở tab "📢 Thông báo & Tin tức" trong trang Quản lý nội dung (`ContentModerationPage`).
+  2. Bấm "Thêm thông báo mới", nhập Tiêu đề, Nội dung, chọn Phân loại, Đối tượng nhận tin và Mức độ ưu tiên.
+  3. Khi lưu, Backend gán `admin_id` của tài khoản đăng nhập hiện tại, tự động gán `published_at = CURRENT_TIMESTAMP`.
+  4. Admin có thể tìm kiếm thông báo bằng thanh search, lọc theo trạng thái hoạt động, chỉnh sửa nội dung hoặc chuyển đổi toggle Bật/Tắt tức thời.
+
+#### CN 37: Kênh Đón nhận Bản tin Chợ phiên Đa Điểm chạm cho Khách hàng (Customer Announcements Omnichannel)
+* **Mục đích:** Giúp khách hàng và người tiêu dùng dễ dàng tiếp cận mọi thông báo, lịch họp chợ, tiêu chuẩn chất lượng và cảnh báo khẩn cấp từ ban quản trị ở tất cả các vị trí tương tác trên hệ thống.
+* **Công nghệ sử dụng:**
+  * Backend: `GET /api/announcements` (Public Reactive Endpoint hỗ trợ keyword, type, targetRole, sắp xếp ưu tiên Ghim/Khẩn cấp trước, theo thời gian mới nhất).
+  * Frontend:
+    * Trang chuyên biệt `AnnouncementsPage` (`/announcements`) với thanh tìm kiếm từ khóa, bộ lọc tab 5 danh mục, thẻ bản tin và modal đọc chi tiết.
+    * Section Bản tin chợ phiên trên Trang chủ `HomePage` với hiệu ứng hover và xem nhanh nội dung.
+    * Thanh điều hướng Header `📢 Bản tin` & Mobile Drawer.
+    * Tab `📢 Bản tin chợ ({số lượng})` tích hợp trong `CustomerDashboardPage`.
+    * Chuông thông báo `NotificationBell` tích hợp tab và liên kết mở nhanh trang bản tin.
+* **API Endpoints:**
+  * `GET /api/announcements`
+  * `GET /api/announcements/{id}`
+* **Bảng CSDL:** `system_announcements`.
+* **Luồng xử lý từng bước:**
+  1. **Trên Trang chủ (HomePage):** Section "Bản Tin Chợ Phiên & Lịch Họp Mới Nhất" tự động tải 3 thông báo mới nhất. Khách hàng bấm thẻ bài viết để mở Popup đọc đầy đủ hoặc bấm "Xem tất cả bản tin →".
+  2. **Trên Thanh điều hướng (Header & Mobile Drawer):** Nút "📢 Bản tin" luôn hiển thị cố định giúp khách mở trang bản tin mọi lúc.
+  3. **Trên Trang Bản tin chuyên biệt (`/announcements`):** Khách hàng có thể tìm kiếm bài viết theo từ khóa (VietGAP, lịch nhận hàng, bảo trì...), lọc nhanh theo các tab Sự kiện, Quy chuẩn, Tin tức, Kỹ thuật. Bấm vào bất kỳ bài viết nào sẽ hiển thị Modal đọc chi tiết kèm tên ban quản trị phát hành và thời gian đăng.
+  4. **Trên Dashboard Cá nhân (`CustomerDashboardPage`):** Tab "📢 Bản tin chợ ({số lượng})" hiển thị các thông báo nhắm đến người tiêu dùng, giúp khách không bỏ lỡ thông tin khi đang quản lý đơn hàng.
+  5. **Trên Chuông thông báo (`NotificationBell`):** Tab "📢 Bản tin chợ" và nút footer "📢 Xem tất cả bản tin chợ →" kết nối khách hàng trực tiếp với luồng bản tin.
+
 ---
 
 ## 5. QUY TRÌNH DEPLOY & HẠ TẦNG VẬN HÀNH VPS PRODUCTION
 
 Dự án MarketLink hiện đang được triển khai và vận hành thực tế trên máy chủ VPS:
 
+* **Tên miền chính thức (Custom Domain):** `https://nnquangdev.id.vn` và `https://www.nnquangdev.id.vn`
 * **Địa chỉ IP máy chủ:** `36.50.176.64`
+* **Chứng chỉ bảo mật SSL/TLS:** Let's Encrypt Authority, mã hóa TLS 1.3, tự động chuyển hướng toàn bộ lưu lượng HTTP (Port 80) sang HTTPS an toàn (Port 443) và tự động gia hạn Certbot Cronjob.
 * **Hệ điều hành:** Linux Ubuntu 20.04 LTS (x86_64)
 * **Backend Runtime:** Java 21 LTS, Spring Boot 4.1.1 chạy dưới dạng dịch vụ hệ thống `marketlink.service` (Systemd Daemon).
 * **Frontend Runtime:** React 19 Single Page Application được biên dịch tối ưu (Production Build) và lưu tại `/var/www/marketlink/frontend`.
 * **Reverse Proxy:** Nginx 1.18.0:
-  * Lắng nghe cổng 80 công khai.
+  * Lắng nghe cổng 80 (HTTP redirect 301 sang HTTPS) và cổng 443 (SSL termination).
   * Phục vụ trực tiếp thư mục ảnh tĩnh `/uploads/` với cấu hình Zero-Copy và bộ nhớ đệm 30 ngày.
   * Chuyển tiếp cổng `127.0.0.1:8081` cho API Spring Boot với cấu hình `proxy_buffering off;` hỗ trợ luồng SSE không bao giờ bị nghẽn.
 * **Cơ sở dữ liệu:** MySQL 8.0 Community Server lắng nghe cổng 3306 nội bộ, bảo mật bằng tài khoản `marketlink_user`.
-* **Quản trị CSDL Web:** Tích hợp sẵn phpMyAdmin tại `http://36.50.176.64/phpmyadmin`.
+* **Quản trị CSDL Web:** Tích hợp sẵn phpMyAdmin tại `https://nnquangdev.id.vn/phpmyadmin`.
 
 ---
 *Tài liệu được soạn thảo và kiểm chứng thực tế bởi đội ngũ Gravity Team - Techwiz 7.*

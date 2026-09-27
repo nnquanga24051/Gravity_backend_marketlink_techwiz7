@@ -19,6 +19,7 @@ import StallsPage from './pages/customer/StallsPage';
 import CustomerOrdersPage from './pages/customer/CustomerOrdersPage';
 import CustomerDashboardPage from './pages/customer/CustomerDashboardPage';
 import CustomerReviewsPage from './pages/customer/CustomerReviewsPage';
+import AnnouncementsPage from './pages/customer/AnnouncementsPage';
 
 // Pages - Farmer
 import FarmerDashboardPage from './pages/farmer/FarmerDashboardPage';
@@ -568,6 +569,12 @@ export default function App() {
 
         {activeNav === 'my-reviews' && (
           <CustomerReviewsPage
+            onNavigate={handleNavigate}
+          />
+        )}
+
+        {activeNav === 'announcements' && (
+          <AnnouncementsPage
             onNavigate={handleNavigate}
           />
         )}

@@ -29,11 +29,13 @@ public class AnnouncementController {
     private final AnnouncementService announcementService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Xem danh sách tin tức hệ thống đang hoạt động", description = "Public endpoint. Dành cho người dùng và khách xem bảng tin, hỗ trợ tìm kiếm theo từ khóa.")
+    @Operation(summary = "Xem danh sách tin tức hệ thống đang hoạt động", description = "Public endpoint. Dành cho người dùng và khách xem bảng tin, hỗ trợ tìm kiếm theo từ khóa, phân loại và đối tượng nhận.")
     @GetMapping("/announcements")
     public Mono<ResponseEntity<ApiResponse<List<AnnouncementResponse>>>> getActiveAnnouncements(
-            @RequestParam(value = "keyword", required = false) String keyword) {
-        return announcementService.getActiveAnnouncements(keyword)
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "type", required = false) String type,
+            @RequestParam(value = "targetRole", required = false) String targetRole) {
+        return announcementService.getActiveAnnouncements(keyword, type, targetRole)
                 .collectList()
                 .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách tin tức hệ thống thành công.", list)));
     }
@@ -45,13 +47,16 @@ public class AnnouncementController {
                 .map(res -> ResponseEntity.ok(ApiResponse.success("Lấy chi tiết tin tức thành công.", res)));
     }
 
-    @Operation(summary = "Quản trị viên xem tất cả các tin tức", description = "Bao gồm cả tin tức đang bật và tắt. Hỗ trợ tìm kiếm từ khóa. Yêu cầu ROLE_ADMIN.")
+    @Operation(summary = "Quản trị viên xem tất cả các tin tức", description = "Bao gồm cả tin tức đang bật và tắt. Hỗ trợ tìm kiếm từ khóa, loại, đối tượng và trạng thái. Yêu cầu ROLE_ADMIN.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/announcements")
     public Mono<ResponseEntity<ApiResponse<List<AnnouncementResponse>>>> getAllAnnouncementsForAdmin(
-            @RequestParam(value = "keyword", required = false) String keyword) {
-        return announcementService.getAllAnnouncements(keyword)
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "type", required = false) String type,
+            @RequestParam(value = "targetRole", required = false) String targetRole,
+            @RequestParam(value = "isActive", required = false) Boolean isActive) {
+        return announcementService.getAllAnnouncements(keyword, type, targetRole, isActive)
                 .collectList()
                 .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy tất cả tin tức hệ thống thành công.", list)));
     }
@@ -83,6 +88,17 @@ public class AnnouncementController {
             @Valid @RequestBody AnnouncementRequest request) {
         return announcementService.updateAnnouncement(id, request)
                 .map(updated -> ResponseEntity.ok(ApiResponse.success("Cập nhật tin tức hệ thống thành công.", updated)));
+    }
+
+    @Operation(summary = "Quản trị viên bật/tắt hiển thị tin tức nhanh", description = "Yêu cầu ROLE_ADMIN.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/admin/announcements/{id}/toggle-status")
+    public Mono<ResponseEntity<ApiResponse<AnnouncementResponse>>> toggleAnnouncementStatus(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "isActive", required = false) Boolean isActive) {
+        return announcementService.toggleAnnouncementStatus(id, isActive)
+                .map(updated -> ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái hiển thị bản tin thành công.", updated)));
     }
 
     @Operation(summary = "Quản trị viên xóa tin tức", description = "Yêu cầu ROLE_ADMIN.")

@@ -157,6 +157,14 @@ export default function Header({
                 >
                   Gian hàng
                 </button>
+                <button 
+                  type="button" 
+                  className={`ml-nav-link ${activeNav === 'announcements' ? 'active' : ''}`}
+                  onClick={() => onNavigate('announcements')}
+                  title="Bản tin thông báo chợ phiên & chính sách hệ thống"
+                >
+                  📢 Bản tin
+                </button>
                 {currentRole === 'CUSTOMER' && (
                   <>
                     <button 
@@ -229,6 +237,14 @@ export default function Header({
                   title="Xem các phiên chợ đang mở"
                 >
                   🏪 Xem chợ
+                </button>
+                <button 
+                  type="button" 
+                  className={`ml-nav-link ${activeNav === 'announcements' ? 'active' : ''}`}
+                  onClick={() => onNavigate('announcements')}
+                  title="Bản tin thông báo chợ phiên & quy chuẩn hệ thống"
+                >
+                  📢 Bản tin
                 </button>
               </>
             )}
