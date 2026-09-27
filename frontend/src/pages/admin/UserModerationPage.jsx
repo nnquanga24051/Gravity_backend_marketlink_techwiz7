@@ -43,6 +43,92 @@ export default function UserModerationPage({ onNavigate }) {
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   // ==========================================
+  // CREATE USER STATE & HANDLERS
+  // ==========================================
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    phoneNumber: '',
+    role: 'CUSTOMER',
+    status: 'ACTIVE',
+    address: '',
+    farmName: '',
+    farmAddress: '',
+    kycStatus: 'UNVERIFIED'
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [submittingCreate, setSubmittingCreate] = useState(false);
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    let res = '';
+    for (let i = 0; i < 10; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setCreateUserForm(prev => ({ ...prev, password: res }));
+    setShowPassword(true);
+  };
+
+  const handleResetCreateForm = () => {
+    setCreateUserForm({
+      fullName: '',
+      email: '',
+      password: '',
+      phoneNumber: '',
+      role: 'CUSTOMER',
+      status: 'ACTIVE',
+      address: '',
+      farmName: '',
+      farmAddress: '',
+      kycStatus: 'UNVERIFIED'
+    });
+    setShowPassword(false);
+  };
+
+  const handleCreateUserSubmit = async (e) => {
+    e.preventDefault();
+    if (!createUserForm.fullName.trim() || !createUserForm.email.trim() || !createUserForm.password.trim()) {
+      showToast('error', 'Vui lòng điền đầy đủ Họ tên, Email và Mật khẩu!');
+      return;
+    }
+
+    if (createUserForm.password.length < 6) {
+      showToast('error', 'Mật khẩu phải có tối thiểu 6 ký tự!');
+      return;
+    }
+
+    setSubmittingCreate(true);
+    try {
+      const payload = {
+        fullName: createUserForm.fullName.trim(),
+        email: createUserForm.email.trim().toLowerCase(),
+        password: createUserForm.password,
+        phoneNumber: createUserForm.phoneNumber.trim() || null,
+        role: createUserForm.role,
+        status: createUserForm.status,
+        address: createUserForm.address.trim() || null,
+        farmName: createUserForm.role === 'FARMER' ? createUserForm.farmName.trim() : null,
+        farmAddress: createUserForm.role === 'FARMER' ? createUserForm.farmAddress.trim() : null,
+        kycStatus: createUserForm.role === 'FARMER' ? createUserForm.kycStatus : (createUserForm.role === 'ADMIN' ? 'VERIFIED' : 'UNVERIFIED')
+      };
+
+      await adminService.createUser(payload);
+      showToast('success', `Đã tạo tài khoản thành công cho ${payload.fullName} (${payload.email})!`);
+      setIsCreateUserModalOpen(false);
+      handleResetCreateForm();
+      loadUsers();
+    } catch (err) {
+      console.error('Failed to create user:', err);
+      const errMsg = err?.data?.message || err?.message || 'Không thể tạo tài khoản mới.';
+      showToast('error', `Lỗi tạo tài khoản: ${errMsg}`);
+    } finally {
+      setSubmittingCreate(false);
+    }
+  };
+
+  // ==========================================
   // TAB 2: KYC STATE
   // ==========================================
   const [kycList, setKycList] = useState([]);
@@ -345,6 +431,16 @@ export default function UserModerationPage({ onNavigate }) {
                   >
                     <span className={loadingUsers ? 'ml-spin' : ''}>🔄</span>
                     <span>Làm mới</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ml-create-user-btn"
+                    onClick={() => setIsCreateUserModalOpen(true)}
+                    title="Thêm tài khoản người dùng mới"
+                  >
+                    <span>➕</span>
+                    <span>Thêm người dùng</span>
                   </button>
                 </div>
               </div>
@@ -823,6 +919,221 @@ export default function UserModerationPage({ onNavigate }) {
               </Button>
             </div>
           </div>
+        </Modal>
+      )}
+
+      {/* ========================================================
+          MODAL: CREATE NEW USER (THÊM NGƯỜI DÙNG MỚI)
+          ======================================================== */}
+      {isCreateUserModalOpen && (
+        <Modal
+          isOpen={isCreateUserModalOpen}
+          onClose={() => {
+            if (!submittingCreate) {
+              setIsCreateUserModalOpen(false);
+              handleResetCreateForm();
+            }
+          }}
+          title="➕ Thêm Tài Khoản Người Dùng Mới"
+          subtitle="Tạo mới tài khoản Nông dân, Khách hàng hoặc Quản trị viên trên hệ thống"
+          maxWidth="640px"
+        >
+          <form onSubmit={handleCreateUserSubmit} className="ml-create-user-form">
+            <div className="ml-create-user-grid">
+              {/* Họ và tên */}
+              <div className="ml-form-group">
+                <label className="ml-form-label">
+                  Họ và tên (*):
+                </label>
+                <input
+                  type="text"
+                  className="ml-form-input"
+                  placeholder="Ví dụ: Nguyễn Văn Nông"
+                  value={createUserForm.fullName}
+                  onChange={(e) => setCreateUserForm({ ...createUserForm, fullName: e.target.value })}
+                  required
+                />
+              </div>
+
+              {/* Email */}
+              <div className="ml-form-group">
+                <label className="ml-form-label">
+                  Email đăng nhập (*):
+                </label>
+                <input
+                  type="email"
+                  className="ml-form-input"
+                  placeholder="nguyenvannong@marketlink.vn"
+                  value={createUserForm.email}
+                  onChange={(e) => setCreateUserForm({ ...createUserForm, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              {/* Mật khẩu */}
+              <div className="ml-form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="ml-form-label">Mật khẩu (*):</label>
+                  <button
+                    type="button"
+                    className="ml-btn-random-pwd"
+                    onClick={generateRandomPassword}
+                    title="Tạo mật khẩu an toàn ngẫu nhiên"
+                  >
+                    🎲 Tạo ngẫu nhiên
+                  </button>
+                </div>
+                <div className="ml-password-input-wrapper">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="ml-form-input"
+                    placeholder="Tối thiểu 6 ký tự"
+                    value={createUserForm.password}
+                    onChange={(e) => setCreateUserForm({ ...createUserForm, password: e.target.value })}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="ml-pwd-toggle-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                    title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  >
+                    {showPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Số điện thoại */}
+              <div className="ml-form-group">
+                <label className="ml-form-label">
+                  Số điện thoại:
+                </label>
+                <input
+                  type="tel"
+                  className="ml-form-input"
+                  placeholder="Ví dụ: 0901234567"
+                  value={createUserForm.phoneNumber}
+                  onChange={(e) => setCreateUserForm({ ...createUserForm, phoneNumber: e.target.value })}
+                />
+              </div>
+
+              {/* Vai trò */}
+              <div className="ml-form-group">
+                <label className="ml-form-label">
+                  Vai trò tài khoản (*):
+                </label>
+                <select
+                  className="ml-form-select"
+                  value={createUserForm.role}
+                  onChange={(e) => setCreateUserForm({ ...createUserForm, role: e.target.value })}
+                >
+                  <option value="CUSTOMER">🛒 Khách hàng (CUSTOMER)</option>
+                  <option value="FARMER">👨‍🌾 Nông dân / Nhà vườn (FARMER)</option>
+                  <option value="ADMIN">🛡️ Quản trị viên (ADMIN)</option>
+                </select>
+              </div>
+
+              {/* Trạng thái tài khoản */}
+              <div className="ml-form-group">
+                <label className="ml-form-label">
+                  Trạng thái hoạt động:
+                </label>
+                <select
+                  className="ml-form-select"
+                  value={createUserForm.status}
+                  onChange={(e) => setCreateUserForm({ ...createUserForm, status: e.target.value })}
+                >
+                  <option value="ACTIVE">🟢 Đang hoạt động (ACTIVE)</option>
+                  <option value="SUSPENDED">🔴 Tạm khóa (SUSPENDED)</option>
+                </select>
+              </div>
+
+              {/* Địa chỉ */}
+              <div className="ml-form-group ml-grid-full">
+                <label className="ml-form-label">
+                  Địa chỉ liên hệ:
+                </label>
+                <input
+                  type="text"
+                  className="ml-form-input"
+                  placeholder="Số nhà, đường phố, xã/phường, quận/huyện, tỉnh/thành..."
+                  value={createUserForm.address}
+                  onChange={(e) => setCreateUserForm({ ...createUserForm, address: e.target.value })}
+                />
+              </div>
+
+              {/* Thông tin dành riêng cho FARMER */}
+              {createUserForm.role === 'FARMER' && (
+                <>
+                  <div className="ml-farmer-extra-divider ml-grid-full">
+                    <span>🌾 Thông tin hồ sơ Nông hộ / Hợp tác xã</span>
+                  </div>
+
+                  <div className="ml-form-group">
+                    <label className="ml-form-label">
+                      Tên gian hàng / Nông trại:
+                    </label>
+                    <input
+                      type="text"
+                      className="ml-form-input"
+                      placeholder="Ví dụ: HTX Rau Sạch Ba Vì"
+                      value={createUserForm.farmName}
+                      onChange={(e) => setCreateUserForm({ ...createUserForm, farmName: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="ml-form-group">
+                    <label className="ml-form-label">
+                      Trạng thái thẩm định KYC:
+                    </label>
+                    <select
+                      className="ml-form-select"
+                      value={createUserForm.kycStatus}
+                      onChange={(e) => setCreateUserForm({ ...createUserForm, kycStatus: e.target.value })}
+                    >
+                      <option value="UNVERIFIED">Chưa thẩm định (UNVERIFIED)</option>
+                      <option value="PENDING">Chờ duyệt hồ sơ (PENDING)</option>
+                      <option value="VERIFIED">✓ Đã xác thực - Cho phép mở sạp ngay (VERIFIED)</option>
+                    </select>
+                  </div>
+
+                  <div className="ml-form-group ml-grid-full">
+                    <label className="ml-form-label">
+                      Địa chỉ trang trại / Cơ sở sản xuất:
+                    </label>
+                    <input
+                      type="text"
+                      className="ml-form-input"
+                      placeholder="Địa chỉ khu đất canh tác / nhà kính / HTX..."
+                      value={createUserForm.farmAddress}
+                      onChange={(e) => setCreateUserForm({ ...createUserForm, farmAddress: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="ml-create-user-actions">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setIsCreateUserModalOpen(false);
+                  handleResetCreateForm();
+                }}
+                disabled={submittingCreate}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={submittingCreate}
+              >
+                {submittingCreate ? 'Đang tạo...' : '✓ Xác nhận thêm người dùng'}
+              </Button>
+            </div>
+          </form>
         </Modal>
       )}
 

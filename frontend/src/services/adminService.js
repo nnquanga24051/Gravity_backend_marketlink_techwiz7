@@ -95,6 +95,14 @@ export const adminService = {
     return res.data || res;
   },
 
+  /**
+   * Admin creates a new user account
+   */
+  async createUser(payload) {
+    const res = await apiClient.post('/admin/users', payload);
+    return res.data || res;
+  },
+
   // ========================================================
   // 3. FARMER KYC VERIFICATION
   // ========================================================

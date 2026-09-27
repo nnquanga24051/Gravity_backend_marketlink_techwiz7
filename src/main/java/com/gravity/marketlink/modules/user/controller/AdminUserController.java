@@ -3,6 +3,7 @@ package com.gravity.marketlink.modules.user.controller;
 import com.gravity.marketlink.core.exception.ResourceNotFoundException;
 import com.gravity.marketlink.core.response.ApiResponse;
 import com.gravity.marketlink.modules.auth.repository.UserRepository;
+import com.gravity.marketlink.modules.user.dto.AdminCreateUserRequest;
 import com.gravity.marketlink.modules.user.dto.AdminUpdateUserStatusRequest;
 import com.gravity.marketlink.modules.user.dto.AdminUserDetailResponse;
 import com.gravity.marketlink.modules.user.dto.AdminUserListItemResponse;
@@ -64,5 +65,21 @@ public class AdminUserController {
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin quản trị viên.")))
                 .flatMap(admin -> adminUserService.updateUserStatus(admin.getUserId(), userId, request))
                 .map(res -> ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái người dùng thành công.", res)));
+    }
+
+    @Operation(summary = "Admin tạo mới tài khoản người dùng", description = "Cho phép quản trị viên thêm mới tài khoản Nông dân, Khách hàng hoặc Quản trị viên kèm phân quyền và thông tin ban đầu.")
+    @PostMapping
+    public Mono<ResponseEntity<ApiResponse<AdminUserDetailResponse>>> createUser(
+            Authentication authentication,
+            @Valid @RequestBody AdminCreateUserRequest request) {
+        if (authentication == null || authentication.getName() == null) {
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin quản trị viên.")))
+                .flatMap(admin -> adminUserService.createUser(admin.getUserId(), request))
+                .map(createdUser -> ResponseEntity.status(HttpStatus.CREATED)
+                        .body(ApiResponse.success("Thêm người dùng mới thành công.", createdUser)));
     }
 }

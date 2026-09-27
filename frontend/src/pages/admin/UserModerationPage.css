@@ -921,3 +921,140 @@
   display: inline-block;
   animation: mlSpin 0.8s linear infinite;
 }
+
+/* ========================================================
+   CREATE USER BUTTON & MODAL FORM STYLING
+   ======================================================== */
+.ml-create-user-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: #ffffff;
+  border: 1px solid #16a34a;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.ml-create-user-btn:hover {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35);
+  transform: translateY(-1px);
+}
+
+.ml-create-user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ml-create-user-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+
+@media (max-width: 600px) {
+  .ml-create-user-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.ml-grid-full {
+  grid-column: 1 / -1;
+}
+
+.ml-form-input,
+.ml-form-select {
+  width: 100%;
+  height: 42px;
+  padding: 8px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #0f172a;
+  background: #f8fafc;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.ml-form-input:focus,
+.ml-form-select:focus {
+  background: #ffffff;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.ml-password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.ml-password-input-wrapper .ml-form-input {
+  padding-right: 40px;
+}
+
+.ml-pwd-toggle-btn {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 6px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ml-pwd-toggle-btn:hover {
+  color: #0f172a;
+}
+
+.ml-btn-random-pwd {
+  background: transparent;
+  border: none;
+  color: #16a34a;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: color 0.15s ease;
+}
+
+.ml-btn-random-pwd:hover {
+  color: #15803d;
+  text-decoration: underline;
+}
+
+.ml-farmer-extra-divider {
+  border-top: 1.5px dashed #cbd5e1;
+  margin-top: 6px;
+  padding-top: 12px;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ml-create-user-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+

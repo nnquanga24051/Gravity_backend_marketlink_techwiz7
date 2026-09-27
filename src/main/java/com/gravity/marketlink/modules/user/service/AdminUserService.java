@@ -3,8 +3,10 @@ package com.gravity.marketlink.modules.user.service;
 import com.gravity.marketlink.core.exception.ResourceNotFoundException;
 import com.gravity.marketlink.modules.auth.entity.Role;
 import com.gravity.marketlink.modules.auth.entity.User;
+import com.gravity.marketlink.modules.auth.repository.RoleRepository;
 import com.gravity.marketlink.modules.auth.repository.UserRepository;
 import com.gravity.marketlink.modules.auth.repository.UserRoleRepository;
+import com.gravity.marketlink.modules.user.dto.AdminCreateUserRequest;
 import com.gravity.marketlink.modules.user.dto.AdminUpdateUserStatusRequest;
 import com.gravity.marketlink.modules.user.dto.AdminUserDetailResponse;
 import com.gravity.marketlink.modules.user.dto.AdminUserListItemResponse;
@@ -17,8 +19,11 @@ import com.gravity.marketlink.modules.user.repository.FarmerProfileRepository;
 import com.gravity.marketlink.modules.user.repository.VerificationAuditLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -31,10 +36,14 @@ import java.util.List;
 public class AdminUserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final FarmerProfileRepository farmerProfileRepository;
     private final CustomerProfileRepository customerProfileRepository;
     private final VerificationAuditLogRepository verificationAuditLogRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final TransactionalOperator transactionalOperator;
+    private final R2dbcEntityTemplate r2dbcEntityTemplate;
 
     public Flux<AdminUserListItemResponse> getUsers(String keyword, String role, String status, String kycStatus) {
         return userRepository.findAll()
@@ -188,5 +197,100 @@ public class AdminUserService {
 
                     return updateStatusMono.then(logMono).then(getUserDetail(userId));
                 });
+    }
+
+    /**
+     * Admin tạo mới người dùng (CUSTOMER, FARMER hoặc ADMIN)
+     */
+    public Mono<AdminUserDetailResponse> createUser(Long adminId, AdminCreateUserRequest request) {
+        String rawRole = request.getRole() != null ? request.getRole().trim().toUpperCase().replace("ROLE_", "") : "CUSTOMER";
+        if (!rawRole.equals("ADMIN") && !rawRole.equals("FARMER") && !rawRole.equals("CUSTOMER")) {
+            return Mono.error(new IllegalArgumentException("Vai trò không hợp lệ: chỉ chấp nhận ADMIN, FARMER hoặc CUSTOMER"));
+        }
+        final String roleName = rawRole;
+
+        return userRepository.existsByEmail(request.getEmail().trim().toLowerCase())
+                .flatMap(exists -> {
+                    if (exists) {
+                        return Mono.error(new IllegalArgumentException("Email đã được đăng ký trên hệ thống: " + request.getEmail()));
+                    }
+
+                    return roleRepository.findByRoleName(roleName)
+                            .switchIfEmpty(roleRepository.findByRoleName("ROLE_" + roleName))
+                            .switchIfEmpty(Mono.error(new IllegalArgumentException("Vai trò không tồn tại trong hệ thống: " + roleName)))
+                            .flatMap(role -> {
+                                String userStatus = (request.getStatus() != null && !request.getStatus().isBlank())
+                                        ? request.getStatus().trim().toUpperCase()
+                                        : "ACTIVE";
+
+                                String kycStatus = (request.getKycStatus() != null && !request.getKycStatus().isBlank())
+                                        ? request.getKycStatus().trim().toUpperCase()
+                                        : (roleName.equals("ADMIN") ? "VERIFIED" : "UNVERIFIED");
+
+                                User newUser = User.builder()
+                                        .email(request.getEmail().trim().toLowerCase())
+                                        .passwordHash(passwordEncoder.encode(request.getPassword()))
+                                        .fullName(request.getFullName().trim())
+                                        .phoneNumber(request.getPhoneNumber() != null ? request.getPhoneNumber().trim() : null)
+                                        .isEmailVerified(true)
+                                        .isPhoneVerified(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank())
+                                        .status(userStatus)
+                                        .kycStatus(kycStatus)
+                                        .createdAt(LocalDateTime.now())
+                                        .updatedAt(LocalDateTime.now())
+                                        .build();
+
+                                return userRepository.save(newUser)
+                                        .flatMap(savedUser ->
+                                                userRoleRepository.insertUserRole(savedUser.getUserId(), role.getRoleId())
+                                                        .then(createProfileForNewUser(savedUser.getUserId(), roleName, request, kycStatus))
+                                                        .then(recordAuditLogIfApplicable(adminId, savedUser.getUserId(), roleName, kycStatus))
+                                                        .then(getUserDetail(savedUser.getUserId()))
+                                        );
+                            });
+                })
+                .as(transactionalOperator::transactional);
+    }
+
+    private Mono<Void> createProfileForNewUser(Long userId, String roleName, AdminCreateUserRequest request, String kycStatus) {
+        if ("FARMER".equalsIgnoreCase(roleName)) {
+            FarmerProfile profile = FarmerProfile.builder()
+                    .farmerId(userId)
+                    .stallName(request.getFarmName() != null && !request.getFarmName().isBlank()
+                            ? request.getFarmName().trim()
+                            : "Nông Trại " + request.getFullName().trim())
+                    .farmAddress(request.getFarmAddress() != null && !request.getFarmAddress().isBlank()
+                            ? request.getFarmAddress().trim()
+                            : (request.getAddress() != null ? request.getAddress().trim() : "Chưa cập nhật"))
+                    .isApproved("VERIFIED".equalsIgnoreCase(kycStatus))
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            return r2dbcEntityTemplate.insert(profile).then();
+        } else {
+            CustomerProfile profile = CustomerProfile.builder()
+                    .customerId(userId)
+                    .defaultAddress(request.getAddress() != null && !request.getAddress().isBlank()
+                            ? request.getAddress().trim()
+                            : "Chưa cập nhật")
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            return r2dbcEntityTemplate.insert(profile).then();
+        }
+    }
+
+    private Mono<Void> recordAuditLogIfApplicable(Long adminId, Long targetUserId, String roleName, String kycStatus) {
+        if ("FARMER".equalsIgnoreCase(roleName) && "VERIFIED".equalsIgnoreCase(kycStatus) && adminId != null) {
+            VerificationAuditLog logEntry = VerificationAuditLog.builder()
+                    .targetUserId(targetUserId)
+                    .adminId(adminId)
+                    .action("APPROVE")
+                    .reason("Quản trị viên trực tiếp tạo tài khoản Nông dân và cấp quyền bán")
+                    .reviewedAt(LocalDateTime.now())
+                    .build();
+            return verificationAuditLogRepository.save(logEntry).then();
+        }
+        return Mono.empty();
     }
 }
