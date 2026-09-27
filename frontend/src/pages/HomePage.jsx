@@ -861,7 +861,7 @@ export default function HomePage({
                   size="lg"
                   onClick={() => onNavigate && onNavigate('farmers')}
                 >
-                  Ghé thăm sạp mẫu →
+                  Khám phá các gian hàng →
                 </Button>
               </div>
             </div>

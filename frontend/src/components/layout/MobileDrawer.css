@@ -109,33 +109,6 @@
   color: var(--color-primary-dark);
 }
 
-.ml-drawer-roles {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.ml-drawer-role-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bg-surface);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  text-align: left;
-}
-
-.ml-drawer-role-btn.active {
-  border-color: var(--color-primary);
-  background-color: var(--color-primary-surface);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary-dark);
-}
-
 .ml-drawer-user-card {
   display: flex;
   align-items: center;

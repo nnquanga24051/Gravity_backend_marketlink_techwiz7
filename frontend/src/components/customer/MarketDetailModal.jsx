@@ -4,6 +4,7 @@ import Modal from '../common/Modal';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
 import L from 'leaflet';
+import { notificationService, playNotificationChime } from '../../services/notificationService';
 
 export default function MarketDetailModal({
   isOpen,
@@ -99,6 +100,13 @@ export default function MarketDetailModal({
         if (osrmDist <= 0.35) {
           setGeofenceTriggered(true);
           setFarmerAlertMsg(`🔔 Chuông báo Nông Dân: Khách hàng đang ở cổng chợ! Đang chuẩn bị giỏ rau củ.`);
+          playNotificationChime();
+          try {
+            notificationService.showBrowserNotification(`📍 Chào mừng đến ${name}!`, {
+              body: `Bạn đang ở trong phạm vi 300m quanh chợ. Đơn hàng đã sẵn sàng nhận tại quầy!`,
+              tag: `geofence-${market?.marketId || market?.id || 'm'}`
+            });
+          } catch {}
         }
         return;
       }
@@ -119,6 +127,13 @@ export default function MarketDetailModal({
     if (distKm <= 0.35) {
       setGeofenceTriggered(true);
       setFarmerAlertMsg(`🔔 Chuông báo Nông Dân: Khách hàng đang ở cổng chợ! Đang chuẩn bị giỏ rau củ.`);
+      playNotificationChime();
+      try {
+        notificationService.showBrowserNotification(`📍 Chào mừng đến ${name}!`, {
+          body: `Bạn đang ở trong phạm vi 300m quanh chợ. Đơn hàng đã sẵn sàng nhận tại quầy!`,
+          tag: `geofence-${market?.marketId || market?.id || 'm'}`
+        });
+      } catch {}
     }
     setLoadingRoute(false);
   };
@@ -140,7 +155,22 @@ export default function MarketDetailModal({
 
       if (leafletMap.current) {
         leafletMap.current.invalidateSize();
-        calculateRoute(userPos.lat, userPos.lon);
+        // Mặc định tự động dò GPS thực tế
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const { latitude: uLat, longitude: uLon } = pos.coords;
+              setUserPos({ lat: uLat, lon: uLon, label: '📍 Vị trí GPS của tôi' });
+              calculateRoute(uLat, uLon);
+            },
+            () => {
+              calculateRoute(userPos.lat, userPos.lon);
+            },
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+          );
+        } else {
+          calculateRoute(userPos.lat, userPos.lon);
+        }
       }
     }, 150);
 
@@ -217,11 +247,6 @@ export default function MarketDetailModal({
       polylineRef.current = null;
     }
   }, [isOpen]);
-
-  const handleSimulatePosition = (lat, lon, label) => {
-    setUserPos({ lat, lon, label });
-    calculateRoute(lat, lon);
-  };
 
   const handleGetRealGps = () => {
     if (!navigator.geolocation) {
@@ -454,42 +479,29 @@ export default function MarketDetailModal({
               </div>
             )}
 
-            {/* Giả lập vị trí di chuyển */}
-            <div className="ml-gps-simulate-section">
-              <div className="ml-gps-sim-title">📍 Mô phỏng vị trí để kiểm tra định vị & chỉ đường:</div>
-              <div className="ml-gps-sim-buttons">
-                <button
-                  type="button"
-                  className={`ml-sim-btn ${userPos.label.includes('Đống Đa') ? 'active' : ''}`}
-                  onClick={() => handleSimulatePosition(21.0185, 105.8290, 'Đống Đa (Cách chợ 3.2km)')}
-                >
-                  🏠 Tại nhà (3.2 km)
-                </button>
-                <button
-                  type="button"
-                  className={`ml-sim-btn ${userPos.label.includes('Kim Mã') ? 'active' : ''}`}
-                  onClick={() => handleSimulatePosition(21.0310, 105.8115, 'Kim Mã (Cách chợ 750m)')}
-                >
-                  🛵 Đang đi (750m)
-                </button>
-                <button
-                  type="button"
-                  className={`ml-sim-btn geofence ${userPos.label.includes('Cổng') ? 'active' : ''}`}
-                  onClick={() => handleSimulatePosition(mLat + 0.0008, mLon + 0.0005, `Cổng ${name} (120m) ➜ Kích hoạt Geofence!`)}
-                >
-                  🎯 Cổng chợ (120m) - Bật Geofence!
-                </button>
-                <button
-                  type="button"
-                  className="ml-sim-btn gps"
-                  onClick={handleGetRealGps}
-                >
-                  📡 GPS Thực Tế
-                </button>
+            {/* Vị trí GPS hiện tại */}
+            <div className="ml-current-pos-section" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 14px',
+              background: 'var(--bg-secondary, #f8fafc)',
+              borderRadius: 8,
+              margin: '12px 0',
+              border: '1px solid var(--border-color, #e2e8f0)',
+              fontSize: 13
+            }}>
+              <div>
+                📍 Vị trí GPS của bạn: <strong>{userPos.label}</strong> ({userPos.lat.toFixed(4)}, {userPos.lon.toFixed(4)})
               </div>
-              <div className="ml-current-pos-label">
-                Điểm xuất phát: <strong>{userPos.label}</strong> ({userPos.lat.toFixed(4)}, {userPos.lon.toFixed(4)})
-              </div>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ fontSize: 12, padding: '4px 10px', height: 'auto' }}
+                onClick={handleGetRealGps}
+              >
+                📡 Dò lại GPS
+              </button>
             </div>
 
             {/* Lộ trình từng bước */}

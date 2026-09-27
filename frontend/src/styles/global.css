@@ -11,9 +11,11 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 76px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
 }
 
 body {
@@ -23,7 +25,7 @@ body {
   color: var(--color-text-body);
   background-color: var(--color-bg-base);
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Custom Scrollbar */
@@ -406,3 +408,170 @@ img {
   color: var(--color-text-main);
   margin-bottom: 6px;
 }
+
+/* ========================================================
+   RESPONSIVE TWEAKS - MOBILE FIRST
+   ======================================================== */
+
+/* Page-level view padding optimization for small screens */
+@media (max-width: 639px) {
+  .ml-page-view {
+    padding-top: var(--space-4);
+    padding-bottom: var(--space-8);
+  }
+
+  .ml-section {
+    padding-top: var(--space-6);
+    padding-bottom: var(--space-6);
+  }
+
+  .ml-section-title {
+    font-size: 1.45rem;
+  }
+
+  .ml-section-header {
+    margin-bottom: var(--space-4);
+  }
+
+  /* Prevent overflow tables on mobile */
+  .table-responsive,
+  .ml-table-wrap,
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-md);
+  }
+
+  table {
+    width: 100%;
+    min-width: 520px; /* Cho phép cuộn ngang an toàn */
+  }
+
+  /* Full-width buttons in mobile modals */
+  .ml-modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .ml-modal-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Extra Small Phones (< 380px: iPhone SE, Galaxy Fold, small Android) */
+@media (max-width: 379px) {
+  .ml-container {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .ml-section-title {
+    font-size: 1.3rem;
+  }
+
+  .card,
+  .ml-card {
+    padding: var(--space-3) !important;
+  }
+
+  .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* Tablet adjustments (640px - 1023px) */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .ml-section-title {
+    font-size: var(--font-size-2xl);
+  }
+
+  .ml-container {
+    padding-left: var(--space-5);
+    padding-right: var(--space-5);
+  }
+}
+
+/* Laptop and Desktop (>= 1024px) */
+@media (min-width: 1024px) {
+  .ml-section-title {
+    font-size: var(--font-size-3xl);
+  }
+}
+
+/* ========================================================
+   GENERIC RESPONSIVE GRID HELPERS
+   ======================================================== */
+.ml-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .ml-grid-2 { 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: var(--space-6);
+  }
+}
+
+.ml-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .ml-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .ml-grid-3 { 
+    grid-template-columns: repeat(3, 1fr); 
+    gap: var(--space-6);
+  }
+}
+
+.ml-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 480px) {
+  .ml-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 768px) {
+  .ml-grid-4 { grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
+}
+
+@media (min-width: 1024px) {
+  .ml-grid-4 { grid-template-columns: repeat(4, 1fr); gap: var(--space-6); }
+}
+
+/* Utility Helpers */
+@media (max-width: 639px) {
+  .w-full-mobile {
+    width: 100% !important;
+  }
+  .flex-col-mobile {
+    flex-direction: column !important;
+  }
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+/* ========================================================
+   SAFE AREA INSETS FOR MOBILE BROWSERS (iOS Notch / Home Indicator)
+   ======================================================== */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .ml-app {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+

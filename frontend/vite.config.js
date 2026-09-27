@@ -9,12 +9,16 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: process.env.VITE_BACKEND_TARGET || 'http://36.50.176.64',
-        changeOrigin: true
+        target: process.env.VITE_BACKEND_TARGET || 'https://nnquangdev.id.vn',
+        // target: process.env.VITE_BACKEND_TARGET || 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false
       },
       '/uploads': {
-        target: process.env.VITE_BACKEND_TARGET || 'http://36.50.176.64',
-        changeOrigin: true
+        target: process.env.VITE_BACKEND_TARGET || 'https://nnquangdev.id.vn',
+        // target: process.env.VITE_BACKEND_TARGET || 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

@@ -8,7 +8,6 @@ export default function NotificationBell({
   unreadCount = 0,
   onNotificationRead,
   onMarkAllRead,
-  onNewTestPush,
   isLiveConnected = true,
   onNavigate,
   currentRole
@@ -16,7 +15,6 @@ export default function NotificationBell({
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'unread'
   const [browserPermission, setBrowserPermission] = useState('default');
-  const [isSendingTest, setIsSendingTest] = useState(false);
   const bellRef = useRef(null);
 
   // Check browser notification permission status on mount
@@ -44,25 +42,6 @@ export default function NotificationBell({
   const handleRequestPermission = async () => {
     const result = await notificationService.requestBrowserPermission();
     setBrowserPermission(result);
-  };
-
-  const handleTriggerTestPush = async () => {
-    if (isSendingTest) return;
-    try {
-      setIsSendingTest(true);
-      const res = await notificationService.sendTestPush({
-        title: '🔔 Thông báo đẩy MarketLink',
-        message: 'Hệ thống thông báo đẩy SSE thời gian thực đang hoạt động mượt mà!',
-        type: 'SYSTEM'
-      });
-      if (onNewTestPush) {
-        onNewTestPush(res);
-      }
-    } catch (err) {
-      console.error('Lỗi khi bắn thông báo thử nghiệm:', err);
-    } finally {
-      setIsSendingTest(false);
-    }
   };
 
   const handleItemClick = (item) => {
@@ -243,15 +222,6 @@ export default function NotificationBell({
                 )}
               </div>
               <div className="ml-notif-header-actions">
-                <button
-                  type="button"
-                  className="ml-notif-btn-action ml-notif-btn-test"
-                  onClick={handleTriggerTestPush}
-                  disabled={isSendingTest}
-                  title="Bắn thử 1 thông báo đẩy tức thời để kiểm tra âm thanh & giao diện"
-                >
-                  {isSendingTest ? 'Đang gửi...' : '🚀 Bắn thử'}
-                </button>
                 {unreadCount > 0 && (
                   <button
                     type="button"

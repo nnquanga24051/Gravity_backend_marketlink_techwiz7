@@ -197,17 +197,6 @@
   color: #0f172a;
 }
 
-.ml-notif-btn-test {
-  background: #e0f2fe;
-  color: #0369a1;
-  border-color: #bae6fd;
-}
-
-.ml-notif-btn-test:hover {
-  background: #bae6fd;
-  color: #0284c7;
-}
-
 /* Tabs */
 .ml-notif-tabs {
   display: flex;

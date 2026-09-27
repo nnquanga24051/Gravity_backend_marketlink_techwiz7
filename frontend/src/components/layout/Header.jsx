@@ -20,7 +20,6 @@ export default function Header({
   unreadCount = 0,
   onNotificationRead,
   onMarkAllRead,
-  onNewTestPush,
   isLiveConnected = true
 }) {
   const [showRoleMenu, setShowRoleMenu] = useState(false);
@@ -320,7 +319,6 @@ export default function Header({
               unreadCount={unreadCount}
               onNotificationRead={onNotificationRead}
               onMarkAllRead={onMarkAllRead}
-              onNewTestPush={onNewTestPush}
               isLiveConnected={isLiveConnected}
               onNavigate={onNavigate}
               currentRole={currentRole}
@@ -416,24 +414,6 @@ export default function Header({
                         </button>
                       </>
                     )}
-
-                    <div className="ml-user-dropdown-divider" />
-                    <div className="ml-user-dropdown-section-title">Chuyển nhanh góc nhìn kiểm thử:</div>
-                    <div className="ml-user-dropdown-role-grid">
-                      {Object.entries(roleLabels).map(([roleKey, info]) => (
-                        <button
-                          key={roleKey}
-                          type="button"
-                          className={`ml-user-role-chip ${roleKey === currentRole ? 'active' : ''}`}
-                          onClick={() => {
-                            onSwitchRole(roleKey);
-                            setShowUserMenu(false);
-                          }}
-                        >
-                          <span>{info.icon}</span> {info.label.split(' ')[0]}
-                        </button>
-                      ))}
-                    </div>
 
                     <div className="ml-user-dropdown-divider" />
                     <button 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './styles/global.css';
+import './App.css';
 
 // Layout & Common
 import Header from './components/layout/Header';
@@ -257,16 +258,6 @@ export default function App() {
     }
   };
 
-  const handleNewTestPush = (newNotif) => {
-    if (newNotif) {
-      setNotifications((prev) => [
-        newNotif,
-        ...prev.filter((n) => n.notificationId !== newNotif.notificationId)
-      ]);
-      setUnreadCount((prev) => prev + 1);
-      addToast(newNotif.title, newNotif.message, 'success');
-    }
-  };
 
   // Cart operations
   const handleAddToCart = (product) => {
@@ -468,7 +459,6 @@ export default function App() {
         unreadCount={unreadCount}
         onNotificationRead={handleNotificationRead}
         onMarkAllRead={handleMarkAllRead}
-        onNewTestPush={handleNewTestPush}
         isLiveConnected={isLiveConnected}
       />
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
+import { notificationService, playNotificationChime } from '../services/notificationService';
 
 export default function OpenStreetMapRouting({ 
   token, 
@@ -13,9 +14,13 @@ export default function OpenStreetMapRouting({
   const userMarkerRef = useRef(null);
   const marketMarkerRef = useRef(null);
   const polylineRef = useRef(null);
+  const geofenceCircleRef = useRef(null);
+  const watchIdRef = useRef(null);
+  const lastAlertRef = useRef({ marketId: null, timestamp: 0 });
 
-  // Vị trí mặc định của khách hàng (Đống Đa, Hà Nội)
-  const [userPos, setUserPos] = useState({ lat: 21.0185, lon: 105.8290, label: 'Đống Đa, Hà Nội' });
+  // Vị trí người dùng (Mặc định khởi động bằng GPS thực tế)
+  const [userPos, setUserPos] = useState({ lat: 21.0185, lon: 105.8290, label: 'Đang dò GPS thực tế...' });
+  const [gpsStatus, setGpsStatus] = useState({ loading: true, active: false, accuracy: null, error: null });
   const [selectedMarketId, setSelectedMarketId] = useState(
     targetMarketId || targetMarket?.id || targetMarket?.marketId || ''
   );
@@ -102,12 +107,79 @@ export default function OpenStreetMapRouting({
     loadMarkets();
   }, []);
 
+  // Yêu cầu và theo dõi GPS thực tế của thiết bị
+  const requestRealGps = (isInitial = false) => {
+    if (!navigator.geolocation) {
+      setGpsStatus({ loading: false, active: false, accuracy: null, error: 'Trình duyệt không hỗ trợ Geolocation GPS' });
+      setUserPos(prev => ({ ...prev, label: 'Đống Đa, Hà Nội (Không hỗ trợ GPS)' }));
+      fetchRoute(21.0185, 105.8290, selectedMarketId);
+      return;
+    }
+
+    setGpsStatus(prev => ({ ...prev, loading: true, error: null }));
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const realPos = {
+          lat: latitude,
+          lon: longitude,
+          label: `📍 GPS Thực Tế (±${Math.round(accuracy)}m)`,
+          accuracy: Math.round(accuracy)
+        };
+        setUserPos(realPos);
+        setGpsStatus({ loading: false, active: true, accuracy: Math.round(accuracy), error: null });
+
+        if (leafletMap.current) {
+          leafletMap.current.setView([latitude, longitude], 14);
+        }
+
+        fetchRoute(latitude, longitude, selectedMarketId);
+        startLiveGpsWatcher();
+      },
+      (err) => {
+        console.warn('Không lấy được toạ độ GPS:', err.message);
+        setGpsStatus({ loading: false, active: false, accuracy: null, error: err.message });
+        setUserPos({ lat: 21.0185, lon: 105.8290, label: 'Đống Đa, Hà Nội (Chưa cấp quyền GPS)' });
+        fetchRoute(21.0185, 105.8290, selectedMarketId);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  };
+
+  const startLiveGpsWatcher = () => {
+    if (!navigator.geolocation) return;
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        setUserPos(prev => {
+          const movedMeters = getHaversineMeters(prev.lat, prev.lon, latitude, longitude);
+          if (movedMeters > 8) {
+            fetchRoute(latitude, longitude, selectedMarketId);
+            return {
+              lat: latitude,
+              lon: longitude,
+              label: `📍 GPS Thực Tế (±${Math.round(accuracy)}m)`,
+              accuracy: Math.round(accuracy)
+            };
+          }
+          return prev;
+        });
+      },
+      (err) => console.debug('watchPosition status:', err.message),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+  };
+
   // 2. Khởi tạo bản đồ Leaflet OpenStreetMap
   useEffect(() => {
     if (!mapRef.current) return;
 
     if (!leafletMap.current) {
-      // Tọa độ trung tâm Hà Nội
+      // Tọa độ trung tâm ban đầu
       const map = L.map(mapRef.current).setView([21.0312, 105.8189], 13);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -117,11 +189,14 @@ export default function OpenStreetMapRouting({
       leafletMap.current = map;
     }
 
-    // Tự động tính đường ban đầu
-    fetchRoute(userPos.lat, userPos.lon, selectedMarketId);
+    // MẶC ĐỊNH: Tự động xin quyền và lấy tọa độ GPS thực tế của thiết bị ngay khi mở
+    requestRealGps(true);
 
     return () => {
-      // Cleanup map on unmount
+      if (watchIdRef.current && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
       if (leafletMap.current) {
         leafletMap.current.remove();
         leafletMap.current = null;
@@ -290,18 +365,36 @@ export default function OpenStreetMapRouting({
           .bindPopup(`<b>${route.marketName}</b><br>${route.marketAddress}`);
       }
 
-      // 3. Vẽ Polyline đường đi uốn lượn
-      if (route.routeGeometry && route.routeGeometry.length > 0) {
-        if (polylineRef.current) {
-          polylineRef.current.setLatLngs(route.routeGeometry);
+        // 3. Vòng tròn Geofencing bán kính 300m quanh chợ
+        if (geofenceCircleRef.current) {
+          geofenceCircleRef.current.setLatLng([mLat, mLon]);
+          geofenceCircleRef.current.setStyle({
+            color: route?.inGeofence ? '#10b981' : '#059669',
+            fillColor: route?.inGeofence ? '#34d399' : '#10b981',
+            fillOpacity: route?.inGeofence ? 0.22 : 0.10
+          });
         } else {
-          polylineRef.current = L.polyline(route.routeGeometry, {
-            color: '#10b981',
-            weight: 5,
-            opacity: 0.9,
-            lineJoin: 'round'
-          }).addTo(map);
+          geofenceCircleRef.current = L.circle([mLat, mLon], {
+            radius: 300,
+            color: '#059669',
+            fillColor: '#10b981',
+            fillOpacity: 0.12,
+            dashArray: '6, 6'
+          }).addTo(map).bindPopup('<b>Vùng Geofence 300m</b><br>Tự động thông báo khi đến gần chợ!');
         }
+
+        // 4. Vẽ Polyline đường đi uốn lượn
+        if (route.routeGeometry && route.routeGeometry.length > 0) {
+          if (polylineRef.current) {
+            polylineRef.current.setLatLngs(route.routeGeometry);
+          } else {
+            polylineRef.current = L.polyline(route.routeGeometry, {
+              color: '#10b981',
+              weight: 5,
+              opacity: 0.9,
+              lineJoin: 'round'
+            }).addTo(map);
+          }
 
         // Tự động căn chỉnh góc nhìn bản đồ bao quát toàn bộ tuyến đường
         const bounds = L.latLngBounds([
@@ -315,7 +408,14 @@ export default function OpenStreetMapRouting({
   };
 
   // 5. Kích hoạt thông báo Geofencing khi vào vùng 300m
-  const triggerGeofenceCheckIn = async (lat, lon, marketId, marketName) => {
+  const triggerGeofenceCheckIn = async (lat, lon, marketId, marketName, isManual = false) => {
+    const now = Date.now();
+    const cooldownMs = 5 * 60 * 1000;
+    if (!isManual && lastAlertRef.current.marketId === marketId && (now - lastAlertRef.current.timestamp) < cooldownMs) {
+      return;
+    }
+    lastAlertRef.current = { marketId, timestamp: now };
+
     setGeofenceAlert({
       title: '📍 Chào mừng bạn đã đến phiên chợ!',
       message: `Bạn đang ở trong bán kính 300m quanh ${marketName}. Đơn hàng đặt trước của bạn đã sẵn sàng nhận tại sạp!`,
@@ -325,10 +425,26 @@ export default function OpenStreetMapRouting({
     // Giả lập chuông báo tới máy Nông dân
     setFarmerAlert({
       farmerName: 'Bác Ba Nông Dân (Sạp 05)',
-      msg: `🔔 Thông báo tới Nông Dân: Khách hàng đang tiến vào cổng chợ! Hãy chuẩn bị sẵn giỏ rau củ số #ORD-2026.`
+      msg: `🔔 Thông báo tới Nông Dân: Khách hàng vừa tiến vào phạm vi 300m chợ! Hãy chuẩn bị sẵn giỏ nông sản đã hẹn.`
     });
 
-    // Gửi check-in lên máy chủ nếu có token
+    // Phát âm thanh chuông dịu nhẹ Web Audio API
+    playNotificationChime();
+
+    // Thông báo đẩy trình duyệt (HTML5 Web Notification)
+    try {
+      notificationService.showBrowserNotification(`📍 Bạn đã đến ${marketName}!`, {
+        body: `Bạn đang ở trong bán kính 300m quanh chợ. Đơn hàng đặt trước đã sẵn sàng nhận tại quầy!`,
+        tag: `geofence-${marketId}`,
+        onClick: () => {
+          window.focus();
+        }
+      });
+    } catch (err) {
+      console.debug('Browser notification notice:', err);
+    }
+
+    // Gửi check-in lên máy chủ để kích hoạt SSE Push Notification tới Nông dân & Khách
     try {
       await safeCallApi('/api/customer/geofence/check-in', 'POST', {
         latitude: lat,
@@ -336,30 +452,8 @@ export default function OpenStreetMapRouting({
         targetMarketId: marketId
       });
     } catch {
-      // Ignored
+      // Geofence check-in thất bại - sẽ tự retry khi vị trí cập nhật lần sau
     }
-  };
-
-  // 6. Xử lý các nút Giả lập kịch bản GPS
-  const handleSimulate = (lat, lon, label) => {
-    setUserPos({ lat, lon, label });
-    fetchRoute(lat, lon, selectedMarketId);
-  };
-
-  // Lấy GPS thực từ thiết bị
-  const handleGetRealGps = () => {
-    if (!navigator.geolocation) {
-      alert('Trình duyệt không hỗ trợ Geolocation GPS');
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setUserPos({ lat: latitude, lon: longitude, label: 'Toạ độ GPS thực tế' });
-        fetchRoute(latitude, longitude, selectedMarketId);
-      },
-      (err) => alert('Không lấy được toạ độ GPS: ' + err.message)
-    );
   };
 
   return (
@@ -401,7 +495,7 @@ export default function OpenStreetMapRouting({
         </div>
       </div>
 
-      {/* CỘT PHẢI: Bảng điều khiển lộ trình & Mô phỏng Geofencing */}
+      {/* CỘT PHẢI: Bảng điều khiển lộ trình & Geofencing */}
       <div className="card">
         <div className="card-top">
           <div className="card-heading">🧭 Lộ Trình & Định Vị Geofencing (300m)</div>
@@ -436,52 +530,64 @@ export default function OpenStreetMapRouting({
           </div>
         )}
 
-        {/* Nút giả lập kịch bản toạ độ GPS */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, fontWeight: 600 }}>
-            📍 MÔ PHỎNG VỊ TRÍ KHÁCH HÀNG (DEMO CHẤM THI TECHWIZ):
+        {/* Thanh trạng thái GPS Thực Tế */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: gpsStatus.active ? 'rgba(16, 185, 129, 0.12)' : gpsStatus.loading ? 'rgba(59, 130, 246, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+          border: `1px solid ${gpsStatus.active ? '#10b981' : gpsStatus.loading ? '#3b82f6' : '#f59e0b'}`,
+          borderRadius: 8,
+          padding: '8px 12px',
+          marginBottom: 12,
+          fontSize: 13
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>{gpsStatus.active ? '🛰️' : gpsStatus.loading ? '📡' : '⚠️'}</span>
+            <div>
+              {gpsStatus.loading ? (
+                <span style={{ color: '#38bdf8', fontWeight: 600 }}>Đang dò tìm tọa độ GPS thực tế của thiết bị...</span>
+              ) : gpsStatus.active ? (
+                <span style={{ color: '#34d399', fontWeight: 600 }}>GPS Thực Tế (±{gpsStatus.accuracy}m) • Đang theo dõi trực tiếp</span>
+              ) : (
+                <span style={{ color: '#fde68a' }}>Chưa cấp quyền GPS ({gpsStatus.error || 'Dùng vị trí mặc định'})</span>
+              )}
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              className={`btn ${userPos.label.includes('Đống Đa') ? 'btn-primary' : 'btn-outline'}`}
-              style={{ fontSize: 12, padding: '6px 12px' }}
-              onClick={() => handleSimulate(21.0185, 105.8290, 'Đống Đa (Cách chợ 3.2km)')}
-            >
-              🏠 1. Tại nhà (3.2 km)
-            </button>
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ fontSize: 12, padding: '4px 10px', height: 'auto', background: 'transparent' }}
+            onClick={() => requestRealGps(false)}
+          >
+            🔄 Dò lại GPS
+          </button>
+        </div>
 
-            <button
-              className={`btn ${userPos.label.includes('Kim Mã') ? 'btn-primary' : 'btn-outline'}`}
-              style={{ fontSize: 12, padding: '6px 12px' }}
-              onClick={() => handleSimulate(21.0310, 105.8115, 'Kim Mã (Cách chợ 750m)')}
-            >
-              🛵 2. Đang đi (750m)
-            </button>
-
-            <button
-              className={`btn ${userPos.label.includes('Cổng Chợ') ? 'btn-primary' : 'btn-outline'}`}
-              style={{
-                fontSize: 12,
-                padding: '6px 12px',
-                borderColor: '#10b981',
-                color: userPos.label.includes('Cổng Chợ') ? '#fff' : '#34d399'
-              }}
-              onClick={() => handleSimulate(21.0318, 105.8185, 'Cổng Chợ Ba Đình (120m) ➜ GEOFENCE!')}
-            >
-              🎯 3. Cổng Chợ (120m) - Bật Alert!
-            </button>
-
-            <button
-              className="btn btn-outline"
-              style={{ fontSize: 12, padding: '6px 12px' }}
-              onClick={handleGetRealGps}
-            >
-              📡 GPS Thực Tế
-            </button>
+        {/* Vị trí GPS hiện tại */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 8,
+          padding: '8px 12px',
+          marginBottom: 16,
+          fontSize: 12,
+          color: '#94a3b8'
+        }}>
+          <div>
+            📍 Vị trí hiện tại: <b style={{ color: '#f1f5f9' }}>{userPos.label}</b> ({userPos.lat.toFixed(4)}, {userPos.lon.toFixed(4)})
           </div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>
-            Vị trí hiện tại: <b>{userPos.label}</b> ({userPos.lat.toFixed(4)}, {userPos.lon.toFixed(4)})
-          </div>
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ fontSize: 12, padding: '4px 10px', height: 'auto' }}
+            onClick={() => requestRealGps(false)}
+          >
+            📡 Cập nhật GPS
+          </button>
         </div>
 
         {/* Thông số quãng đường & thời gian */}

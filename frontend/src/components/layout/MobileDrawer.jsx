@@ -225,29 +225,6 @@ export default function MobileDrawer({
             </nav>
           </div>
 
-          {/* Role Preview Switcher */}
-          <div className="ml-drawer-section">
-            <div className="ml-drawer-section-title">Góc nhìn giao diện (Demo vai trò)</div>
-            <div className="ml-drawer-roles">
-              {[
-                { key: 'GUEST', label: 'Khách vãng lai', icon: '👤' },
-                { key: 'CUSTOMER', label: 'Khách hàng đặt trước', icon: '🛒' },
-                { key: 'FARMER', label: 'Nông dân (Chủ sạp)', icon: '👨‍🌾' },
-                { key: 'ADMIN', label: 'Quản trị viên', icon: '🛡️' }
-              ].map((r) => (
-                <button
-                  key={r.key}
-                  type="button"
-                  className={`ml-drawer-role-btn ${currentRole === r.key ? 'active' : ''}`}
-                  onClick={() => { onSwitchRole(r.key); onClose(); }}
-                >
-                  <span>{r.icon}</span>
-                  <span>{r.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Auth Actions */}
           <div className="ml-drawer-auth">
             {currentRole === 'GUEST' ? (

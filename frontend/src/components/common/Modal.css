@@ -81,3 +81,28 @@
   from { opacity: 0; transform: translateY(16px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* Mobile Screens (< 640px) */
+@media (max-width: 639px) {
+  .ml-modal-overlay {
+    padding: 10px;
+    align-items: center;
+  }
+
+  .ml-modal-content {
+    max-height: 94vh;
+    border-radius: var(--radius-lg);
+  }
+
+  .ml-modal-header {
+    padding: 14px 16px;
+  }
+
+  .ml-modal-title {
+    font-size: var(--font-size-md);
+  }
+
+  .ml-modal-body {
+    padding: 16px;
+  }
+}

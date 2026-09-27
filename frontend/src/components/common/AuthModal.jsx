@@ -20,7 +20,7 @@ export default function AuthModal({
   const [fullName, setFullName] = useState('Nguyễn Nhựt Quang');
   const [phone, setPhone] = useState('0901234567');
   const [farmName, setFarmName] = useState('Nông Trại Xanh Ba Vì');
-  
+
   // Show/Hide password toggle
   const [showPassword, setShowPassword] = useState(false);
 
@@ -53,22 +53,6 @@ export default function AuthModal({
     }
     return () => clearTimeout(timer);
   }, [countdown]);
-
-  const quickAccounts = [
-    { label: '🛒 Khách hàng', email: 'customer@marketlink.vn', pass: 'Customer@123', name: 'Nguyễn Nhựt Quang', role: 'CUSTOMER' },
-    { label: '👨‍🌾 Nông dân Ba Vì', email: 'farmer@marketlink.vn', pass: 'Farmer@123', name: 'Nguyễn Văn Nông Dân', role: 'FARMER' },
-    { label: '🛡️ Quản trị viên', email: 'admin@marketlink.vn', pass: 'Admin@123', name: 'Quản Trị Viên Hệ Thống', role: 'ADMIN' },
-    { label: '👤 nnq@gmail.com', email: 'nnq@gmail.com', pass: 'NewPassword@123', name: 'Nguyễn Nhựt Quang', role: 'CUSTOMER' }
-  ];
-
-  const handleQuickPick = (acc) => {
-    setEmail(acc.email);
-    setPassword(acc.pass);
-    setRole(acc.role);
-    setFullName(acc.name);
-    setErrorMsg('');
-    setSuccessMsg(`Đã chọn tài khoản mẫu: ${acc.label}`);
-  };
 
   // Submit Login
   const handleLogin = async (e) => {
@@ -212,15 +196,15 @@ export default function AuthModal({
         mode === 'LOGIN'
           ? 'Đăng Nhập Vào MarketLink'
           : mode === 'REGISTER'
-          ? 'Đăng Ký Thành Viên Mới'
-          : 'Khôi Phục & Đặt Lại Mật Khẩu'
+            ? 'Đăng Ký Thành Viên Mới'
+            : 'Khôi Phục & Đặt Lại Mật Khẩu'
       }
       subtitle={
         mode === 'LOGIN'
           ? 'Kết nối trực tiếp nông sản sạch từ vườn ra chợ phiên'
           : mode === 'REGISTER'
-          ? 'Tham gia mạng lưới đặt trước nông sản & mở sạp chợ'
-          : 'Nhận mã OTP bảo mật để đặt lại mật khẩu mới'
+            ? 'Tham gia mạng lưới đặt trước nông sản & mở sạp chợ'
+            : 'Nhận mã OTP bảo mật để đặt lại mật khẩu mới'
       }
       maxWidth="500px"
     >
@@ -245,24 +229,6 @@ export default function AuthModal({
             ======================================================== */}
         {mode === 'LOGIN' && (
           <>
-            {/* Quick Demo Selector */}
-            <div className="ml-auth-demo-box">
-              <div className="ml-demo-label">⚡ Chọn nhanh tài khoản kiểm thử:</div>
-              <div className="ml-demo-buttons">
-                {quickAccounts.map((acc, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className="ml-demo-btn"
-                    onClick={() => handleQuickPick(acc)}
-                    title={`Đăng nhập với ${acc.email}`}
-                  >
-                    {acc.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <form onSubmit={handleLogin} className="ml-auth-form">
               <div className="ml-form-group">
                 <label className="ml-form-label">Email tài khoản:</label>

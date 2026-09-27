@@ -35,7 +35,9 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -122,7 +124,7 @@ public class OrderService {
 
     private Mono<OrderDetailResponse> processOrderItemsAndSave(Long customerId, OrderCreateRequest request, PickupTimeSlot slot, LocalDateTime cutoffTime) {
         return Flux.fromIterable(request.getItems())
-                .flatMap(itemReq -> productRepository.findById(itemReq.getProductId())
+                .concatMap(itemReq -> productRepository.findById(itemReq.getProductId())
                         .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy sản phẩm với ID: " + itemReq.getProductId())))
                         .flatMap(product -> {
                             if (!product.getFarmerId().equals(request.getFarmerId())) {
@@ -329,7 +331,9 @@ public class OrderService {
                         return Mono.error(new IllegalArgumentException("Đơn hàng này không thuộc quyền quản lý của gian hàng bạn."));
                     }
 
-                    if ("CANCELLED".equalsIgnoreCase(order.getOrderStatus()) || "COMPLETED".equalsIgnoreCase(order.getOrderStatus())) {
+                    if ("CANCELLED".equalsIgnoreCase(order.getOrderStatus()) 
+                            || "COMPLETED".equalsIgnoreCase(order.getOrderStatus())
+                            || "DECLINED".equalsIgnoreCase(order.getOrderStatus())) {
                         return Mono.error(new IllegalStateException("Đơn hàng đã ở trạng thái kết thúc (" + order.getOrderStatus() + "), không thể thay đổi thêm."));
                     }
 
@@ -378,16 +382,28 @@ public class OrderService {
 
     private Mono<Void> restoreStockForOrder(Long orderId) {
         return orderItemRepository.findByOrderId(orderId)
-                .flatMap(item -> productRepository.findById(item.getProductId())
-                        .flatMap(prod -> {
-                            BigDecimal current = prod.getCurrentStock() != null ? prod.getCurrentStock() : BigDecimal.ZERO;
-                            prod.setCurrentStock(current.add(item.getQuantity()));
-                            if ("SOLD_OUT".equalsIgnoreCase(prod.getStatus())) {
-                                prod.setStatus("AVAILABLE");
-                            }
-                            return productRepository.save(prod);
-                        }))
-                .then();
+                .collectList()
+                .flatMap(items -> {
+                    Map<Long, BigDecimal> qtyByProduct = items.stream()
+                            .filter(it -> it.getProductId() != null && it.getQuantity() != null)
+                            .collect(Collectors.toMap(
+                                    OrderItem::getProductId,
+                                    OrderItem::getQuantity,
+                                    BigDecimal::add
+                            ));
+
+                    return Flux.fromIterable(qtyByProduct.entrySet())
+                            .concatMap(entry -> productRepository.findById(entry.getKey())
+                                    .flatMap(prod -> {
+                                        BigDecimal current = prod.getCurrentStock() != null ? prod.getCurrentStock() : BigDecimal.ZERO;
+                                        prod.setCurrentStock(current.add(entry.getValue()));
+                                        if ("SOLD_OUT".equalsIgnoreCase(prod.getStatus())) {
+                                            prod.setStatus("AVAILABLE");
+                                        }
+                                        return productRepository.save(prod);
+                                    }))
+                            .then();
+                });
     }
 
     public Flux<OrderDetailResponse> getCustomerOrders(Long customerId, String keyword, String status) {
@@ -491,6 +507,7 @@ public class OrderService {
                 .flatMap(this::enrichOrderDetail)
                 .filter(o -> {
                     if (!kw.isEmpty()) {
+                        boolean matchId = o.getOrderId() != null && o.getOrderId().toString().contains(kw);
                         boolean matchCode = o.getOrderCode() != null && o.getOrderCode().toLowerCase().contains(kw);
                         boolean matchCust = o.getCustomerName() != null && o.getCustomerName().toLowerCase().contains(kw);
                         boolean matchPhone = o.getCustomerPhone() != null && o.getCustomerPhone().contains(kw);
@@ -499,7 +516,7 @@ public class OrderService {
                         boolean matchMarket = o.getMarketName() != null && o.getMarketName().toLowerCase().contains(kw);
                         boolean matchItems = o.getItems() != null && o.getItems().stream()
                                 .anyMatch(it -> it.getProductName() != null && it.getProductName().toLowerCase().contains(kw));
-                        if (!matchCode && !matchCust && !matchPhone && !matchFarmer && !matchStall && !matchMarket && !matchItems) return false;
+                        if (!matchId && !matchCode && !matchCust && !matchPhone && !matchFarmer && !matchStall && !matchMarket && !matchItems) return false;
                     }
                     return true;
                 });

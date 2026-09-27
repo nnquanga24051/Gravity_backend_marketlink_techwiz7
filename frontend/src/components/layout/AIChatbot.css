@@ -271,3 +271,29 @@
   from { opacity: 0; transform: translateY(16px) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* Mobile Screens (< 640px) */
+@media (max-width: 639px) {
+  .ml-chatbot-container {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .ml-chat-window {
+    width: calc(100vw - 32px);
+    max-width: 380px;
+    height: min(480px, calc(100vh - 100px));
+    bottom: 64px;
+    right: 0;
+  }
+
+  .ml-chatbot-bubble {
+    width: 48px;
+    height: 48px;
+  }
+
+  .ml-bubble-icon {
+    font-size: 20px;
+  }
+}
+

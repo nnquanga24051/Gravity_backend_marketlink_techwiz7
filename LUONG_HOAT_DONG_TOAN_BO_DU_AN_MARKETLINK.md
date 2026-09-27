@@ -664,13 +664,15 @@ Dưới đây là kịch bản trình diễn ấn tượng từng bước dành 
 1. **Bước 1 - Giới thiệu Trợ lý AI Thông minh (Tab 1: AI Assistant Chatbot):**
    - Đặt câu hỏi: *"Thứ 7 này có chợ nào bán rau hữu cơ và mở cửa lúc mấy giờ?"*
    - Ban giám khảo sẽ quan sát thấy câu trả lời của **Google Gemini AI 3.6 Flash** truyền về thời gian thực theo từng chữ (SSE Streaming) cực nhanh và mượt mà.
-2. **Bước 2 - Trải nghiệm Bản đồ OpenStreetMap & Geofencing (Tab 2: Bản Đồ & Định Vị OSM):**
-   - Trình chiếu bản đồ **OpenStreetMap** thực tế.
-   - Bấm nút **"1. Tại nhà (3.2 km)"**: Bản đồ tính toán tuyến đường ngắn nhất từ Đống Đa đến Chợ Ba Đình (3.2 km, ~8 phút) kèm danh sách ngã rẽ.
-   - Bấm nút **"3. Cổng Chợ (120m) - Bật Alert!"**:
-     - Ngay lập tức màn hình bật sáng **Banner Chào Mừng Geofencing màu xanh**: *"📍 Chào mừng bạn đã đến Phiên Chợ Xanh Ba Đình! Đơn hàng của bạn đã sẵn sàng tại sạp."*
-     - Đồng thời nhấp nháy **Chuông báo cho Nông Dân**: *"🔔 Khách hàng đang tiến vào cổng chợ! Hãy chuẩn bị sẵn giỏ nông sản."*
-   - Bấm nút **"🧭 Mở Google Maps Dẫn Đường Giọng Nói"** để chứng minh khả năng liên kết ứng dụng bản đồ thực tế trên điện thoại.
+2. **Bước 2 - Trải nghiệm Bản đồ OpenStreetMap & Geofencing GPS (Tab 2: Bản Đồ & Định Vị OSM):**
+   - Trình chiếu bản đồ **OpenStreetMap** thực tế tích hợp Leaflet và OSRM.
+   - Hệ thống tự động kích hoạt **GPS phần cứng thực tế** của thiết bị người dùng và vẽ vòng tròn Geofence 300m quanh chợ.
+   - Khi người dùng di chuyển đến gần chợ (khoảng cách $\le 300\text{m}$):
+     - Hệ thống phát âm thanh chuông báo ngân vang qua Web Audio API.
+     - Kích hoạt **Thông báo đẩy (Desktop Notification & SSE)** trên thiết bị người dùng.
+     - Màn hình bật sáng **Banner Chào Mừng Geofencing**: *"📍 Chào mừng bạn đã đến Phiên Chợ! Đơn hàng của bạn đã sẵn sàng tại sạp."*
+     - Đồng thời phát thông báo đẩy tới Nông dân: *"🔔 Khách hàng đang tiến vào phạm vi 300m chợ! Hãy chuẩn bị sẵn giỏ nông sản."*
+   - Bấm nút **"🧭 Mở Google Maps Dẫn Đường Giọng Nói"** để liên kết trực tiếp ứng dụng bản đồ trên điện thoại.
 3. **Bước 3 - Quy trình Đặt trước & Quản lý đơn hàng (Tab 3 & 4):**
    - Khách đặt đơn Pre-order chọn khung giờ 07:30 - 08:00.
    - Nông dân vào duyệt đơn `ACCEPTED`, soạn hàng `READY_FOR_PICKUP` và hoàn thành `COMPLETED`.

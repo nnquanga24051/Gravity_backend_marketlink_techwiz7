@@ -596,7 +596,7 @@ export default function AdminMarketStudio({ callApi, role, token }) {
                 </div>
                 {/* Preset shortcuts */}
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mẫu tọa độ nhanh:</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gợi ý tọa độ:</span>
                   <button
                     type="button"
                     className="btn btn-outline btn-sm"
