@@ -2,6 +2,7 @@ import React from 'react';
 import './MarketCard.css';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
+import { formatImageUrl } from '../../services/apiClient';
 
 export default function MarketCard({ 
   market, 
@@ -51,7 +52,7 @@ export default function MarketCard({
     <div className="ml-card ml-market-card">
       <div className="ml-market-img-wrap">
         <img 
-          src={imageUrl || fallbackImg} 
+          src={formatImageUrl(imageUrl, fallbackImg)} 
           alt={name} 
           className="ml-market-img"
           loading="lazy"

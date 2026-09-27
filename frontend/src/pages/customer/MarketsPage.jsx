@@ -7,6 +7,7 @@ import OpenStreetMapRouting from '../../components/OpenStreetMapRouting';
 import Button from '../../components/common/Button';
 import marketService from '../../services/marketService';
 import { matchSearch, POPULAR_MARKET_KEYWORDS } from '../../utils/searchUtils';
+import { formatImageUrl } from '../../services/apiClient';
 
 export default function MarketsPage({ 
   onNavigate, 
@@ -117,7 +118,7 @@ export default function MarketsPage({
                 operatingDays: m.operatingDays || 'Thứ 7 & Chủ Nhật',
                 operatingHours: m.operatingHours || '06:00 - 11:30',
                 stallsCount: m.stallsCount || 16,
-                imageUrl: m.imageUrl || 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=700&q=80',
+                imageUrl: formatImageUrl(m.imageUrl, 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=700&q=80'),
                 tag: m.tag || 'Chợ nông sản sinh thái',
                 verified: true,
                 description: m.description || 'Chợ phiên nông sản sạch liên kết nông dân địa phương.'

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import './ImageUploadInput.css';
+import { formatImageUrl } from '../services/apiClient';
 
 export default function ImageUploadInput({
   value,
@@ -55,7 +56,8 @@ export default function ImageUploadInput({
       });
 
       const data = await res.json();
-      const uploadedUrl = data.data?.fullUrl || data.data?.url || data.url;
+      // Prefer relative URL (/uploads/...) to avoid hardcoded domain/IP issues
+      const uploadedUrl = data.data?.url || data.data?.fullUrl || data.url;
 
       if (res.ok && uploadedUrl) {
         triggerChange(uploadedUrl);
@@ -172,7 +174,7 @@ export default function ImageUploadInput({
         <div className="ml-upload-preview-card">
           <div className="ml-upload-preview-thumb">
             <img
-              src={currentValue}
+              src={formatImageUrl(currentValue)}
               alt="Preview"
               onError={(e) => {
                 e.target.src = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&auto=format&fit=crop&q=80';

@@ -5,6 +5,7 @@ import Badge from '../common/Badge';
 import Button from '../common/Button';
 import L from 'leaflet';
 import { notificationService, playNotificationChime } from '../../services/notificationService';
+import { formatImageUrl } from '../../services/apiClient';
 
 export default function MarketDetailModal({
   isOpen,
@@ -296,7 +297,12 @@ export default function MarketDetailModal({
         {activeTab === 'schedule' && (
           <div className="ml-modal-tab-content">
             <div className="ml-detail-banner">
-              <img src={imageUrl} alt={name} className="ml-detail-img" />
+              <img 
+                src={formatImageUrl(imageUrl, 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=700&q=80')} 
+                alt={name} 
+                className="ml-detail-img" 
+                onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=700&q=80'; }}
+              />
               <div className="ml-detail-pills">
                 <Badge variant="organic" size="sm">📍 Khoảng cách: {distance}</Badge>
                 <Badge variant="ready" size="sm">✓ Đang mở nhận đặt trước</Badge>

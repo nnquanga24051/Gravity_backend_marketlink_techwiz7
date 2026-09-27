@@ -1,5 +1,5 @@
 // frontend/src/services/marketService.js
-import apiClient from './apiClient';
+import apiClient, { formatImageUrl } from './apiClient';
 
 export const marketService = {
   /**
@@ -14,10 +14,11 @@ export const marketService = {
 
       const qs = params.toString() ? `?${params.toString()}` : '';
       const res = await apiClient.get(`/markets${qs}`);
-      if (Array.isArray(res)) return res;
-      if (res && Array.isArray(res.data)) return res.data;
-      if (res && Array.isArray(res.value)) return res.value;
-      return [];
+      const rawList = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : (res && Array.isArray(res.value) ? res.value : []));
+      return rawList.map(m => ({
+        ...m,
+        imageUrl: formatImageUrl(m.imageUrl)
+      }));
     } catch (err) {
       console.warn('Failed to fetch markets, returning fallback array', err);
       return [];
@@ -50,7 +51,11 @@ export const marketService = {
    */
   async getMarketById(id) {
     const res = await apiClient.get(`/markets/${id}`);
-    return res.data || res;
+    const data = res.data || res;
+    if (data && typeof data === 'object') {
+      data.imageUrl = formatImageUrl(data.imageUrl);
+    }
+    return data;
   },
 
   /**

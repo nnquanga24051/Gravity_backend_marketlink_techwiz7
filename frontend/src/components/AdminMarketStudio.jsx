@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ImageUploadInput from './ImageUploadInput';
+import { formatImageUrl } from '../services/apiClient';
 
 export default function AdminMarketStudio({ callApi, role, token }) {
   const [markets, setMarkets] = useState([]);
@@ -386,7 +387,7 @@ export default function AdminMarketStudio({ callApi, role, token }) {
               {/* Header with image */}
               <div style={{ position: 'relative', height: 140, borderRadius: '10px 10px 0 0', overflow: 'hidden', margin: '-18px -18px 14px -18px' }}>
                 <img
-                  src={m.imageUrl || 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=600&auto=format&fit=crop&q=80'}
+                  src={formatImageUrl(m.imageUrl, 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=600&auto=format&fit=crop&q=80')}
                   alt={m.name}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=600&auto=format&fit=crop&q=80'; }}

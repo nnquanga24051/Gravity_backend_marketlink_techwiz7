@@ -9,7 +9,15 @@ const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || '';
  */
 export function formatImageUrl(url, fallback = 'https://images.unsplash.com/photo-1540420773420-3366772f4999') {
   if (!url) return fallback;
+  // If the URL contains an uploaded asset path, extract the clean relative path
+  if (typeof url === 'string' && url.includes('/uploads/')) {
+    return url.substring(url.indexOf('/uploads/'));
+  }
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    // Normalize any legacy hardcoded IP or port
+    if (url.includes('36.50.176.64') || url.includes('localhost:8081')) {
+      return url.replace(/^http:\/\/[^/]+/, '');
+    }
     return url;
   }
   const cleanPath = url.startsWith('/') ? url : `/${url}`;
