@@ -13,43 +13,43 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu tạo mới tài khoản người dùng từ trang Quản trị viên")
+@Schema(description = "Admin request to create new user account")
 public class AdminCreateUserRequest {
 
-    @NotBlank(message = "Họ và tên không được để trống")
-    @Schema(description = "Họ và tên người dùng", example = "Trần Văn Nông")
+    @NotBlank(message = "Full name cannot be blank")
+    @Schema(description = "User full name", example = "David Miller")
     private String fullName;
 
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không đúng định dạng")
-    @Schema(description = "Email đăng nhập", example = "farmer.tran@marketlink.vn")
+    @NotBlank(message = "Email cannot be blank")
+    @Email(message = "Invalid email format")
+    @Schema(description = "Login email", example = "farmer.tran@marketlink.vn")
     private String email;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
-    @Schema(description = "Mật khẩu đăng nhập", example = "MarketLink@123")
+    @NotBlank(message = "Password cannot be blank")
+    @Size(min = 6, message = "Password must be at least 6 characters")
+    @Schema(description = "Login password", example = "MarketLink@123")
     private String password;
 
-    @Schema(description = "Số điện thoại liên hệ", example = "0987654321")
+    @Schema(description = "Contact phone number", example = "0987654321")
     private String phoneNumber;
 
-    @NotBlank(message = "Vai trò không được để trống")
-    @Schema(description = "Vai trò người dùng (CUSTOMER, FARMER, ADMIN)", example = "FARMER")
+    @NotBlank(message = "Role cannot be blank")
+    @Schema(description = "User role (CUSTOMER, FARMER, ADMIN)", example = "FARMER")
     private String role;
 
-    @Schema(description = "Trạng thái tài khoản (ACTIVE, SUSPENDED)", example = "ACTIVE")
+    @Schema(description = "Account status (ACTIVE, SUSPENDED)", example = "ACTIVE")
     private String status;
 
-    @Schema(description = "Địa chỉ liên hệ / giao hàng", example = "Thạch Thất, Hà Nội")
+    @Schema(description = "Contact / delivery address", example = "123 Market Street, Hanoi")
     private String address;
 
-    // Các trường đặc thù nếu tạo Nông dân (FARMER)
-    @Schema(description = "Tên nông trại / gian hàng sạp", example = "HTX Nông Sản Xanh Ba Vì")
+    // Specific fields for creating Farmer account (FARMER)
+    @Schema(description = "Farm / Stall name", example = "Ba Vi Green Organic Cooperative")
     private String farmName;
 
-    @Schema(description = "Địa chỉ nông trại / cơ sở sản xuất", example = "Vân Hòa, Ba Vì, Hà Nội")
+    @Schema(description = "Farm / production facility address", example = "Van Hoa, Ba Vi, Hanoi")
     private String farmAddress;
 
-    @Schema(description = "Trạng thái thẩm định KYC ban đầu (UNVERIFIED, PENDING, VERIFIED)", example = "VERIFIED")
+    @Schema(description = "Initial KYC status (UNVERIFIED, PENDING, VERIFIED)", example = "VERIFIED")
     private String kycStatus;
 }

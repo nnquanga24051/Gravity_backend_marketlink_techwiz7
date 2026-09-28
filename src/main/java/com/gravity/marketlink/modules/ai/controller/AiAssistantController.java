@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Tag(name = "7. Trợ lý AI thông minh (AI Assistant - Optional)", description = "API trợ lý ảo trả lời câu hỏi của khách hàng về thời gian mở cửa chợ, sạp nông dân và nông sản sẵn có")
+@Tag(name = "7. Intelligent AI Assistant (AI Assistant - Optional)", description = "AI assistant APIs for answering customer inquiries regarding market operating hours, farmer stalls, and produce availability")
 @RestController
 @RequestMapping("/api/ai")
 @RequiredArgsConstructor
@@ -25,14 +25,14 @@ public class AiAssistantController {
 
     private final AiAssistantService aiAssistantService;
 
-    @Operation(summary = "Hỏi đáp với Trợ lý AI (AI Chatbot)", description = "Đặt câu hỏi về ngày họp chợ, giờ mở/đóng cửa, tìm kiếm nông sản và sạp nông dân đang mở bán.")
+    @Operation(summary = "Chat with AI Assistant (AI Chatbot)", description = "Inquire about market session days, operating hours, search for fresh produce and active farmer stalls.")
     @PostMapping(value = {"/chat", "/assistant/chat"})
     public Mono<ResponseEntity<ApiResponse<AiChatResponse>>> chatWithAssistant(@Valid @RequestBody AiChatRequest request) {
         return aiAssistantService.answerQuery(request)
-                .map(response -> ResponseEntity.ok(ApiResponse.success("Trợ lý AI trả lời thành công.", response)));
+                .map(response -> ResponseEntity.ok(ApiResponse.success("AI Assistant responded successfully.", response)));
     }
 
-    @Operation(summary = "Hỏi đáp với Trợ lý AI thời gian thực (Streaming SSE)", description = "Nhận phản hồi từng từ theo thời gian thực (Server-Sent Events) giống ChatGPT.")
+    @Operation(summary = "Chat with AI Assistant in real-time (Streaming SSE)", description = "Stream word-by-word responses in real-time using Server-Sent Events.")
     @PostMapping(value = {"/chat/stream", "/assistant/chat/stream", "/stream"}, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> streamChatWithAssistant(@Valid @RequestBody AiChatRequest request) {
         return aiAssistantService.streamQuery(request);

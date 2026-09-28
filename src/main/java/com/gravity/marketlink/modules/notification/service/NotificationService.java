@@ -25,7 +25,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
 
-    // Quản lý các kênh phát thông báo đẩy thời gian thực theo userId
+    // Manages real-time SSE push notification channels by userId
     private final Map<Long, Sinks.Many<ServerSentEvent<NotificationResponse>>> userSinks = new ConcurrentHashMap<>();
 
     public Flux<NotificationResponse> getUserNotifications(Long userId) {
@@ -40,10 +40,10 @@ public class NotificationService {
     @Transactional
     public Mono<NotificationResponse> markAsRead(Long userId, Long notificationId) {
         return notificationRepository.findById(notificationId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông báo với ID: " + notificationId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Notification not found with ID: " + notificationId)))
                 .flatMap(notif -> {
                     if (!notif.getUserId().equals(userId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền chỉnh sửa thông báo này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to modify this notification."));
                     }
                     notif.setIsRead(true);
                     return notificationRepository.save(notif);
@@ -81,7 +81,7 @@ public class NotificationService {
     }
 
     /**
-     * Bắn thông báo đẩy thời gian thực (SSE) tới client đang kết nối
+     * Sends real-time SSE push notification to connected client
      */
     public void emitPushNotification(Notification notification) {
         if (notification == null || notification.getUserId() == null) return;
@@ -94,14 +94,14 @@ public class NotificationService {
                     .data(resp)
                     .build();
             Sinks.EmitResult result = sink.tryEmitNext(event);
-            log.info("Đã bắn thông báo đẩy SSE tới user {}: result={}", notification.getUserId(), result);
+            log.info("Dispatched SSE notification to user {}: result={}", notification.getUserId(), result);
         } else {
-            log.debug("User {} hiện không có kết nối SSE trực tiếp", notification.getUserId());
+            log.debug("User {} currently has no active SSE connection", notification.getUserId());
         }
     }
 
     /**
-     * Đăng ký nhận luồng thông báo đẩy thời gian thực (SSE Stream)
+     * Subscribes to real-time SSE push notification stream
      */
     public Flux<ServerSentEvent<NotificationResponse>> subscribe(Long userId) {
         Sinks.Many<ServerSentEvent<NotificationResponse>> sink = userSinks.computeIfAbsent(
@@ -109,19 +109,19 @@ public class NotificationService {
                 k -> Sinks.many().multicast().onBackpressureBuffer()
         );
 
-        // Sự kiện khởi tạo kết nối thành công
+        // Connection established event
         ServerSentEvent<NotificationResponse> initEvent = ServerSentEvent.<NotificationResponse>builder()
                 .event("connected")
                 .data(NotificationResponse.builder()
                         .userId(userId)
-                        .title("Kết nối thông báo đẩy")
-                        .message("Hệ thống thông báo thời gian thực MarketLink đã sẵn sàng!")
+                        .title("Notification Stream Connected")
+                        .message("MarketLink real-time notification stream is ready!")
                         .type("SYSTEM")
                         .createdAt(LocalDateTime.now())
                         .build())
                 .build();
 
-        // Heartbeat giữ kết nối 25 giây/lần tránh bị timeout Nginx / Proxy
+        // Heartbeat ping every 25 seconds to prevent Nginx / Proxy timeouts
         Flux<ServerSentEvent<NotificationResponse>> heartbeats = Flux.interval(Duration.ofSeconds(25))
                 .map(i -> ServerSentEvent.<NotificationResponse>builder()
                         .event("heartbeat")
@@ -129,7 +129,7 @@ public class NotificationService {
                         .build());
 
         return Flux.merge(Mono.just(initEvent), sink.asFlux(), heartbeats)
-                .doOnCancel(() -> log.debug("User {} đã đóng kết nối thông báo đẩy SSE", userId));
+                .doOnCancel(() -> log.debug("User {} closed SSE notification connection", userId));
     }
 
     public NotificationResponse toResponse(Notification n) {

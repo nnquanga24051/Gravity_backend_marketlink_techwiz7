@@ -23,17 +23,17 @@ public class EmailService {
     private String fromEmail;
 
     /**
-     * Gửi email mã OTP xác minh thực tế tới hộp thư người dùng (Non-blocking Reactive)
+     * Sends OTP verification email to user inbox (Non-blocking Reactive)
      *
-     * @param toEmail   Email người nhận
-     * @param fullName  Họ và tên người nhận
-     * @param otpCode   Mã OTP gồm 6 chữ số
-     * @param type      Loại xác minh (PASSWORD_RESET, EMAIL_CONFIRMATION...)
+     * @param toEmail   Recipient email
+     * @param fullName  Recipient full name
+     * @param otpCode   6-digit OTP code
+     * @param type      Verification type (PASSWORD_RESET, EMAIL_CONFIRMATION...)
      */
     public Mono<Void> sendOtpEmail(String toEmail, String fullName, String otpCode, String type) {
         return Mono.fromRunnable(() -> {
             try {
-                log.info("Bắt đầu gửi email OTP [{}] loại [{}] đến địa chỉ: {}", otpCode, type, toEmail);
+                log.info("Starting dispatch of OTP email [{}] type [{}] to: {}", otpCode, type, toEmail);
 
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(
@@ -42,27 +42,27 @@ public class EmailService {
                         StandardCharsets.UTF_8.name()
                 );
 
-                helper.setFrom(fromEmail, "MarketLink - Chợ Phiên Nông Sản");
+                helper.setFrom(fromEmail, "MarketLink - Farmers Market");
                 helper.setTo(toEmail);
 
                 String subject;
                 String actionTitle;
                 if ("PASSWORD_RESET".equalsIgnoreCase(type)) {
-                    subject = "[MarketLink] Mã xác nhận đặt lại mật khẩu của bạn";
-                    actionTitle = "Đặt Lại Mật Khẩu Tài Khoản";
+                    subject = "[MarketLink] Your Password Reset Verification Code";
+                    actionTitle = "Reset Account Password";
                 } else {
-                    subject = "[MarketLink] Mã xác minh tài khoản của bạn";
-                    actionTitle = "Xác Minh Tài Khoản";
+                    subject = "[MarketLink] Your Account Verification Code";
+                    actionTitle = "Account Verification";
                 }
 
                 helper.setSubject(subject);
                 helper.setText(buildHtmlEmail(fullName, otpCode, actionTitle), true);
 
                 mailSender.send(message);
-                log.info("Đã gửi thành công email OTP tới: {}", toEmail);
+                log.info("Successfully sent OTP email to: {}", toEmail);
             } catch (Exception e) {
-                log.error("Lỗi khi gửi email OTP tới {}: {}", toEmail, e.getMessage(), e);
-                throw new RuntimeException("Không thể gửi email OTP tới " + toEmail + ": " + e.getMessage(), e);
+                log.error("Error sending OTP email to {}: {}", toEmail, e.getMessage(), e);
+                throw new RuntimeException("Unable to send OTP email to " + toEmail + ": " + e.getMessage(), e);
             }
         })
         .subscribeOn(Schedulers.boundedElastic())
@@ -70,10 +70,10 @@ public class EmailService {
     }
 
     /**
-     * Tạo giao diện HTML Email thương hiệu MarketLink hiện đại, responsive
+     * Generates modern, responsive MarketLink branded HTML email template
      */
     private String buildHtmlEmail(String fullName, String otpCode, String actionTitle) {
-        String displayName = (fullName != null && !fullName.trim().isEmpty()) ? fullName : "Quý khách";
+        String displayName = (fullName != null && !fullName.trim().isEmpty()) ? fullName : "Valued Customer";
 
         return "<!DOCTYPE html>"
                 + "<html lang=\"vi\">"
@@ -100,28 +100,28 @@ public class EmailService {
                 + "<div class=\"container\">"
                 + "  <div class=\"header\">"
                 + "    <h1 class=\"brand\">🌱 MARKETLINK</h1>"
-                + "    <p class=\"tagline\">Chợ Phiên Nông Sản & Nông Sản Sạch An Toàn</p>"
+                + "    <p class=\"tagline\">Farmers Market & Fresh Organic Produce</p>"
                 + "  </div>"
                 + "  <div class=\"body\">"
-                + "    <div class=\"greeting\">Xin chào " + displayName + ",</div>"
+                + "    <div class=\"greeting\">Hello " + displayName + ",</div>"
                 + "    <p class=\"desc\">"
-                + "      Bạn (hoặc ai đó) vừa gửi yêu cầu <strong>" + actionTitle + "</strong> trên hệ thống MarketLink. "
-                + "      Dưới đây là mã xác minh bảo mật gồm 6 chữ số của bạn:"
+                + "      You (or someone) recently requested <strong>" + actionTitle + "</strong> on MarketLink platform. "
+                + "      Here is your 6-digit secure verification code:"
                 + "    </p>"
                 + "    <div class=\"otp-box\">"
-                + "      <div class=\"otp-title\">Mã Xác Minh OTP</div>"
+                + "      <div class=\"otp-title\">OTP Verification Code</div>"
                 + "      <div class=\"otp-code\">" + otpCode + "</div>"
                 + "    </div>"
                 + "    <div class=\"warning-box\">"
-                + "      ⏱️ <strong>Lưu ý:</strong> Mã này có hiệu lực trong vòng <strong>10 phút</strong>. "
-                + "      Tuyệt đối không chia sẻ mã này cho bất kỳ ai (kể cả nhân viên hỗ trợ của MarketLink) để tránh bị chiếm đoạt tài khoản."
+                + "      ⏱️ <strong>Note:</strong> This code is valid for <strong>10 minutes</strong>. "
+                + "      Never share this code with anyone (including MarketLink support staff) to protect your account."
                 + "    </div>"
                 + "    <p class=\"desc\" style=\"margin-top: 20px; font-size: 13px;\">"
-                + "      Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này hoặc đổi mật khẩu tài khoản ngay lập tức."
+                + "      If you did not make this request, please disregard this email or update your password immediately."
                 + "    </p>"
                 + "  </div>"
                 + "  <div class=\"footer\">"
-                + "    <p style=\"margin: 0 0 6px 0;\">Email này được gửi tự động từ hệ thống bảo mật MarketLink.</p>"
+                + "    <p style=\"margin: 0 0 6px 0;\">This is an automated email from MarketLink Security System.</p>"
                 + "    <p style=\"margin: 0;\">© 2026 MarketLink Platform. All rights reserved.</p>"
                 + "  </div>"
                 + "</div>"

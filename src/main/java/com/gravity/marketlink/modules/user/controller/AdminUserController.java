@@ -21,7 +21,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@Tag(name = "7. Quản trị viên - Quản lý Người dùng (Admin Users)", description = "Các API tra cứu danh sách người dùng, xem chi tiết và khóa/kích hoạt tài khoản người dùng")
+@Tag(name = "7. Admin User Management", description = "APIs for browsing users, viewing profile details, and suspending/activating accounts")
 @SecurityRequirement(name = "Bearer Authentication")
 @RestController
 @RequestMapping("/api/admin/users")
@@ -31,7 +31,7 @@ public class AdminUserController {
     private final AdminUserService adminUserService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Tra cứu danh sách người dùng", description = "Tìm kiếm người dùng theo từ khóa (tên, email, số điện thoại), vai trò (ADMIN, FARMER, CUSTOMER), trạng thái hoạt động (ACTIVE, SUSPENDED) hoặc trạng thái KYC.")
+    @Operation(summary = "Browse and search user list", description = "Search users by keyword (name, email, phone), role (ADMIN, FARMER, CUSTOMER), status (ACTIVE, SUSPENDED), or KYC status.")
     @GetMapping
     public Mono<ResponseEntity<ApiResponse<List<AdminUserListItemResponse>>>> getUsers(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -40,18 +40,18 @@ public class AdminUserController {
             @RequestParam(value = "kycStatus", required = false) String kycStatus) {
         return adminUserService.getUsers(keyword, role, status, kycStatus)
                 .collectList()
-                .map(users -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách người dùng thành công.", users)));
+                .map(users -> ResponseEntity.ok(ApiResponse.success("Retrieved user list successfully.", users)));
     }
 
-    @Operation(summary = "Xem thông tin chi tiết người dùng", description = "Lấy toàn bộ thông tin chi tiết hồ sơ tài khoản (bao gồm thông tin Nông dân / Khách hàng và nhật ký kiểm duyệt).")
+    @Operation(summary = "View user profile details", description = "Retrieves full account details (including Farmer/Customer profile and moderation audit logs).")
     @GetMapping("/{userId}")
     public Mono<ResponseEntity<ApiResponse<AdminUserDetailResponse>>> getUserDetail(
             @PathVariable("userId") Long userId) {
         return adminUserService.getUserDetail(userId)
-                .map(detail -> ResponseEntity.ok(ApiResponse.success("Lấy thông tin chi tiết người dùng thành công.", detail)));
+                .map(detail -> ResponseEntity.ok(ApiResponse.success("Retrieved user details successfully.", detail)));
     }
 
-    @Operation(summary = "Khóa hoặc Mở khóa tài khoản người dùng", description = "Cập nhật trạng thái người dùng (SUSPENDED để tạm khóa, ACTIVE để kích hoạt lại). Nếu khóa tài khoản, lý do sẽ được ghi vào nhật ký kiểm duyệt.")
+    @Operation(summary = "Suspend or activate user account", description = "Updates user status (SUSPENDED to lock, ACTIVE to reactivate). Audit notes recorded in log.")
     @PatchMapping("/{userId}/status")
     public Mono<ResponseEntity<ApiResponse<AdminUserDetailResponse>>> updateUserStatus(
             Authentication authentication,
@@ -62,12 +62,12 @@ public class AdminUserController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin quản trị viên.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Administrator information not found.")))
                 .flatMap(admin -> adminUserService.updateUserStatus(admin.getUserId(), userId, request))
-                .map(res -> ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái người dùng thành công.", res)));
+                .map(res -> ResponseEntity.ok(ApiResponse.success("Updated user status successfully.", res)));
     }
 
-    @Operation(summary = "Admin tạo mới tài khoản người dùng", description = "Cho phép quản trị viên thêm mới tài khoản Nông dân, Khách hàng hoặc Quản trị viên kèm phân quyền và thông tin ban đầu.")
+    @Operation(summary = "Admin creates new user account", description = "Allows Administrator to create new Farmer, Customer, or Admin accounts with initial credentials.")
     @PostMapping
     public Mono<ResponseEntity<ApiResponse<AdminUserDetailResponse>>> createUser(
             Authentication authentication,
@@ -77,9 +77,9 @@ public class AdminUserController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin quản trị viên.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Administrator information not found.")))
                 .flatMap(admin -> adminUserService.createUser(admin.getUserId(), request))
                 .map(createdUser -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success("Thêm người dùng mới thành công.", createdUser)));
+                        .body(ApiResponse.success("Created new user successfully.", createdUser)));
     }
 }

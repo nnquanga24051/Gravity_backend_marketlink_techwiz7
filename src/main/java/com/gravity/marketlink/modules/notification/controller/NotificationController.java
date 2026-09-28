@@ -22,7 +22,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.Map;
 
-@Tag(name = "6. Thông báo người dùng (Notifications)", description = "Các API nhận thông báo cập nhật đơn hàng, kết quả KYC, nhắc nhở họp chợ")
+@Tag(name = "6. User Notifications", description = "APIs for receiving order status updates, KYC results, and market reminders")
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
@@ -32,7 +32,7 @@ public class NotificationController {
     private final UserRepository userRepository;
     private final JwtTokenProvider tokenProvider;
 
-    @Operation(summary = "Lấy danh sách thông báo của tài khoản", description = "Sắp xếp theo thứ tự mới nhất.")
+    @Operation(summary = "Get list of user notifications", description = "Sorted by newest first.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping
     public Mono<ResponseEntity<ApiResponse<List<NotificationResponse>>>> getMyNotifications(Authentication authentication) {
@@ -41,12 +41,12 @@ public class NotificationController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Account information not found.")))
                 .flatMap(user -> notificationService.getUserNotifications(user.getUserId()).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách thông báo thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved notifications successfully.", list)));
     }
 
-    @Operation(summary = "Đếm số lượng thông báo chưa đọc", description = "Dùng để hiển thị badge số lượng thông báo trên header.")
+    @Operation(summary = "Count unread notifications", description = "Used to display unread badge count in header.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/unread-count")
     public Mono<ResponseEntity<ApiResponse<Map<String, Long>>>> getUnreadCount(Authentication authentication) {
@@ -55,12 +55,12 @@ public class NotificationController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Account information not found.")))
                 .flatMap(user -> notificationService.getUnreadCount(user.getUserId()))
-                .map(count -> ResponseEntity.ok(ApiResponse.success("Lấy số lượng thông báo chưa đọc thành công.", Map.of("unreadCount", count))));
+                .map(count -> ResponseEntity.ok(ApiResponse.success("Retrieved unread notification count successfully.", Map.of("unreadCount", count))));
     }
 
-    @Operation(summary = "Đánh dấu một thông báo là đã đọc", description = "Cập nhật trạng thái is_read = true cho thông báo.")
+    @Operation(summary = "Mark a notification as read", description = "Updates is_read = true status for notification.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PatchMapping("/{id}/read")
     public Mono<ResponseEntity<ApiResponse<NotificationResponse>>> markAsRead(
@@ -71,12 +71,12 @@ public class NotificationController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Account information not found.")))
                 .flatMap(user -> notificationService.markAsRead(user.getUserId(), id))
-                .map(res -> ResponseEntity.ok(ApiResponse.success("Đã đánh dấu thông báo là đã đọc.", res)));
+                .map(res -> ResponseEntity.ok(ApiResponse.success("Marked notification as read.", res)));
     }
 
-    @Operation(summary = "Đánh dấu tất cả thông báo là đã đọc", description = "Cập nhật tất cả thông báo chưa đọc thành đã đọc.")
+    @Operation(summary = "Mark all notifications as read", description = "Updates all unread notifications to read status.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PatchMapping("/read-all")
     public Mono<ResponseEntity<ApiResponse<Void>>> markAllAsRead(Authentication authentication) {
@@ -85,12 +85,12 @@ public class NotificationController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Account information not found.")))
                 .flatMap(user -> notificationService.markAllAsRead(user.getUserId()))
-                .thenReturn(ResponseEntity.ok(ApiResponse.success("Đã đánh dấu tất cả thông báo là đã đọc.", null)));
+                .thenReturn(ResponseEntity.ok(ApiResponse.success("Marked all notifications as read.", null)));
     }
 
-    @Operation(summary = "Luồng thông báo đẩy thời gian thực (SSE Push Stream)", description = "Đăng ký nhận luồng SSE thông báo đẩy tức thì. Hỗ trợ truyền Token qua Header hoặc param ?token= để dùng với EventSource trình duyệt.")
+    @Operation(summary = "Real-time SSE Notification Stream", description = "Subscribe to real-time Server-Sent Events push stream. Supports token in Header or ?token= query parameter.")
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<NotificationResponse>> streamNotifications(
             Authentication authentication,
@@ -106,18 +106,18 @@ public class NotificationController {
             return Flux.just(ServerSentEvent.<NotificationResponse>builder()
                     .event("error")
                     .data(NotificationResponse.builder()
-                            .title("Chưa xác thực")
-                            .message("Vui lòng đăng nhập để nhận thông báo đẩy.")
+                            .title("Unauthenticated")
+                            .message("Please sign in to receive real-time notifications.")
                             .build())
                     .build());
         }
 
         return userRepository.findByEmail(email)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy tài khoản người dùng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("User account not found.")))
                 .flatMapMany(user -> notificationService.subscribe(user.getUserId()));
     }
 
-    @Operation(summary = "Bắn thử thông báo đẩy kiểm thử (Test Push Notification)", description = "Gửi một thông báo tức thì đến tài khoản hiện tại để kiểm tra âm thanh và hiển thị pop-up thông báo.")
+    @Operation(summary = "Send test push notification", description = "Sends an instant notification to current account to verify sound and pop-up rendering.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/test-push")
     public Mono<ResponseEntity<ApiResponse<NotificationResponse>>> sendTestPush(
@@ -127,13 +127,13 @@ public class NotificationController {
             return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
         }
 
-        String title = body != null && body.containsKey("title") ? body.get("title") : "🔔 Thông báo đẩy MarketLink";
-        String message = body != null && body.containsKey("message") ? body.get("message") : "Hệ thống thông báo đẩy thời gian thực đang kết nối và hoạt động tốt!";
+        String title = body != null && body.containsKey("title") ? body.get("title") : "🔔 MarketLink Push Notification";
+        String message = body != null && body.containsKey("message") ? body.get("message") : "Real-time push notification system is connected and working properly!";
         String type = body != null && body.containsKey("type") ? body.get("type") : "SYSTEM";
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy tài khoản.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Account not found.")))
                 .flatMap(user -> notificationService.createNotification(user.getUserId(), title, message, type, null))
-                .map(notif -> ResponseEntity.ok(ApiResponse.success("Đã bắn thông báo đẩy kiểm thử thành công.", notificationService.toResponse(notif))));
+                .map(notif -> ResponseEntity.ok(ApiResponse.success("Sent test push notification successfully.", notificationService.toResponse(notif))));
     }
 }

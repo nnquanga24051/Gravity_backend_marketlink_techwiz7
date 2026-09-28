@@ -62,38 +62,38 @@ public class OrderService {
     @Transactional
     public Mono<OrderDetailResponse> createOrder(Long customerId, OrderCreateRequest request) {
         if (request.getPickupDate().isBefore(LocalDate.now())) {
-            return Mono.error(new IllegalArgumentException("Ngày nhận hàng không thể là ngày trong quá khứ."));
+            return Mono.error(new IllegalArgumentException("Pickup date cannot be in the past."));
         }
 
         return farmerProfileRepository.findById(request.getFarmerId())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy gian hàng nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer stall not found.")))
                 .flatMap(farmer -> {
                     if (farmer.getIsApproved() == null || !farmer.getIsApproved()) {
-                        return Mono.error(new IllegalStateException("Gian hàng nông dân chưa được duyệt KYC, chưa thể nhận đơn hàng."));
+                        return Mono.error(new IllegalStateException("Farmer stall has not been KYC approved, cannot receive orders yet."));
                     }
 
                     return marketRepository.findById(request.getMarketId())
-                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy chợ nông sản với ID: " + request.getMarketId())));
+                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmers market not found with ID: " + request.getMarketId())));
                 })
                 .flatMap(market -> slotRepository.findById(request.getSlotId())
-                        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy khung giờ nhận hàng với ID: " + request.getSlotId())))
+                        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Pickup slot not found with ID: " + request.getSlotId())))
                         .flatMap(slot -> {
                             if (!slot.getFarmerId().equals(request.getFarmerId()) || !slot.getMarketId().equals(request.getMarketId())) {
-                                return Mono.error(new IllegalArgumentException("Khung giờ nhận hàng không thuộc về gian hàng hoặc chợ đã chọn."));
+                                return Mono.error(new IllegalArgumentException("Pickup slot does not belong to selected stall or market."));
                             }
 
                             return orderRepository.countActiveOrdersInSlot(slot.getSlotId(), request.getPickupDate())
                                     .flatMap(activeOrders -> {
                                         if (activeOrders >= slot.getMaxOrdersCapacity()) {
-                                            return Mono.error(new IllegalStateException("Khung giờ nhận hàng này đã đạt tối đa sức chứa ("
-                                                    + slot.getMaxOrdersCapacity() + " đơn). Vui lòng chọn khung giờ khác."));
+                                            return Mono.error(new IllegalStateException("This pickup slot has reached maximum capacity ("
+                                                    + slot.getMaxOrdersCapacity() + " orders). Please choose another pickup slot."));
                                         }
                                         return calculateCutoffTime(request.getFarmerId(), request.getMarketId(), request.getPickupDate(), slot.getStartTime())
                                                 .flatMap(cutoffTime -> {
                                                     if (LocalDateTime.now().isAfter(cutoffTime)) {
-                                                        return Mono.error(new IllegalStateException("Đã quá hạn chốt đơn ("
+                                                        return Mono.error(new IllegalStateException("Pre-order cutoff deadline has passed ("
                                                                 + cutoffTime.format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
-                                                                + ") cho phiên chợ ngày " + request.getPickupDate() + ". Nông dân đã ngừng nhận đơn."));
+                                                                + ") for market session date " + request.getPickupDate() + ". The farmer has stopped accepting orders."));
                                                     }
                                                     return processOrderItemsAndSave(customerId, request, slot, cutoffTime);
                                                 });
@@ -125,16 +125,16 @@ public class OrderService {
     private Mono<OrderDetailResponse> processOrderItemsAndSave(Long customerId, OrderCreateRequest request, PickupTimeSlot slot, LocalDateTime cutoffTime) {
         return Flux.fromIterable(request.getItems())
                 .concatMap(itemReq -> productRepository.findById(itemReq.getProductId())
-                        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy sản phẩm với ID: " + itemReq.getProductId())))
+                        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Product not found with ID: " + itemReq.getProductId())))
                         .flatMap(product -> {
                             if (!product.getFarmerId().equals(request.getFarmerId())) {
-                                return Mono.error(new IllegalArgumentException("Sản phẩm '" + product.getName() + "' không thuộc quyền quản lý của gian hàng này."));
+                                return Mono.error(new IllegalArgumentException("Product '" + product.getName() + "' does not belong to this farmer stall."));
                             }
                             if ("BANNED".equalsIgnoreCase(product.getStatus()) || "TEMPORARILY_UNAVAILABLE".equalsIgnoreCase(product.getStatus())) {
-                                return Mono.error(new IllegalStateException("Sản phẩm '" + product.getName() + "' hiện không khả dụng để đặt hàng."));
+                                return Mono.error(new IllegalStateException("Product '" + product.getName() + "' is currently unavailable for pre-order."));
                             }
                             if (product.getCurrentStock() == null || product.getCurrentStock().compareTo(itemReq.getQuantity()) < 0) {
-                                return Mono.error(new IllegalStateException("Sản phẩm '" + product.getName() + "' không đủ số lượng tồn kho (Hiện còn: "
+                                return Mono.error(new IllegalStateException("Product '" + product.getName() + "' has insufficient inventory (Available: "
                                         + (product.getCurrentStock() != null ? product.getCurrentStock() : 0) + " " + product.getUnit() + ")."));
                             }
 
@@ -189,13 +189,13 @@ public class OrderService {
                                 return orderItemRepository.saveAll(itemsToSave)
                                         .collectList()
                                         .flatMap(savedItems -> {
-                                            String notifMsg = "Khách hàng đã đặt đơn mới " + savedOrder.getOrderCode()
-                                                    + " trị giá " + String.format("%,.0f", totalAmount) + "đ cho ngày nhận "
+                                            String notifMsg = "Customer placed new pre-order " + savedOrder.getOrderCode()
+                                                    + " valued at " + String.format("%,.0f", totalAmount) + " VND for pickup date "
                                                     + savedOrder.getPickupDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".";
 
                                             return notificationService.createNotification(
                                                     savedOrder.getFarmerId(),
-                                                    "Đơn đặt trước mới: " + savedOrder.getOrderCode(),
+                                                    "New Pre-order: " + savedOrder.getOrderCode(),
                                                     notifMsg,
                                                     "ORDER_PLACED",
                                                     savedOrder.getOrderId())
@@ -210,20 +210,20 @@ public class OrderService {
     @Transactional
     public Mono<OrderDetailResponse> cancelOrderByCustomer(Long customerId, Long orderId) {
         return orderRepository.findById(orderId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Order not found with ID: " + orderId)))
                 .flatMap(order -> {
                     if (!order.getCustomerId().equals(customerId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền thao tác trên đơn hàng này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to operate on this order."));
                     }
 
                     if (!"PLACED".equalsIgnoreCase(order.getOrderStatus()) && !"ACCEPTED".equalsIgnoreCase(order.getOrderStatus())) {
-                        return Mono.error(new IllegalStateException("Chỉ có thể hủy đơn hàng ở trạng thái ĐÃ ĐẶT (PLACED) hoặc ĐÃ XÁC NHẬN (ACCEPTED). Trạng thái hiện tại: " + order.getOrderStatus()));
+                        return Mono.error(new IllegalStateException("Can only cancel order in PLACED or ACCEPTED status. Current status: " + order.getOrderStatus()));
                     }
 
                     if (LocalDateTime.now().isAfter(order.getCutoffTime())) {
-                        return Mono.error(new IllegalStateException("Đã quá thời hạn chốt đơn ("
+                        return Mono.error(new IllegalStateException("Pre-order cutoff deadline has passed ("
                                 + order.getCutoffTime().format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
-                                + "). Khách hàng không thể tự hủy đơn hàng, vui lòng liên hệ trực tiếp nông dân để được hỗ trợ."));
+                                + "). You cannot cancel this order directly, please contact the farmer directly for assistance."));
                     }
 
                     order.setOrderStatus("CANCELLED");
@@ -233,8 +233,8 @@ public class OrderService {
                             .flatMap(savedOrder -> restoreStockForOrder(savedOrder.getOrderId())
                                     .then(notificationService.createNotification(
                                             savedOrder.getFarmerId(),
-                                            "Khách đã hủy đơn: " + savedOrder.getOrderCode(),
-                                            "Đơn hàng " + savedOrder.getOrderCode() + " đã được khách hủy trước giờ chốt đơn. Số lượng tồn kho đã được hoàn lại tự động.",
+                                            "Customer cancelled order: " + savedOrder.getOrderCode(),
+                                            "Order " + savedOrder.getOrderCode() + " was cancelled by customer before cutoff. Stock quantity has been automatically restored.",
                                             "ORDER_PLACED",
                                             savedOrder.getOrderId()))
                                     .then(enrichOrderDetail(savedOrder)));
@@ -242,36 +242,36 @@ public class OrderService {
     }
 
     /**
-     * Khách hàng điều chỉnh đơn hàng trước thời hạn chốt đơn (Modify Order before Cutoff)
+     * Customer modifies order before cutoff deadline (Modify Order before Cutoff)
      */
     @Transactional
     public Mono<OrderDetailResponse> modifyOrderByCustomer(Long customerId, Long orderId, OrderModifyRequest request) {
         if (request.getPickupDate().isBefore(LocalDate.now())) {
-            return Mono.error(new IllegalArgumentException("Ngày nhận hàng không thể là ngày trong quá khứ."));
+            return Mono.error(new IllegalArgumentException("Pickup date cannot be in the past."));
         }
 
         return orderRepository.findById(orderId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Order not found with ID: " + orderId)))
                 .flatMap(order -> {
                     if (!order.getCustomerId().equals(customerId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền thao tác trên đơn hàng này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to operate on this order."));
                     }
 
                     if (!"PLACED".equalsIgnoreCase(order.getOrderStatus()) && !"ACCEPTED".equalsIgnoreCase(order.getOrderStatus())) {
-                        return Mono.error(new IllegalStateException("Chỉ có thể chỉnh sửa đơn hàng ở trạng thái ĐÃ ĐẶT (PLACED) hoặc ĐÃ XÁC NHẬN (ACCEPTED). Trạng thái hiện tại: " + order.getOrderStatus()));
+                        return Mono.error(new IllegalStateException("Can only modify order in PLACED or ACCEPTED status. Current status: " + order.getOrderStatus()));
                     }
 
                     if (order.getCutoffTime() != null && LocalDateTime.now().isAfter(order.getCutoffTime())) {
-                        return Mono.error(new IllegalStateException("Đã quá thời hạn chốt đơn ("
+                        return Mono.error(new IllegalStateException("Pre-order cutoff deadline has passed ("
                                 + order.getCutoffTime().format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
-                                + "). Khách hàng không thể tự chỉnh sửa đơn hàng, vui lòng liên hệ trực tiếp nông dân để được hỗ trợ."));
+                                + "). You cannot modify this order directly, please contact the farmer directly for assistance."));
                     }
 
                     return slotRepository.findById(request.getSlotId())
-                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy ca nhận hàng với ID: " + request.getSlotId())))
+                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Pickup slot not found with ID: " + request.getSlotId())))
                             .flatMap(slot -> {
                                 if (!slot.getFarmerId().equals(order.getFarmerId()) || !slot.getMarketId().equals(order.getMarketId())) {
-                                    return Mono.error(new IllegalArgumentException("Khung giờ nhận hàng không thuộc về gian hàng hoặc chợ của đơn hàng này."));
+                                    return Mono.error(new IllegalArgumentException("Pickup slot does not belong to this order's stall or market."));
                                 }
 
                                 return orderRepository.countActiveOrdersInSlot(slot.getSlotId(), request.getPickupDate())
@@ -281,16 +281,16 @@ public class OrderService {
                                                     : activeCount;
 
                                             if (effectiveCount >= slot.getMaxOrdersCapacity()) {
-                                                return Mono.error(new IllegalStateException("Khung giờ nhận hàng mới này đã đạt tối đa sức chứa ("
-                                                        + slot.getMaxOrdersCapacity() + " đơn). Vui lòng chọn khung giờ khác."));
+                                                return Mono.error(new IllegalStateException("This new pickup slot has reached maximum capacity ("
+                                                        + slot.getMaxOrdersCapacity() + " orders). Please choose another pickup slot."));
                                             }
 
                                             return calculateCutoffTime(order.getFarmerId(), order.getMarketId(), request.getPickupDate(), slot.getStartTime())
                                                     .flatMap(newCutoff -> {
                                                         if (LocalDateTime.now().isAfter(newCutoff)) {
-                                                            return Mono.error(new IllegalStateException("Đã quá thời hạn chốt đơn ("
+                                                            return Mono.error(new IllegalStateException("Pre-order cutoff deadline has passed ("
                                                                     + newCutoff.format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
-                                                                    + ") cho ngày nhận mới này. Nông dân đã ngừng nhận đơn."));
+                                                                    + ") for this new pickup date. The farmer has stopped accepting orders."));
                                                         }
 
                                                         order.setSlotId(request.getSlotId());
@@ -304,8 +304,8 @@ public class OrderService {
                                                         return orderRepository.save(order)
                                                                 .flatMap(savedOrder -> notificationService.createNotification(
                                                                         savedOrder.getFarmerId(),
-                                                                        "Khách cập nhật đơn: " + savedOrder.getOrderCode(),
-                                                                        "Đơn hàng " + savedOrder.getOrderCode() + " đã được khách điều chỉnh sang ngày nhận "
+                                                                        "Customer updated order: " + savedOrder.getOrderCode(),
+                                                                        "Order " + savedOrder.getOrderCode() + " has been adjusted by customer to pickup date "
                                                                                 + savedOrder.getPickupDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".",
                                                                         "ORDER_PLACED",
                                                                         savedOrder.getOrderId())
@@ -321,20 +321,20 @@ public class OrderService {
         String newStatus = request.getOrderStatus().toUpperCase().trim();
 
         if (!List.of("ACCEPTED", "READY_FOR_PICKUP", "COMPLETED", "DECLINED").contains(newStatus)) {
-            return Mono.error(new IllegalArgumentException("Trạng thái không hợp lệ. Chỉ chấp nhận ACCEPTED, READY_FOR_PICKUP, COMPLETED, DECLINED."));
+            return Mono.error(new IllegalArgumentException("Invalid status. Only ACCEPTED, READY_FOR_PICKUP, COMPLETED, DECLINED are supported."));
         }
 
         return orderRepository.findById(orderId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Order not found with ID: " + orderId)))
                 .flatMap(order -> {
                     if (!order.getFarmerId().equals(farmerId)) {
-                        return Mono.error(new IllegalArgumentException("Đơn hàng này không thuộc quyền quản lý của gian hàng bạn."));
+                        return Mono.error(new IllegalArgumentException("This order does not belong to your stall."));
                     }
 
                     if ("CANCELLED".equalsIgnoreCase(order.getOrderStatus()) 
                             || "COMPLETED".equalsIgnoreCase(order.getOrderStatus())
                             || "DECLINED".equalsIgnoreCase(order.getOrderStatus())) {
-                        return Mono.error(new IllegalStateException("Đơn hàng đã ở trạng thái kết thúc (" + order.getOrderStatus() + "), không thể thay đổi thêm."));
+                        return Mono.error(new IllegalStateException("Order is already in a terminal state (" + order.getOrderStatus() + "), cannot be updated further."));
                     }
 
                     order.setOrderStatus(newStatus);
@@ -355,25 +355,25 @@ public class OrderService {
     private StatusNotification resolveStatusNotification(Order order, String newStatus) {
         return switch (newStatus) {
             case "ACCEPTED" -> new StatusNotification(
-                    "Đơn hàng " + order.getOrderCode() + " đã được xác nhận",
-                    "Gian hàng nông dân đã tiếp nhận và chuẩn bị đơn hàng của bạn cho ngày nhận "
+                    "Order " + order.getOrderCode() + " has been confirmed",
+                    "Farmer stall has accepted and is preparing your pre-order for pickup date "
                             + order.getPickupDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".",
                     "ORDER_ACCEPTED");
             case "READY_FOR_PICKUP" -> new StatusNotification(
-                    "Đơn hàng " + order.getOrderCode() + " đã sẵn sàng nhận!",
-                    "Nông sản tươi ngon của bạn đã được đóng gói và sẵn sàng tại sạp chợ. Hãy đến nhận hàng đúng khung giờ đã hẹn nhé!",
+                    "Order " + order.getOrderCode() + " is ready for pickup!",
+                    "Your fresh produce has been packaged and is ready at the market stall. Please pick it up on time!",
                     "ORDER_READY");
             case "COMPLETED" -> new StatusNotification(
-                    "Đơn hàng " + order.getOrderCode() + " đã hoàn thành",
-                    "Cảm ơn bạn đã nhận hàng và ủng hộ nông sản địa phương. Hãy để lại đánh giá cho sạp nông dân nhé!",
+                    "Order " + order.getOrderCode() + " has been completed",
+                    "Thank you for picking up and supporting local produce. Please leave a review for the farmer stall!",
                     "SYSTEM");
             case "DECLINED" -> new StatusNotification(
-                    "Đơn hàng " + order.getOrderCode() + " bị từ chối",
-                    "Rất tiếc, nông dân không thể tiếp nhận đơn hàng này do không đủ nguồn hàng kịp thời.",
+                    "Order " + order.getOrderCode() + " was declined",
+                    "We apologize, the farmer cannot accept this order due to inventory shortage.",
                     "SYSTEM");
             default -> new StatusNotification(
-                    "Cập nhật đơn hàng " + order.getOrderCode(),
-                    "Trạng thái đơn hàng của bạn đã chuyển thành: " + newStatus,
+                    "Order Update " + order.getOrderCode(),
+                    "Your order status has changed to: " + newStatus,
                     "SYSTEM");
         };
     }
@@ -474,13 +474,13 @@ public class OrderService {
 
     public Mono<OrderDetailResponse> getOrderById(Long orderId, Long currentUserId, boolean isFarmer) {
         return orderRepository.findById(orderId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + orderId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Order not found with ID: " + orderId)))
                 .flatMap(order -> {
                     if (isFarmer && !order.getFarmerId().equals(currentUserId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền truy cập đơn hàng này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to access this order."));
                     }
                     if (!isFarmer && !order.getCustomerId().equals(currentUserId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền truy cập đơn hàng này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to access this order."));
                     }
                     return enrichOrderDetail(order);
                 });
@@ -557,15 +557,15 @@ public class OrderService {
     }
 
     /**
-     * Tái đặt hàng nhanh chóng từ lịch sử đơn hàng cũ (Order History & Reorder)
+     * Quickly reorder items from past order history (Order History & Reorder)
      */
     @Transactional
     public Mono<OrderDetailResponse> reorder(Long customerId, Long oldOrderId, ReorderRequest request) {
         return orderRepository.findById(oldOrderId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy đơn hàng cũ với ID: " + oldOrderId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Past order not found with ID: " + oldOrderId)))
                 .flatMap(oldOrder -> {
                     if (!oldOrder.getCustomerId().equals(customerId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền thao tác trên đơn hàng này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to operate on this order."));
                     }
 
                     return orderItemRepository.findByOrderId(oldOrderId)
@@ -576,7 +576,7 @@ public class OrderService {
                             .collectList()
                             .flatMap(items -> {
                                 if (items.isEmpty()) {
-                                    return Mono.error(new IllegalStateException("Đơn hàng cũ không có mặt hàng nào để đặt lại."));
+                                    return Mono.error(new IllegalStateException("Past order contains no items to re-order."));
                                 }
 
                                 OrderCreateRequest newOrderReq = OrderCreateRequest.builder()
@@ -586,7 +586,7 @@ public class OrderService {
                                         .pickupDate(request.getPickupDate())
                                         .note(request.getNote() != null && !request.getNote().isBlank()
                                                 ? request.getNote()
-                                                : "Đặt lại từ đơn hàng #" + oldOrder.getOrderCode())
+                                                : "Re-ordered from Order #" + oldOrder.getOrderCode())
                                         .items(items)
                                         .build();
 
@@ -596,7 +596,7 @@ public class OrderService {
     }
 
     /**
-     * Thống kê sản phẩm bán chạy nhất của gian hàng nông dân (Farmer Insights: Best-Selling)
+     * Best-selling products report for farmer stalls (Farmer Insights: Best-Selling)
      */
     public Flux<BestSellingProductDto> getFarmerBestSelling(Long farmerId, int limit) {
         String sql = """
@@ -636,23 +636,23 @@ public class OrderService {
 
     private Mono<OrderDetailResponse> enrichOrderDetail(Order order) {
         Mono<User> customerMono = userRepository.findById(order.getCustomerId())
-                .defaultIfEmpty(User.builder().fullName("Khách hàng #" + order.getCustomerId()).phoneNumber("").build());
+                .defaultIfEmpty(User.builder().fullName("Customer #" + order.getCustomerId()).phoneNumber("").build());
 
         Mono<FarmerProfile> farmerMono = farmerProfileRepository.findById(order.getFarmerId())
-                .defaultIfEmpty(FarmerProfile.builder().stallName("Gian hàng #" + order.getFarmerId()).build());
+                .defaultIfEmpty(FarmerProfile.builder().stallName("Stall #" + order.getFarmerId()).build());
 
         Mono<User> farmerUserMono = userRepository.findById(order.getFarmerId())
-                .defaultIfEmpty(User.builder().fullName("Nông dân #" + order.getFarmerId()).build());
+                .defaultIfEmpty(User.builder().fullName("Farmer #" + order.getFarmerId()).build());
 
         Mono<Market> marketMono = marketRepository.findById(order.getMarketId())
-                .defaultIfEmpty(Market.builder().name("Chợ #" + order.getMarketId()).address("").build());
+                .defaultIfEmpty(Market.builder().name("Market #" + order.getMarketId()).address("").build());
 
         Mono<PickupTimeSlot> slotMono = slotRepository.findById(order.getSlotId())
                 .defaultIfEmpty(PickupTimeSlot.builder().startTime(LocalTime.of(7, 0)).endTime(LocalTime.of(8, 0)).build());
 
         Mono<List<OrderItemResponse>> itemsMono = orderItemRepository.findByOrderId(order.getOrderId())
                 .flatMap(item -> productRepository.findById(item.getProductId())
-                        .defaultIfEmpty(Product.builder().name("Nông sản #" + item.getProductId()).unit("").imageUrl("").build())
+                        .defaultIfEmpty(Product.builder().name("Produce #" + item.getProductId()).unit("").imageUrl("").build())
                         .map(prod -> OrderItemResponse.builder()
                                 .orderItemId(item.getOrderItemId())
                                 .productId(item.getProductId())

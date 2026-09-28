@@ -18,6 +18,6 @@ python "%~dp0scripts\deploy_frontend.py"
 echo.
 echo ==============================================
 echo ✅ FRONTEND ĐÃ ĐƯỢC CẬP NHẬT LÊN WEBSITE THỰC TẾ:
-echo 👉 https://nnquangdev.id.vn
+echo 👉 http://36.50.176.64
 echo ==============================================
 pause

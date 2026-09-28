@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.Map;
 
-@Tag(name = "1. Danh sách yêu thích (Favorites)", description = "Các API lưu và quản lý danh sách yêu thích: Nông dân, Sản phẩm, Phiên chợ")
+@Tag(name = "1. Favorites", description = "APIs for saving and managing favorites: Farmers, Products, Markets")
 @RestController
 @RequestMapping("/api/customer/favorites")
 @RequiredArgsConstructor
@@ -29,7 +29,7 @@ public class FavoriteController {
     private final FavoriteService favoriteService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Lấy danh sách mục yêu thích của khách hàng", description = "Có thể lọc theo loại: FARMER, PRODUCT, hoặc MARKET.")
+    @Operation(summary = "Get customer favorite items", description = "Can filter by type: FARMER, PRODUCT, or MARKET.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping
     public Mono<ResponseEntity<ApiResponse<List<FavoriteResponse>>>> getFavorites(
@@ -40,12 +40,12 @@ public class FavoriteController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Account information not found.")))
                 .flatMap(user -> favoriteService.getFavorites(user.getUserId(), targetType).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách yêu thích thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved favorites successfully.", list)));
     }
 
-    @Operation(summary = "Kiểm tra xem một mục đã được yêu thích chưa", description = "Trả về boolean isFavorite.")
+    @Operation(summary = "Check if an item is favorited", description = "Returns boolean isFavorite.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/check")
     public Mono<ResponseEntity<ApiResponse<Map<String, Boolean>>>> checkFavorite(
@@ -57,12 +57,12 @@ public class FavoriteController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Account information not found.")))
                 .flatMap(user -> favoriteService.isFavorite(user.getUserId(), targetType, targetId))
-                .map(fav -> ResponseEntity.ok(ApiResponse.success("Kiểm tra yêu thích thành công.", Map.of("isFavorite", fav))));
+                .map(fav -> ResponseEntity.ok(ApiResponse.success("Checked favorite status successfully.", Map.of("isFavorite", fav))));
     }
 
-    @Operation(summary = "Thêm một mục vào danh sách yêu thích", description = "targetType: FARMER, PRODUCT, MARKET.")
+    @Operation(summary = "Add item to favorites", description = "targetType: FARMER, PRODUCT, MARKET.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping
     public Mono<ResponseEntity<ApiResponse<FavoriteResponse>>> addFavorite(
@@ -73,13 +73,13 @@ public class FavoriteController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Account information not found.")))
                 .flatMap(user -> favoriteService.addFavorite(user.getUserId(), request))
                 .map(res -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success("Đã thêm vào mục yêu thích.", res)));
+                        .body(ApiResponse.success("Added to favorites.", res)));
     }
 
-    @Operation(summary = "Xóa một mục khỏi danh sách yêu thích", description = "Xóa theo targetType và targetId.")
+    @Operation(summary = "Remove item from favorites", description = "Remove by targetType and targetId.")
     @SecurityRequirement(name = "Bearer Authentication")
     @DeleteMapping
     public Mono<ResponseEntity<ApiResponse<Void>>> removeFavorite(
@@ -91,8 +91,8 @@ public class FavoriteController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Account information not found.")))
                 .flatMap(user -> favoriteService.removeFavorite(user.getUserId(), targetType, targetId))
-                .thenReturn(ResponseEntity.ok(ApiResponse.success("Đã xóa khỏi mục yêu thích.", null)));
+                .thenReturn(ResponseEntity.ok(ApiResponse.success("Removed from favorites.", null)));
     }
 }

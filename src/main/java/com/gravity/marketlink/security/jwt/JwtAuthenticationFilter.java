@@ -51,7 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                     log.debug("Set auth for email: {}, authorities: {}", email, authorities);
                 } else {
-                    log.warn("Token JWT được gửi lên nhưng không hợp lệ hoặc đã hết hạn!");
+                    log.warn("JWT token provided is invalid or has expired!");
                 }
             }
         } catch (Exception ex) {

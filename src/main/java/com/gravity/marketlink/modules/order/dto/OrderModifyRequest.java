@@ -15,14 +15,14 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class OrderModifyRequest {
 
-    @NotNull(message = "Ngày nhận hàng không được để trống")
-    @Schema(description = "Ngày nhận hàng điều chỉnh", example = "2026-10-02")
+    @NotNull(message = "Pickup date cannot be null")
+    @Schema(description = "Adjusted pickup date", example = "2026-10-02")
     private LocalDate pickupDate;
 
-    @NotNull(message = "Ca nhận hàng không được để trống")
-    @Schema(description = "ID ca nhận hàng mới", example = "3")
+    @NotNull(message = "Pickup slot cannot be null")
+    @Schema(description = "New pickup slot ID", example = "3")
     private Long slotId;
 
-    @Schema(description = "Ghi chú cập nhật cho đơn hàng", example = "Chuyển sang nhận ca chiều giúp mình nhé")
+    @Schema(description = "Order update notes", example = "Please switch my pickup to afternoon slot")
     private String note;
 }

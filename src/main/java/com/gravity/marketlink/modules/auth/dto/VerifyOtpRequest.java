@@ -11,18 +11,18 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu xác minh mã OTP")
+@Schema(description = "Request to verify OTP code")
 public class VerifyOtpRequest {
 
-    @NotBlank(message = "Email hoặc số điện thoại không được để trống")
-    @Schema(description = "Email hoặc số điện thoại đã nhận mã", example = "farmer1@marketlink.com")
+    @NotBlank(message = "Email or phone cannot be blank")
+    @Schema(description = "Email or phone number that received code", example = "farmer1@marketlink.com")
     private String emailOrPhone;
 
-    @NotBlank(message = "Loại xác minh không được để trống")
-    @Schema(description = "Loại xác minh: EMAIL_CONFIRMATION, PHONE_OTP, PASSWORD_RESET", example = "EMAIL_CONFIRMATION")
+    @NotBlank(message = "Verification type cannot be blank")
+    @Schema(description = "Verification type: EMAIL_CONFIRMATION, PHONE_OTP, PASSWORD_RESET", example = "EMAIL_CONFIRMATION")
     private String type;
 
-    @NotBlank(message = "Mã xác minh không được để trống")
-    @Schema(description = "Mã OTP 6 ký tự", example = "123456")
+    @NotBlank(message = "Verification code cannot be blank")
+    @Schema(description = "6-character OTP code", example = "123456")
     private String code;
 }

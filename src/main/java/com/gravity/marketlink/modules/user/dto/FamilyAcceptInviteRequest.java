@@ -11,10 +11,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu chấp nhận lời mời tham gia nhóm gia đình")
+@Schema(description = "Accept family group invitation request")
 public class FamilyAcceptInviteRequest {
 
-    @NotBlank(message = "Mã token lời mời không được để trống")
-    @Schema(description = "Token lời mời gia đình đã nhận được", example = "550e8400-e29b-41d4-a716-446655440000")
+    @NotBlank(message = "Invitation token cannot be blank")
+    @Schema(description = "Received family invitation token", example = "550e8400-e29b-41d4-a716-446655440000")
     private String invitationToken;
 }

@@ -39,24 +39,24 @@ public class UserService {
     private final R2dbcEntityTemplate r2dbcEntityTemplate;
 
     /**
-     * Lấy thông tin chi tiết hồ sơ người dùng
+     * Retrieves detailed user profile information
      */
     public Mono<UserProfileResponse> getProfile(String email) {
         return userRepository.findByEmail(email)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy người dùng với email: " + email)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("User not found with email: " + email)))
                 .flatMap(this::buildUserProfileResponse);
     }
 
     /**
-     * Cập nhật thông tin hồ sơ người dùng (họ tên, sđt, địa chỉ, thông tin nông trại...)
+     * Updates user profile information (full name, phone, address, farm details...)
      */
     public Mono<UserProfileResponse> updateProfile(String email, UpdateProfileRequest request) {
         return userRepository.findByEmail(email)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy người dùng với email: " + email)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("User not found with email: " + email)))
                 .flatMap(user -> {
                     LocalDateTime now = LocalDateTime.now();
 
-                    // Cập nhật thông tin cơ bản của user nếu có truyền vào
+                    // Update basic user info if provided
                     String newFullName = StringUtils.hasText(request.getFullName()) ? request.getFullName() : user.getFullName();
                     String newPhone = StringUtils.hasText(request.getPhoneNumber()) ? request.getPhoneNumber() : user.getPhoneNumber();
 
@@ -66,7 +66,7 @@ public class UserService {
                         updateUserMono = updateUserMono.then(userRepository.updateAvatar(user.getUserId(), request.getAvatarUrl().trim(), now));
                     }
 
-                    // Cập nhật chi tiết theo role
+                    // Update role-specific profile details
                     return updateUserMono
                             .then(userRoleRepository.findRolesByUserId(user.getUserId())
                                     .map(Role::getRoleName)
@@ -102,7 +102,7 @@ public class UserService {
                 .switchIfEmpty(Mono.defer(() ->
                         r2dbcEntityTemplate.insert(FarmerProfile.builder()
                                 .farmerId(farmerId)
-                                .stallName(StringUtils.hasText(request.getStallName()) ? request.getStallName() : "Sạp Nông Sản")
+                                .stallName(StringUtils.hasText(request.getStallName()) ? request.getStallName() : "Produce Stall")
                                 .bio(request.getBio())
                                 .farmAddress(request.getFarmAddress())
                                 .latitude(request.getLatitude())
@@ -140,35 +140,35 @@ public class UserService {
     }
 
     /**
-     * Cập nhật ảnh đại diện (Avatar)
+     * Update user avatar
      */
     public Mono<Map<String, Object>> updateAvatar(String email, UpdateAvatarRequest request) {
         return userRepository.findByEmail(email)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy người dùng với email: " + email)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("User not found with email: " + email)))
                 .flatMap(user -> {
                     LocalDateTime now = LocalDateTime.now();
                     return userRepository.updateAvatar(user.getUserId(), request.getAvatarUrl(), now)
                             .thenReturn(Map.<String, Object>of(
                                     "status", "SUCCESS",
-                                    "message", "Cập nhật ảnh đại diện thành công",
+                                    "message", "Updated avatar successfully",
                                     "avatarUrl", request.getAvatarUrl()
                             ));
                 });
     }
 
     /**
-     * Đổi mật khẩu
+     * Change password
      */
     public Mono<Map<String, Object>> changePassword(String email, ChangePasswordRequest request) {
         return userRepository.findByEmail(email)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy người dùng với email: " + email)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("User not found with email: " + email)))
                 .flatMap(user -> {
                     if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
-                        return Mono.error(new IllegalArgumentException("Mật khẩu hiện tại không chính xác"));
+                        return Mono.error(new IllegalArgumentException("Current password is incorrect"));
                     }
 
                     if (passwordEncoder.matches(request.getNewPassword(), user.getPasswordHash())) {
-                        return Mono.error(new IllegalArgumentException("Mật khẩu mới không được trùng với mật khẩu cũ"));
+                        return Mono.error(new IllegalArgumentException("New password cannot be identical to old password"));
                     }
 
                     String newHashedPassword = passwordEncoder.encode(request.getNewPassword());
@@ -177,13 +177,13 @@ public class UserService {
                     return userRepository.updatePassword(user.getUserId(), newHashedPassword, now)
                             .thenReturn(Map.<String, Object>of(
                                     "status", "SUCCESS",
-                                    "message", "Đổi mật khẩu thành công! Vui lòng sử dụng mật khẩu mới cho các lần đăng nhập tiếp theo."
+                                    "message", "Password changed successfully! Please use your new password for future logins."
                             ));
                 });
     }
 
     /**
-     * Helper dựng UserProfileResponse kèm roles và profile chi tiết (Customer / Farmer)
+     * Helper method to build UserProfileResponse with roles and detailed profile (Customer / Farmer)
      */
     private Mono<UserProfileResponse> buildUserProfileResponse(User user) {
         return userRoleRepository.findRolesByUserId(user.getUserId())
@@ -195,11 +195,11 @@ public class UserService {
                     if (roles.contains("ROLE_FARMER") || roles.contains("FARMER")) {
                         profileMono = farmerProfileRepository.findByFarmerId(user.getUserId())
                                 .cast(Object.class)
-                                .defaultIfEmpty(Map.of("message", "Chưa có thông tin trang trại"));
+                                .defaultIfEmpty(Map.of("message", "No farm information available"));
                     } else {
                         profileMono = customerProfileRepository.findByCustomerId(user.getUserId())
                                 .cast(Object.class)
-                                .defaultIfEmpty(Map.of("message", "Chưa có thông tin giao hàng"));
+                                .defaultIfEmpty(Map.of("message", "No delivery information available"));
                     }
 
                     return profileMono.map(profile ->

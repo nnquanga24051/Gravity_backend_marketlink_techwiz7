@@ -20,7 +20,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("MarketLink API Documentation")
-                        .description("Tài liệu đặc tả API và giao diện thử nghiệm tương tác cho hệ thống MarketLink (TechWiz 7).")
+                        .description("API specification and interactive testing documentation for MarketLink platform (TechWiz 7).")
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("Gravity Team - MarketLink")
@@ -35,6 +35,6 @@ public class OpenApiConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
-                                .description("Nhập token JWT thu được từ API login (Không cần gõ chữ Bearer, Swagger sẽ tự thêm).")));
+                                .description("Enter JWT token from login API (Bearer prefix is added automatically).")));
     }
 }

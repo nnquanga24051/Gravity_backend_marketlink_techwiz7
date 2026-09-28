@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-@Tag(name = "1. Xác thực & Người dùng (Auth)", description = "Các API đăng nhập, đăng ký tài khoản và truy xuất thông tin cá nhân")
+@Tag(name = "1. Authentication & Users (Auth)", description = "APIs for login, registration, and user profile retrieval")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -26,28 +26,28 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @Operation(summary = "Đăng ký tài khoản mới", description = "Đăng ký tài khoản cho FARMER hoặc CUSTOMER")
+    @Operation(summary = "Register a new account", description = "Register an account for FARMER or CUSTOMER")
     @PostMapping("/register")
     public Mono<ResponseEntity<AuthResponse>> register(@jakarta.validation.Valid @RequestBody RegisterRequest request) {
         return authService.register(request)
                 .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
     }
 
-    @Operation(summary = "Đăng nhập", description = "Đăng nhập bằng Email & Password để nhận JWT Token sử dụng cho các API bảo mật")
+    @Operation(summary = "User login", description = "Login with Email & Password to receive JWT Token for secure API endpoints")
     @PostMapping("/login")
     public Mono<ResponseEntity<AuthResponse>> login(@jakarta.validation.Valid @RequestBody LoginRequest request) {
         return authService.login(request)
                 .map(ResponseEntity::ok);
     }
 
-    @Operation(summary = "Làm mới Access Token (Refresh Token)", description = "Sử dụng Refresh Token dài hạn để cấp mới cặp Token mà không cần đăng nhập lại (áp dụng cơ chế xoay vòng Refresh Token Rotation - RTR).")
+    @Operation(summary = "Refresh Access Token", description = "Use long-term Refresh Token to issue new tokens without re-login (Refresh Token Rotation - RTR).")
     @PostMapping("/refresh")
     public Mono<ResponseEntity<AuthResponse>> refreshToken(@jakarta.validation.Valid @RequestBody com.gravity.marketlink.modules.auth.dto.RefreshTokenRequest request) {
         return authService.refreshToken(request.getRefreshToken())
                 .map(ResponseEntity::ok);
     }
 
-    @Operation(summary = "Lấy thông tin tài khoản hiện tại (/me)", description = "Yêu cầu Bearer Token để lấy profile người dùng đang đăng nhập")
+    @Operation(summary = "Get current user profile (/me)", description = "Requires Bearer Token to retrieve profile of authenticated user")
     @GetMapping("/me")
     public Mono<ResponseEntity<UserProfileResponse>> getCurrentUser(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
@@ -57,14 +57,14 @@ public class AuthController {
                 .map(ResponseEntity::ok);
     }
 
-    @Operation(summary = "Đăng xuất tài khoản", description = "Vô hiệu hóa token JWT hiện tại, thu hồi quyền truy cập và xóa phiên làm việc.")
+    @Operation(summary = "User logout", description = "Revoke current JWT token, remove permissions, and terminate active session.")
     @PostMapping("/logout")
     public Mono<ResponseEntity<java.util.Map<String, Object>>> logout(
             @org.springframework.web.bind.annotation.RequestHeader(value = "Authorization", required = false) String bearerToken) {
         return authService.logout(bearerToken)
                 .thenReturn(ResponseEntity.ok(java.util.Map.<String, Object>of(
                         "status", "SUCCESS",
-                        "message", "Đăng xuất thành công! Token JWT đã được vô hiệu hóa."
+                        "message", "Logged out successfully! JWT Token has been revoked."
                 )));
     }
 }

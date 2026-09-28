@@ -14,39 +14,39 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Thông tin chi tiết chợ nông sản kèm lịch họp chợ")
+@Schema(description = "Detailed market information and session schedules")
 public class MarketDetailResponse {
 
-    @Schema(description = "Mã định danh chợ", example = "1")
+    @Schema(description = "Market identifier ID", example = "1")
     private Long marketId;
 
-    @Schema(description = "Tên điểm chợ nông sản", example = "Chợ Phiên Nông Sản Ba Đình")
+    @Schema(description = "Farmers market name", example = "Ba Dinh Farmers Market")
     private String name;
 
-    @Schema(description = "Địa chỉ thực tế", example = "Cung Thể Thao Quần Ngựa, Văn Cao, Ba Đình, Hà Nội")
+    @Schema(description = "Street address", example = "Quan Ngua Sports Complex, Van Cao, Ba Dinh, Hanoi")
     private String address;
 
-    @Schema(description = "Tọa độ vĩ độ (Latitude) để ghim bản đồ", example = "21.038234")
+    @Schema(description = "Latitude coordinate for map pin", example = "21.038234")
     private BigDecimal latitude;
 
-    @Schema(description = "Tọa độ kinh độ (Longitude) để ghim bản đồ", example = "105.817456")
+    @Schema(description = "Longitude coordinate for map pin", example = "105.817456")
     private BigDecimal longitude;
 
-    @Schema(description = "Mô tả điểm chợ", example = "Chợ phiên nông sản hữu cơ quy tụ hơn 30 nhà vườn miền Bắc.")
+    @Schema(description = "Market description", example = "Organic farmers market featuring over 30 verified local growers.")
     private String description;
 
-    @Schema(description = "Ảnh đại diện chợ", example = "https://images.unsplash.com/photo-1488459716781-31db52582fe9")
+    @Schema(description = "Market thumbnail image URL", example = "https://images.unsplash.com/photo-1488459716781-31db52582fe9")
     private String imageUrl;
 
-    @Schema(description = "Trạng thái hoạt động (ACTIVE / INACTIVE)", example = "ACTIVE")
+    @Schema(description = "Operating status (ACTIVE / INACTIVE)", example = "ACTIVE")
     private String status;
 
-    @Schema(description = "Lịch họp chợ định kỳ theo ngày trong tuần")
+    @Schema(description = "Recurring weekly market session schedule")
     private List<MarketScheduleDto> schedules;
 
-    @Schema(description = "Số lượng sạp nông dân đang tham gia bán", example = "15")
+    @Schema(description = "Number of participating farmer stalls", example = "15")
     private Long activeFarmersCount;
 
-    @Schema(description = "Thời điểm khởi tạo")
+    @Schema(description = "Creation timestamp")
     private LocalDateTime createdAt;
 }

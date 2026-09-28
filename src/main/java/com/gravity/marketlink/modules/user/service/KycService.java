@@ -34,18 +34,18 @@ public class KycService {
     @Transactional
     public Mono<FarmerKycStatusResponse> submitKyc(Long farmerId, FarmerKycSubmitRequest request) {
         if (request == null || request.getDocuments() == null || request.getDocuments().isEmpty()) {
-            return Mono.error(new IllegalArgumentException("Danh sách tài liệu KYC không được để trống."));
+            return Mono.error(new IllegalArgumentException("KYC document list cannot be empty."));
         }
 
         List<FarmerKycItemRequest> docs = request.getDocuments();
 
-        // 1. Đảm bảo FarmerProfile tồn tại (tự động tạo nếu chưa có)
+        // 1. Ensure FarmerProfile exists (auto-create if missing)
         return farmerProfileRepository.findByFarmerId(farmerId)
                 .switchIfEmpty(Mono.defer(() -> {
                     FarmerProfile defaultProfile = FarmerProfile.builder()
                             .farmerId(farmerId)
-                            .stallName("Nông Trại")
-                            .farmAddress("Chưa cập nhật")
+                            .stallName("Farm")
+                            .farmAddress("Not updated")
                             .isApproved(false)
                             .createdAt(LocalDateTime.now())
                             .updatedAt(LocalDateTime.now())
@@ -53,7 +53,7 @@ public class KycService {
                     return farmerProfileRepository.save(defaultProfile);
                 }))
                 .flatMap(profile -> {
-                    // 2. Xóa các tài liệu cũ (nếu có) và nạp danh sách tài liệu mới
+                    // 2. Remove old documents (if any) and save new document list
                     return farmerKycDocumentRepository.deleteByFarmerId(farmerId)
                             .thenMany(Flux.fromIterable(docs))
                             .flatMap(item -> farmerKycDocumentRepository.save(
@@ -73,13 +73,13 @@ public class KycService {
 
     public Mono<FarmerKycStatusResponse> getFarmerKycStatus(Long farmerId) {
         Mono<User> userMono = userRepository.findById(farmerId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + farmerId)));
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("User not found with ID: " + farmerId)));
 
         Mono<FarmerProfile> profileMono = farmerProfileRepository.findByFarmerId(farmerId)
                 .defaultIfEmpty(FarmerProfile.builder()
                         .farmerId(farmerId)
-                        .stallName("Nông Trại")
-                        .farmAddress("Chưa cập nhật")
+                        .stallName("Farm")
+                        .farmAddress("Not updated")
                         .isApproved(false)
                         .build());
 
@@ -90,7 +90,7 @@ public class KycService {
         Mono<List<VerificationAuditLogResponse>> logsMono = verificationAuditLogRepository.findByTargetUserIdOrderByReviewedAtDesc(farmerId)
                 .flatMap(logItem -> userRepository.findById(logItem.getAdminId())
                         .map(admin -> mapToAuditLogResponse(logItem, admin.getFullName()))
-                        .defaultIfEmpty(mapToAuditLogResponse(logItem, "Quản trị viên #" + logItem.getAdminId())))
+                        .defaultIfEmpty(mapToAuditLogResponse(logItem, "Administrator #" + logItem.getAdminId())))
                 .collectList();
 
         return Mono.zip(userMono, profileMono, docsMono, logsMono)
@@ -119,8 +119,8 @@ public class KycService {
                 .flatMap(user -> farmerProfileRepository.findByFarmerId(user.getUserId())
                         .defaultIfEmpty(FarmerProfile.builder()
                                 .farmerId(user.getUserId())
-                                .stallName("Nông Trại")
-                                .farmAddress("Chưa cập nhật")
+                                .stallName("Farm")
+                                .farmAddress("Not updated")
                                 .isApproved(false)
                                 .build())
                         .flatMap(profile -> farmerKycDocumentRepository.findByFarmerId(user.getUserId()).collectList()
@@ -158,14 +158,14 @@ public class KycService {
     @Transactional
     public Mono<FarmerKycStatusResponse> reviewFarmerKyc(Long adminId, Long farmerId, AdminKycReviewRequest request) {
         if (request == null || request.getAction() == null) {
-            return Mono.error(new IllegalArgumentException("Hành động kiểm duyệt không được để trống."));
+            return Mono.error(new IllegalArgumentException("Audit action cannot be blank."));
         }
 
         String action = request.getAction().trim().toUpperCase();
         String reason = request.getReason() != null ? request.getReason().trim() : "";
 
         if (("REJECT".equals(action) || "REQUEST_REVISION".equals(action)) && reason.isEmpty()) {
-            return Mono.error(new IllegalArgumentException("Vui lòng nhập lý do cụ thể khi từ chối hoặc yêu cầu sửa đổi hồ sơ KYC."));
+            return Mono.error(new IllegalArgumentException("Please provide a specific reason when rejecting or requesting revisions for KYC."));
         }
 
         String newKycStatus;
@@ -185,7 +185,7 @@ public class KycService {
                 newIsApproved = false;
                 break;
             default:
-                return Mono.error(new IllegalArgumentException("Hành động kiểm duyệt không hợp lệ: " + action + ". Chọn APPROVE, REJECT hoặc REQUEST_REVISION"));
+                return Mono.error(new IllegalArgumentException("Invalid audit action: " + action + ". Choose APPROVE, REJECT, or REQUEST_REVISION"));
         }
 
         VerificationAuditLog auditLog = VerificationAuditLog.builder()
@@ -200,8 +200,8 @@ public class KycService {
                 .switchIfEmpty(Mono.defer(() -> {
                     FarmerProfile defaultProfile = FarmerProfile.builder()
                             .farmerId(farmerId)
-                            .stallName("Nông Trại")
-                            .farmAddress("Chưa cập nhật")
+                            .stallName("Farm")
+                            .farmAddress("Not updated")
                             .isApproved(false)
                             .createdAt(LocalDateTime.now())
                             .updatedAt(LocalDateTime.now())
@@ -211,7 +211,7 @@ public class KycService {
                 .flatMap(profile -> userRepository.updateKycStatus(farmerId, newKycStatus, LocalDateTime.now())
                         .then(farmerProfileRepository.updateApprovalStatus(farmerId, newIsApproved, LocalDateTime.now()))
                         .then(verificationAuditLogRepository.save(auditLog))
-                        .doOnSuccess(saved -> log.info("Admin [{}] đã thực hiện [{}] KYC cho nông dân [{}]", adminId, action, farmerId))
+                        .doOnSuccess(saved -> log.info("Admin [{}] executed [{}] KYC for farmer [{}]", adminId, action, farmerId))
                         .then(getFarmerKycStatus(farmerId)));
     }
 

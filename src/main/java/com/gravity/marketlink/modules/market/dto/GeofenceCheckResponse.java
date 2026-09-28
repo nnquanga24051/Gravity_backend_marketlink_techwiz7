@@ -12,27 +12,27 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Kết quả kiểm tra vùng địa lý Geofence quanh phiên chợ")
+@Schema(description = "Geofence perimeter check result around market")
 public class GeofenceCheckResponse {
 
-    @Schema(description = "Trạng thái có đang ở trong bán kính 300m quanh chợ không", example = "true")
+    @Schema(description = "Whether user is currently within 300m radius of market", example = "true")
     private Boolean inGeofence;
 
-    @Schema(description = "Khoảng cách hiện tại tới cổng chợ (mét)", example = "145.5")
+    @Schema(description = "Current distance to market entrance (meters)", example = "145.5")
     private Double distanceMeters;
 
-    @Schema(description = "ID chợ phát hiện gần nhất", example = "101")
+    @Schema(description = "Nearest detected market ID", example = "101")
     private Long marketId;
 
-    @Schema(description = "Tên chợ nông sản", example = "Phiên Chợ Xanh Nông Sản Ba Đình")
+    @Schema(description = "Farmers market name", example = "Ba Dinh Green Farmers Market")
     private String marketName;
 
-    @Schema(description = "Thông điệp chào mừng hiển thị trên ứng dụng", example = "Chào mừng bạn đến Phiên Chợ Xanh Nông Sản Ba Đình! Đơn hàng của bạn đã sẵn sàng nhận tại sạp.")
+    @Schema(description = "Welcome notification message", example = "Welcome to Ba Dinh Green Farmers Market! Your pre-order is ready for pickup at the stall.")
     private String alertMessage;
 
-    @Schema(description = "Số lượng thông báo đã phát tới các sạp nông dân có đơn", example = "2")
+    @Schema(description = "Number of notifications sent to farmer stalls with pending orders", example = "2")
     private Integer notifiedFarmersCount;
 
-    @Schema(description = "Danh sách mã đơn hàng của khách tại phiên chợ hôm nay")
+    @Schema(description = "Customer order ID list for today's market session")
     private List<String> todayOrderCodes;
 }

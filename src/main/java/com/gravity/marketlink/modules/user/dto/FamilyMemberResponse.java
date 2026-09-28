@@ -12,30 +12,30 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Thông tin thành viên trong nhóm tài khoản gia đình (Family Account)")
+@Schema(description = "Family account member details")
 public class FamilyMemberResponse {
 
-    @Schema(description = "ID khách hàng", example = "3")
+    @Schema(description = "Customer ID", example = "3")
     private Long customerId;
 
-    @Schema(description = "Họ và tên", example = "Nguyễn Văn Vợ")
+    @Schema(description = "Full name", example = "Mary Member")
     private String fullName;
 
     @Schema(description = "Email", example = "wife@marketlink.com")
     private String email;
 
-    @Schema(description = "Số điện thoại", example = "0987111222")
+    @Schema(description = "Phone number", example = "0987111222")
     private String phoneNumber;
 
-    @Schema(description = "Ảnh đại diện")
+    @Schema(description = "Avatar image URL")
     private String avatarUrl;
 
-    @Schema(description = "Là chủ nhóm gia đình hay thành viên phụ thuộc", example = "false")
+    @Schema(description = "Whether user is family head or dependent member", example = "false")
     private Boolean isHeadOfFamily;
 
-    @Schema(description = "Địa chỉ nhận hàng mặc định")
+    @Schema(description = "Default delivery address")
     private String defaultAddress;
 
-    @Schema(description = "Thời gian tham gia")
+    @Schema(description = "Joined timestamp")
     private LocalDateTime joinedAt;
 }

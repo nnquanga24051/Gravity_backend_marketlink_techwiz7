@@ -21,7 +21,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@Tag(name = "6. Đánh giá & Phản hồi (Reviews)", description = "Các API đánh giá sau khi hoàn tất nhận hàng và phản hồi của nông dân")
+@Tag(name = "6. Customer Reviews & Ratings", description = "APIs for reviewing completed pre-orders and farmer responses")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -30,7 +30,7 @@ public class ReviewController {
     private final ReviewService reviewService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Khách hàng gửi đánh giá sau khi hoàn tất đơn hàng", description = "Đơn hàng phải ở trạng thái COMPLETED. Mỗi đơn hàng được đánh giá một lần.")
+    @Operation(summary = "Customer submits review after completing order", description = "Order must be in COMPLETED status. Each order can only be reviewed once.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/customer/reviews")
     public Mono<ResponseEntity<ApiResponse<ReviewResponse>>> createReview(
@@ -41,13 +41,13 @@ public class ReviewController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer account information not found.")))
                 .flatMap(user -> reviewService.createReview(user.getUserId(), request))
                 .map(created -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success("Gửi đánh giá thành công. Cảm ơn bạn!", created)));
+                        .body(ApiResponse.success("Review submitted successfully. Thank you!", created)));
     }
 
-    @Operation(summary = "Khách hàng xem danh sách các đánh giá mình đã gửi", description = "Lấy lịch sử đánh giá của khách hàng đang đăng nhập, hỗ trợ tìm kiếm từ khóa.")
+    @Operation(summary = "Customer views list of submitted reviews", description = "Retrieves review history for logged-in customer, supports keyword search.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/customer/reviews")
     public Mono<ResponseEntity<ApiResponse<List<ReviewResponse>>>> getMyReviews(
@@ -58,30 +58,30 @@ public class ReviewController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer account information not found.")))
                 .flatMap(user -> reviewService.getCustomerReviews(user.getUserId(), keyword).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách đánh giá thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved review list successfully.", list)));
     }
 
-    @Operation(summary = "Xem tất cả đánh giá của một gian hàng nông dân", description = "Public endpoint. Trả về các đánh giá hiển thị công khai, hỗ trợ tìm kiếm từ khóa.")
+    @Operation(summary = "View all reviews for a farmer stall", description = "Public endpoint. Returns publicly visible reviews with keyword search.")
     @GetMapping("/reviews/farmer/{farmerId}")
     public Mono<ResponseEntity<ApiResponse<List<ReviewResponse>>>> getFarmerReviews(
             @PathVariable("farmerId") Long farmerId,
             @RequestParam(value = "keyword", required = false) String keyword) {
         return reviewService.getFarmerReviews(farmerId, keyword)
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy đánh giá của gian hàng thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved stall reviews successfully.", list)));
     }
 
-    @Operation(summary = "Xem tất cả đánh giá của một sản phẩm", description = "Public endpoint. Trả về các đánh giá của sản phẩm.")
+    @Operation(summary = "View all reviews for a product", description = "Public endpoint. Returns reviews for product.")
     @GetMapping("/reviews/product/{productId}")
     public Mono<ResponseEntity<ApiResponse<List<ReviewResponse>>>> getProductReviews(@PathVariable("productId") Long productId) {
         return reviewService.getProductReviews(productId)
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy đánh giá của sản phẩm thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved product reviews successfully.", list)));
     }
 
-    @Operation(summary = "Nông dân phản hồi đánh giá của khách hàng", description = "Yêu cầu quyền ROLE_FARMER.")
+    @Operation(summary = "Farmer responds to customer review", description = "Requires ROLE_FARMER authority.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/farmer/reviews/{id}/reply")
     public Mono<ResponseEntity<ApiResponse<ReviewResponse>>> replyReview(
@@ -93,12 +93,12 @@ public class ReviewController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> reviewService.replyReview(user.getUserId(), id, request))
-                .map(res -> ResponseEntity.ok(ApiResponse.success("Phản hồi đánh giá thành công.", res)));
+                .map(res -> ResponseEntity.ok(ApiResponse.success("Review response submitted successfully.", res)));
     }
 
-    @Operation(summary = "Quản trị viên xem tất cả các đánh giá", description = "Lấy toàn bộ đánh giá bao gồm cả đánh giá đã bị ẩn. Hỗ trợ tìm kiếm từ khóa và lọc xếp hạng/ẩn hiện. Yêu cầu ROLE_ADMIN.")
+    @Operation(summary = "Administrator views all reviews", description = "Retrieves all reviews including hidden ones. Supports keyword search and rating/visibility filters. Requires ROLE_ADMIN.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/reviews")
@@ -107,10 +107,10 @@ public class ReviewController {
             @RequestParam(value = "filter", required = false) String filter) {
         return reviewService.getAllReviewsForAdmin(keyword, filter)
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy toàn bộ đánh giá thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved all reviews successfully.", list)));
     }
 
-    @Operation(summary = "Quản trị viên ẩn hoặc hiện đánh giá", description = "Yêu cầu quyền ROLE_ADMIN để kiểm duyệt nội dung vi phạm.")
+    @Operation(summary = "Administrator toggles review visibility", description = "Requires ROLE_ADMIN authority for content moderation.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/admin/reviews/{id}/visibility")
@@ -119,7 +119,7 @@ public class ReviewController {
             @RequestParam("isHidden") boolean isHidden) {
         return reviewService.setReviewVisibility(id, isHidden)
                 .map(res -> ResponseEntity.ok(ApiResponse.success(
-                        (isHidden ? "Đã ẩn đánh giá khỏi giao diện." : "Đã kích hoạt hiển thị lại đánh giá."), res)));
+                        (isHidden ? "Review hidden from public view." : "Review visibility restored."), res)));
     }
 }
 

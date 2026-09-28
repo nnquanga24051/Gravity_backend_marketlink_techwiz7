@@ -15,34 +15,34 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu tạo mới hoặc cập nhật chợ nông sản (Dành cho Quản trị viên)")
+@Schema(description = "Create or update farmers market request (For Administrators)")
 public class MarketRequest {
 
-    @NotBlank(message = "Tên chợ không được để trống")
-    @Schema(description = "Tên điểm chợ nông sản", example = "Chợ Phiên Nông Sản Ba Đình")
+    @NotBlank(message = "Market name cannot be blank")
+    @Schema(description = "Farmers market name", example = "Ba Dinh Farmers Market")
     private String name;
 
-    @NotBlank(message = "Địa chỉ thực tế không được để trống")
-    @Schema(description = "Địa chỉ chợ", example = "Cung Thể Thao Quần Ngựa, Văn Cao, Ba Đình, Hà Nội")
+    @NotBlank(message = "Street address cannot be blank")
+    @Schema(description = "Market address", example = "Quan Ngua Sports Complex, Van Cao, Ba Dinh, Hanoi")
     private String address;
 
-    @NotNull(message = "Tọa độ vĩ độ (Latitude) không được để trống")
-    @Schema(description = "Tọa độ vĩ độ (Latitude)", example = "21.038234")
+    @NotNull(message = "Latitude cannot be null")
+    @Schema(description = "Latitude coordinate", example = "21.038234")
     private BigDecimal latitude;
 
-    @NotNull(message = "Tọa độ kinh độ (Longitude) không được để trống")
-    @Schema(description = "Tọa độ kinh độ (Longitude)", example = "105.817456")
+    @NotNull(message = "Longitude cannot be null")
+    @Schema(description = "Longitude coordinate", example = "105.817456")
     private BigDecimal longitude;
 
-    @Schema(description = "Mô tả chợ", example = "Chợ họp vào Thứ 7 và Chủ nhật hàng tuần, chuyên đặc sản vùng cao.")
+    @Schema(description = "Market description", example = "Open every Saturday and Sunday, specializing in regional highland produce.")
     private String description;
 
-    @Schema(description = "Link ảnh chợ", example = "https://images.unsplash.com/photo-1488459716781-31db52582fe9")
+    @Schema(description = "Market thumbnail image URL", example = "https://images.unsplash.com/photo-1488459716781-31db52582fe9")
     private String imageUrl;
 
-    @Schema(description = "Trạng thái (ACTIVE / INACTIVE)", example = "ACTIVE")
+    @Schema(description = "Status (ACTIVE / INACTIVE)", example = "ACTIVE")
     private String status;
 
-    @Schema(description = "Danh sách lịch họp chợ định kỳ")
+    @Schema(description = "Recurring market schedule list")
     private List<MarketScheduleDto> schedules;
 }

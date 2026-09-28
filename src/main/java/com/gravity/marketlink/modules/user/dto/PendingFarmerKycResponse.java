@@ -12,33 +12,33 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Thông tin tóm tắt hồ sơ KYC của Nông dân chờ duyệt")
+@Schema(description = "Summary of pending farmer KYC application")
 public class PendingFarmerKycResponse {
 
-    @Schema(description = "ID Nông dân", example = "2")
+    @Schema(description = "Farmer ID", example = "2")
     private Long farmerId;
 
-    @Schema(description = "Họ và tên nông dân", example = "Nguyen Van A")
+    @Schema(description = "Farmer full name", example = "Nguyen Van A")
     private String fullName;
 
     @Schema(description = "Email", example = "farmer1@marketlink.com")
     private String email;
 
-    @Schema(description = "Số điện thoại", example = "0901234567")
+    @Schema(description = "Phone number", example = "0901234567")
     private String phoneNumber;
 
-    @Schema(description = "Tên gian hàng / tên trang trại", example = "Nông Trại Xanh Ba Vì")
+    @Schema(description = "Stall name / Farm name", example = "Ba Vi Green Farm")
     private String stallName;
 
-    @Schema(description = "Địa chỉ trang trại", example = "Thôn 2, Xã Vân Hòa, Ba Vì, Hà Nội")
+    @Schema(description = "Farm address", example = "Hamlet 2, Van Hoa, Ba Vi, Hanoi")
     private String farmAddress;
 
-    @Schema(description = "Trạng thái KYC", example = "PENDING")
+    @Schema(description = "KYC status", example = "PENDING")
     private String kycStatus;
 
-    @Schema(description = "Số lượng tài liệu đã nộp", example = "3")
+    @Schema(description = "Number of submitted documents", example = "3")
     private Integer documentCount;
 
-    @Schema(description = "Ngày gửi hồ sơ gần nhất")
+    @Schema(description = "Latest submission date")
     private LocalDateTime lastSubmittedAt;
 }

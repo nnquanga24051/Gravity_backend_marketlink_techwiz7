@@ -14,14 +14,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ReviewCreateRequest {
 
-    @NotNull(message = "Mã đơn hàng (orderId) không được để trống")
+    @NotNull(message = "Order ID cannot be null")
     private Long orderId;
 
     private Long productId;
 
-    @NotNull(message = "Điểm đánh giá (rating) không được để trống")
-    @Min(value = 1, message = "Điểm đánh giá tối thiểu là 1 sao")
-    @Max(value = 5, message = "Điểm đánh giá tối đa là 5 sao")
+    @NotNull(message = "Rating score cannot be null")
+    @Min(value = 1, message = "Minimum rating score is 1 star")
+    @Max(value = 5, message = "Maximum rating score is 5 stars")
     private Integer rating;
 
     private String comment;

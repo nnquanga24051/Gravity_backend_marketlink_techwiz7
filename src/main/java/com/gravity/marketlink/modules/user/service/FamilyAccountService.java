@@ -32,11 +32,11 @@ public class FamilyAccountService {
         String inviteeEmail = request.getInviteeEmail().trim().toLowerCase();
 
         return customerProfileRepository.findByCustomerId(inviterId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy hồ sơ khách hàng của người mời (ID: " + inviterId + ")")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer profile not found for inviter (ID: " + inviterId + ")")))
                 .flatMap(inviterProfile -> userRepository.findById(inviterId)
                         .flatMap(inviterUser -> {
                             if (inviterUser.getEmail().equalsIgnoreCase(inviteeEmail)) {
-                                return Mono.error(new IllegalArgumentException("Bạn không thể tự gửi lời mời gia đình cho chính mình."));
+                                return Mono.error(new IllegalArgumentException("You cannot send a family invitation to yourself."));
                             }
 
                             String token = UUID.randomUUID().toString();
@@ -73,12 +73,12 @@ public class FamilyAccountService {
         Flux<FamilyInvitationResponse> sentFlux = familyAccountInvitationRepository.findByInviterId(customerId)
                 .flatMap(inv -> userRepository.findById(inv.getInviterId())
                         .map(u -> mapToInvitationResponse(inv, u.getFullName()))
-                        .defaultIfEmpty(mapToInvitationResponse(inv, "Khách hàng #" + inv.getInviterId())));
+                        .defaultIfEmpty(mapToInvitationResponse(inv, "Customer #" + inv.getInviterId())));
 
         Flux<FamilyInvitationResponse> receivedFlux = familyAccountInvitationRepository.findByInviteeEmail(email.toLowerCase())
                 .flatMap(inv -> userRepository.findById(inv.getInviterId())
                         .map(u -> mapToInvitationResponse(inv, u.getFullName()))
-                        .defaultIfEmpty(mapToInvitationResponse(inv, "Khách hàng #" + inv.getInviterId())));
+                        .defaultIfEmpty(mapToInvitationResponse(inv, "Customer #" + inv.getInviterId())));
 
         return Flux.merge(sentFlux, receivedFlux).distinct(FamilyInvitationResponse::getInvitationId);
     }
@@ -88,23 +88,23 @@ public class FamilyAccountService {
         String token = request.getInvitationToken().trim();
 
         return familyAccountInvitationRepository.findByInvitationToken(token)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy lời mời với mã token đã cung cấp.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Invitation not found with provided token.")))
                 .flatMap(invitation -> {
                     if (!"PENDING".equalsIgnoreCase(invitation.getStatus())) {
-                        return Mono.error(new IllegalArgumentException("Lời mời này không còn ở trạng thái chờ duyệt (Hiện tại: " + invitation.getStatus() + ")."));
+                        return Mono.error(new IllegalArgumentException("This invitation is no longer pending (Current: " + invitation.getStatus() + ")."));
                     }
                     if (invitation.getExpiresAt().isBefore(LocalDateTime.now())) {
                         invitation.setStatus("EXPIRED");
                         return familyAccountInvitationRepository.save(invitation)
-                                .then(Mono.error(new IllegalArgumentException("Lời mời tham gia gia đình đã hết hạn.")));
+                                .then(Mono.error(new IllegalArgumentException("Family group invitation has expired.")));
                     }
                     if (!invitation.getInviteeEmail().equalsIgnoreCase(email.trim())) {
-                        return Mono.error(new IllegalArgumentException("Email tài khoản hiện tại không khớp với email được nhận lời mời (" + invitation.getInviteeEmail() + ")."));
+                        return Mono.error(new IllegalArgumentException("Current account email does not match invited email (" + invitation.getInviteeEmail() + ")."));
                     }
 
                     // Look up inviter's profile to get the effective family head ID
                     return customerProfileRepository.findByCustomerId(invitation.getInviterId())
-                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy hồ sơ người mời.")))
+                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Inviter customer profile not found.")))
                             .flatMap(inviterProfile -> {
                                 Long effectiveFamilyId = inviterProfile.getFamilyAccountId() != null ? inviterProfile.getFamilyAccountId() : invitation.getInviterId();
 
@@ -124,26 +124,26 @@ public class FamilyAccountService {
         String token = request.getInvitationToken().trim();
 
         return familyAccountInvitationRepository.findByInvitationToken(token)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy lời mời với mã token đã cung cấp.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Invitation not found with provided token.")))
                 .flatMap(invitation -> {
                     if (!"PENDING".equalsIgnoreCase(invitation.getStatus())) {
-                        return Mono.error(new IllegalArgumentException("Lời mời không thể từ chối vì đang ở trạng thái: " + invitation.getStatus()));
+                        return Mono.error(new IllegalArgumentException("Invitation cannot be declined because current status is: " + invitation.getStatus()));
                     }
                     if (!invitation.getInviteeEmail().equalsIgnoreCase(email.trim())) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền từ chối lời mời của tài khoản khác."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to decline another account's invitation."));
                     }
 
                     invitation.setStatus("REJECTED");
                     return familyAccountInvitationRepository.save(invitation)
                             .then(userRepository.findById(invitation.getInviterId()))
                             .map(inviter -> mapToInvitationResponse(invitation, inviter.getFullName()))
-                            .defaultIfEmpty(mapToInvitationResponse(invitation, "Khách hàng #" + invitation.getInviterId()));
+                            .defaultIfEmpty(mapToInvitationResponse(invitation, "Customer #" + invitation.getInviterId()));
                 });
     }
 
     public Flux<FamilyMemberResponse> getFamilyMembers(Long customerId) {
         return customerProfileRepository.findByCustomerId(customerId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy hồ sơ khách hàng ID: " + customerId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer profile not found with ID: " + customerId)))
                 .flatMapMany(currentProfile -> {
                     Long familyId = currentProfile.getFamilyAccountId();
                     if (familyId == null) {
@@ -165,7 +165,7 @@ public class FamilyAccountService {
     @Transactional
     public Mono<Void> leaveFamily(Long customerId) {
         return customerProfileRepository.findByCustomerId(customerId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy hồ sơ khách hàng ID: " + customerId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer profile not found with ID: " + customerId)))
                 .flatMap(profile -> {
                     if (profile.getFamilyAccountId() == null) {
                         return Mono.empty();
@@ -181,12 +181,12 @@ public class FamilyAccountService {
         }
 
         return customerProfileRepository.findByCustomerId(callerId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy hồ sơ khách hàng chủ nhóm.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Head customer profile not found.")))
                 .flatMap(callerProfile -> {
                     Long familyId = callerProfile.getFamilyAccountId();
                     // Caller must be the head of the family
                     if (familyId == null || !callerId.equals(familyId)) {
-                        return Mono.error(new IllegalArgumentException("Chỉ chủ nhóm tài khoản gia đình mới có quyền xóa thành viên khác."));
+                        return Mono.error(new IllegalArgumentException("Only the head of family group has permission to remove other members."));
                     }
 
                     return customerProfileRepository.findByCustomerId(targetMemberId)

@@ -36,14 +36,14 @@ public class MarketRoutingService {
     private final NotificationService notificationService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // Bán kính kích hoạt Geofencing quanh phiên chợ (300 mét)
+    // Geofencing trigger radius around market (300 meters)
     public static final double GEOFENCE_RADIUS_METERS = 300.0;
     private static final double EARTH_RADIUS_METERS = 6371000.0;
 
-    // Open Source Routing Machine (OSRM) công khai của cộng đồng OpenStreetMap
+    // Open Source Routing Machine (OSRM) public community endpoint
     private static final String OSRM_ROUTING_BASE = "https://router.project-osrm.org/route/v1/driving/";
 
-    // Bộ nhớ đệm chống gửi thông báo lặp lại liên tục (cool-down 15 phút)
+    // Cache to prevent duplicate consecutive notifications (15-minute cool-down)
     private final Map<String, LocalDateTime> alertCooldownCache = new ConcurrentHashMap<>();
 
     private final WebClient webClient = WebClient.builder()
@@ -51,25 +51,25 @@ public class MarketRoutingService {
             .build();
 
     /**
-     * Tìm chợ gần nhất (hoặc theo ID) và tính toán lộ trình đường đi ngắn nhất bằng OpenStreetMap / OSRM
+     * Finds nearest market (or by ID) and calculates shortest route via OpenStreetMap / OSRM
      */
     public Mono<RouteResponse> findNearestMarketAndRoute(Double userLat, Double userLon, Long specificMarketId) {
         if (userLat == null || userLon == null) {
-            return Mono.error(new IllegalArgumentException("Toạ độ GPS của bạn không được để trống."));
+            return Mono.error(new IllegalArgumentException("Your GPS coordinates cannot be null."));
         }
 
         Mono<Market> targetMarketMono;
         if (specificMarketId != null && specificMarketId > 0) {
             targetMarketMono = marketRepository.findById(specificMarketId)
-                    .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy chợ với ID: " + specificMarketId)));
+                    .switchIfEmpty(Mono.error(new ResourceNotFoundException("Market not found with ID: " + specificMarketId)));
         } else {
             targetMarketMono = marketRepository.findByStatus("ACTIVE")
                     .collectList()
                     .flatMap(markets -> {
                         if (markets.isEmpty()) {
-                            return Mono.error(new ResourceNotFoundException("Hiện không có phiên chợ nào đang mở cửa."));
+                            return Mono.error(new ResourceNotFoundException("There are currently no active markets open."));
                         }
-                        // Dùng Haversine tìm chợ gần nhất theo toạ độ người dùng
+                        // Use Haversine to find nearest market based on user coordinates
                         Market nearest = markets.stream()
                                 .min(Comparator.comparingDouble(m -> calculateHaversine(
                                         userLat, userLon,
@@ -84,7 +84,7 @@ public class MarketRoutingService {
     }
 
     /**
-     * Gọi OSRM Engine (OpenStreetMap) tính toán đường đi xe máy/ô tô ngắn nhất
+     * Calls OSRM Engine (OpenStreetMap) to calculate shortest driving route
      */
     private Mono<RouteResponse> calculateOsrmRoute(double userLat, double userLon, Market market) {
         double mLat = market.getLatitude().doubleValue();
@@ -92,7 +92,7 @@ public class MarketRoutingService {
         double straightDistance = calculateHaversine(userLat, userLon, mLat, mLon);
         boolean inGeofence = straightDistance <= GEOFENCE_RADIUS_METERS;
 
-        // Định dạng URL OSRM: /route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson&steps=true
+        // OSRM URL format: /route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson&steps=true
         String osrmUrl = String.format(Locale.US, "%s%.6f,%.6f;%.6f,%.6f?overview=full&geometries=geojson&steps=true",
                 OSRM_ROUTING_BASE, userLon, userLat, mLon, mLat);
 
@@ -114,14 +114,14 @@ public class MarketRoutingService {
 
                         JsonNode primaryRoute = routes.get(0);
                         double distanceMeters = primaryRoute.path("distance").asDouble(straightDistance);
-                        double durationSeconds = primaryRoute.path("duration").asDouble(distanceMeters / 8.33); // Mặc định ~30km/h
+                        double durationSeconds = primaryRoute.path("duration").asDouble(distanceMeters / 8.33); // Default ~30km/h
 
-                        // Giải nén các toạ độ tuyến đường [ [lat, lon], [lat, lon], ... ]
+                        // Extract route coordinates [ [lat, lon], [lat, lon], ... ]
                         List<List<Double>> geometryList = new ArrayList<>();
                         JsonNode coordinates = primaryRoute.path("geometry").path("coordinates");
                         if (coordinates.isArray()) {
                             for (JsonNode point : coordinates) {
-                                // OSRM trả về [lon, lat], chuyển lại thành [lat, lon] để vẽ trên Leaflet
+                                // OSRM returns [lon, lat], convert back to [lat, lon] for Leaflet rendering
                                 geometryList.add(List.of(point.get(1).asDouble(), point.get(0).asDouble()));
                             }
                         }
@@ -131,7 +131,7 @@ public class MarketRoutingService {
                             geometryList.add(List.of(mLat, mLon));
                         }
 
-                        // Danh sách chỉ dẫn chặng rẽ
+                        // Step-by-step turn directions
                         List<String> steps = new ArrayList<>();
                         JsonNode legs = primaryRoute.path("legs");
                         if (legs.isArray() && !legs.isEmpty()) {
@@ -143,27 +143,27 @@ public class MarketRoutingService {
                                     String modifier = step.path("maneuver").path("modifier").asText("");
                                     String type = step.path("maneuver").path("type").asText("");
 
-                                    String action = "Đi thẳng";
+                                    String action = "Continue straight";
                                     if ("turn".equals(type) || "end of road".equals(type)) {
-                                        if ("right".equalsIgnoreCase(modifier)) action = "Rẽ phải";
-                                        else if ("left".equalsIgnoreCase(modifier)) action = "Rẽ trái";
-                                        else if ("slight right".equalsIgnoreCase(modifier)) action = "Chếch sang phải";
-                                        else if ("slight left".equalsIgnoreCase(modifier)) action = "Chếch sang trái";
+                                        if ("right".equalsIgnoreCase(modifier)) action = "Turn right";
+                                        else if ("left".equalsIgnoreCase(modifier)) action = "Turn left";
+                                        else if ("slight right".equalsIgnoreCase(modifier)) action = "Slight right";
+                                        else if ("slight left".equalsIgnoreCase(modifier)) action = "Slight left";
                                     } else if ("arrive".equals(type)) {
-                                        action = "Đến nơi tại";
+                                        action = "Arrive at destination";
                                     }
 
                                     String instruction = String.format("%s %s (%.0f m)",
-                                            action, name.isEmpty() ? "đoạn đường phía trước" : "vào " + name, stepDist);
+                                            action, name.isEmpty() ? "the road ahead" : "onto " + name, stepDist);
                                     steps.add(instruction);
                                 }
                             }
                         }
 
                         if (steps.isEmpty()) {
-                            steps.add(String.format("Khởi hành từ vị trí của bạn hướng về %s", market.getName()));
-                            steps.add(String.format("Đi theo tuyến đường chính tới %s", market.getAddress()));
-                            steps.add(String.format("Đến cổng phiên chợ %s", market.getName()));
+                            steps.add(String.format("Depart from your location heading towards %s", market.getName()));
+                            steps.add(String.format("Follow main road corridor to %s", market.getAddress()));
+                            steps.add(String.format("Arrive at market gate %s", market.getName()));
                         }
 
                         double km = Math.round((distanceMeters / 1000.0) * 10.0) / 10.0;
@@ -186,32 +186,32 @@ public class MarketRoutingService {
                                 .build());
 
                     } catch (Exception e) {
-                        log.warn("Lỗi phân tích JSON OSRM: {}, chuyển sang dự phòng", e.getMessage());
+                        log.warn("OSRM JSON parsing error: {}, switching to fallback", e.getMessage());
                         return Mono.just(createFallbackRoute(userLat, userLon, market, straightDistance, inGeofence, gmapsUrl));
                     }
                 })
                 .onErrorResume(err -> {
-                    log.info("OSRM không phản hồi kịp (timeout/offline), kích hoạt đường dự phòng: {}", err.getMessage());
+                    log.info("OSRM timeout/offline, activating fallback routing: {}", err.getMessage());
                     return Mono.just(createFallbackRoute(userLat, userLon, market, straightDistance, inGeofence, gmapsUrl));
                 });
     }
 
     /**
-     * Tuyến đường dự phòng khi không có kết nối internet ngoại vi OSRM
+     * Fallback route when external OSRM service is unavailable
      */
     private RouteResponse createFallbackRoute(double userLat, double userLon, Market market,
                                               double distanceMeters, boolean inGeofence, String gmapsUrl) {
         double km = Math.round((distanceMeters / 1000.0) * 10.0) / 10.0;
-        int minutes = (int) Math.max(1, Math.ceil(km * 2.5)); // Giả định vận tốc trung bình 24 km/h
+        int minutes = (int) Math.max(1, Math.ceil(km * 2.5)); // Assumes average speed of 24 km/h
 
         List<List<Double>> fallbackGeo = new ArrayList<>();
-        // Sinh 5 điểm trung gian uốn lượn nhẹ để vẽ đường polyline tự nhiên
+        // Generate 5 intermediate curved waypoints for a natural polyline path
         int stepsCount = 6;
         for (int i = 0; i <= stepsCount; i++) {
             double ratio = (double) i / stepsCount;
             double lat = userLat + (market.getLatitude().doubleValue() - userLat) * ratio;
             double lon = userLon + (market.getLongitude().doubleValue() - userLon) * ratio;
-            // Thêm chút độ lệch tự nhiên ở các điểm giữa
+            // Add subtle natural curvature offset at intermediate points
             if (i > 0 && i < stepsCount) {
                 lat += (i % 2 == 0 ? 0.0008 : -0.0008);
             }
@@ -219,9 +219,9 @@ public class MarketRoutingService {
         }
 
         List<String> steps = List.of(
-                String.format("Khởi hành từ vị trí hiện tại hướng về %s", market.getName()),
-                String.format("Đi theo tuyến đường ngắn nhất khoảng %.1f km", km),
-                String.format("Đến cổng chợ tại: %s", market.getAddress())
+                String.format("Depart from current location heading towards %s", market.getName()),
+                String.format("Follow shortest path approximately %.1f km", km),
+                String.format("Arrive at market entrance: %s", market.getAddress())
         );
 
         return RouteResponse.builder()
@@ -242,20 +242,20 @@ public class MarketRoutingService {
     }
 
     /**
-     * Kiểm tra định vị Geofencing (bán kính 300m) và bắn thông báo thời gian thực
+     * Checks geofencing proximity (300m radius) and triggers real-time notification
      */
     public Mono<GeofenceCheckResponse> checkGeofence(String userEmail, Double userLat, Double userLon, Long targetMarketId) {
         if (userLat == null || userLon == null) {
-            return Mono.error(new IllegalArgumentException("Toạ độ GPS không được để trống."));
+            return Mono.error(new IllegalArgumentException("GPS coordinates cannot be null."));
         }
 
         return userRepository.findByEmail(userEmail)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản: " + userEmail)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Account information not found: " + userEmail)))
                 .flatMap(user -> {
                     Mono<Market> targetMarketMono = (targetMarketId != null && targetMarketId > 0)
                             ? marketRepository.findById(targetMarketId)
                             : marketRepository.findByStatus("ACTIVE").collectList().map(list -> {
-                                if (list.isEmpty()) throw new ResourceNotFoundException("Không có chợ đang hoạt động");
+                                if (list.isEmpty()) throw new ResourceNotFoundException("No active farmers markets open");
                                 return list.stream()
                                         .min(Comparator.comparingDouble(m -> calculateHaversine(userLat, userLon, m.getLatitude().doubleValue(), m.getLongitude().doubleValue())))
                                         .orElse(list.get(0));
@@ -271,18 +271,18 @@ public class MarketRoutingService {
                                     .distanceMeters(Math.round(distance * 10.0) / 10.0)
                                     .marketId(market.getMarketId())
                                     .marketName(market.getName())
-                                    .alertMessage(String.format("Bạn đang cách %s khoảng %.0f mét (Ngoài vùng Geofence 300m).", market.getName(), distance))
+                                    .alertMessage(String.format("You are %s approximately %.0f meters away (Outside 300m Geofence zone).", market.getName(), distance))
                                     .notifiedFarmersCount(0)
                                     .todayOrderCodes(Collections.emptyList())
                                     .build());
                         }
 
-                        // Khi đã bước vào bán kính 300m
+                        // When user enters 300m radius
                         String cooldownKey = user.getUserId() + "_" + market.getMarketId();
                         boolean alreadyAlerted = alertCooldownCache.containsKey(cooldownKey) &&
                                 Duration.between(alertCooldownCache.get(cooldownKey), LocalDateTime.now()).toMinutes() < 15;
 
-                        // Tìm các đơn hàng của khách
+                        // Find customer orders
                         return orderRepository.findByCustomerIdOrderByCreatedAtDesc(user.getUserId())
                                 .filter(o -> market.getMarketId().equals(o.getMarketId()))
                                 .filter(o -> !"CANCELLED".equals(o.getOrderStatus()) && !"DECLINED".equals(o.getOrderStatus()))
@@ -296,36 +296,36 @@ public class MarketRoutingService {
                                                 .distanceMeters(Math.round(distance * 10.0) / 10.0)
                                                 .marketId(market.getMarketId())
                                                 .marketName(market.getName())
-                                                .alertMessage(String.format("Chào mừng bạn đã đến %s! Các đơn hàng của bạn đã sẵn sàng nhận tại sạp.", market.getName()))
+                                                .alertMessage(String.format("Welcome to %s! Your pre-orders are ready for pickup at the stall.", market.getName()))
                                                 .notifiedFarmersCount(0)
                                                 .todayOrderCodes(orderCodes)
                                                 .build());
                                     }
 
-                                    // Đánh dấu thời gian đã gửi thông báo
+                                    // Record timestamp of sent notification
                                     alertCooldownCache.put(cooldownKey, LocalDateTime.now());
 
-                                    // 1. Tạo thông báo cho Khách hàng
-                                    String custMsg = String.format("Chào mừng bạn đã đến %s (cách %.0fm)! Vui lòng tới sạp đã hẹn để nhận nông sản tươi.", market.getName(), distance);
+                                    // 1. Create notification for Customer
+                                    String custMsg = String.format("Welcome to %s (%.0fm away)! Please proceed to your appointed stall to collect fresh produce.", market.getName(), distance);
                                     Mono<Void> notifCust = notificationService.createNotification(
                                             user.getUserId(),
-                                            "📍 Bạn đã đến phiên chợ!",
+                                            "📍 You have arrived at the farmers market!",
                                             custMsg,
                                             "SYSTEM",
                                             market.getMarketId()
                                     ).then();
 
-                                    // 2. Tạo thông báo cho các Nông dân có đơn của khách
+                                    // 2. Create notification for Farmers with customer orders
                                     Set<Long> notifiedFarmers = new HashSet<>();
                                     List<Mono<Void>> farmerNotifs = new ArrayList<>();
 
                                     for (Order order : orders) {
                                         if (notifiedFarmers.add(order.getFarmerId())) {
-                                            String farmerMsg = String.format("Khách hàng %s (Đơn #%s) vừa đến cổng chợ (cách %.0fm). Hãy soạn sẵn giỏ nông sản!",
+                                            String farmerMsg = String.format("Customer %s (Order #%s) just arrived at the market gate (%.0fm away). Please get their produce basket ready!",
                                                     user.getFullName(), order.getOrderCode(), distance);
                                             farmerNotifs.add(notificationService.createNotification(
                                                     order.getFarmerId(),
-                                                    "🔔 Khách hàng đang tiến vào chợ!",
+                                                    "🔔 Customer entering the market!",
                                                     farmerMsg,
                                                     "ORDER_READY",
                                                     order.getOrderId()
@@ -349,7 +349,7 @@ public class MarketRoutingService {
     }
 
     /**
-     * Công thức Haversine tính khoảng cách đường vòng cung trên Trái Đất (mét)
+     * Haversine formula to calculate approximate great-circle distance on Earth (meters)
      */
     public double calculateHaversine(double lat1, double lon1, double lat2, double lon2) {
         double dLat = Math.toRadians(lat2 - lat1);

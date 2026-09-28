@@ -14,16 +14,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class FarmerCutoffSettingRequest {
 
-    @NotNull(message = "Mã chợ (marketId) không được để trống")
+    @NotNull(message = "Market ID (marketId) cannot be null")
     private Long marketId;
 
-    @NotNull(message = "Thứ trong tuần (dayOfWeek) không được để trống")
-    @Min(value = 1, message = "Thứ trong tuần từ 1 (Thứ 2) đến 7 (Chủ nhật)")
-    @Max(value = 7, message = "Thứ trong tuần từ 1 (Thứ 2) đến 7 (Chủ nhật)")
+    @NotNull(message = "Day of week (dayOfWeek) cannot be null")
+    @Min(value = 1, message = "Day of week from 1 (Monday) to 7 (Sunday)")
+    @Max(value = 7, message = "Day of week from 1 (Monday) to 7 (Sunday)")
     private Integer dayOfWeek;
 
-    @NotNull(message = "Số giờ chốt đơn trước giờ mở chợ không được để trống")
-    @Min(value = 1, message = "Tối thiểu chốt đơn trước 1 giờ")
-    @Max(value = 72, message = "Tối đa chốt đơn trước 72 giờ")
+    @NotNull(message = "Cutoff hours before market opening cannot be null")
+    @Min(value = 1, message = "Minimum cutoff is 1 hour before market")
+    @Max(value = 72, message = "Maximum cutoff is 72 hours before market")
     private Integer cutoffHoursBefore;
 }

@@ -52,7 +52,7 @@ public class FavoriteService {
     public Mono<FavoriteResponse> addFavorite(Long customerId, FavoriteRequest request) {
         String type = request.getTargetType().toUpperCase().trim();
         if (!List.of("FARMER", "PRODUCT", "MARKET").contains(type)) {
-            return Mono.error(new IllegalArgumentException("Loại đối tượng yêu thích không hợp lệ (FARMER, PRODUCT, MARKET)."));
+            return Mono.error(new IllegalArgumentException("Invalid favorite type (FARMER, PRODUCT, MARKET)."));
         }
 
         return favoriteRepository.existsByCustomerIdAndTargetTypeAndTargetId(customerId, type, request.getTargetId())
@@ -87,20 +87,20 @@ public class FavoriteService {
 
         if ("PRODUCT".equalsIgnoreCase(type)) {
             return productRepository.findById(id)
-                    .defaultIfEmpty(Product.builder().name("Sản phẩm #" + id).price(java.math.BigDecimal.ZERO).unit("").build())
+                    .defaultIfEmpty(Product.builder().name("Product #" + id).price(java.math.BigDecimal.ZERO).unit("").build())
                     .map(p -> FavoriteResponse.builder()
                             .favoriteId(fav.getFavoriteId())
                             .customerId(fav.getCustomerId())
                             .targetType(type)
                             .targetId(id)
                             .targetTitle(p.getName())
-                            .targetSubtitle(String.format("%,.0f đ / %s", p.getPrice(), p.getUnit()))
+                            .targetSubtitle(String.format("%,.0f VND / %s", p.getPrice(), p.getUnit()))
                             .targetImageUrl(p.getImageUrl())
                             .createdAt(fav.getCreatedAt())
                             .build());
         } else if ("MARKET".equalsIgnoreCase(type)) {
             return marketRepository.findById(id)
-                    .defaultIfEmpty(Market.builder().name("Chợ #" + id).address("").build())
+                    .defaultIfEmpty(Market.builder().name("Market #" + id).address("").build())
                     .map(m -> FavoriteResponse.builder()
                             .favoriteId(fav.getFavoriteId())
                             .customerId(fav.getCustomerId())
@@ -113,9 +113,9 @@ public class FavoriteService {
                             .build());
         } else if ("FARMER".equalsIgnoreCase(type)) {
             Mono<FarmerProfile> profileMono = farmerProfileRepository.findById(id)
-                    .defaultIfEmpty(FarmerProfile.builder().stallName("Gian hàng nông dân #" + id).farmAddress("").build());
+                    .defaultIfEmpty(FarmerProfile.builder().stallName("Farmer Stall #" + id).farmAddress("").build());
             Mono<User> userMono = userRepository.findById(id)
-                    .defaultIfEmpty(User.builder().fullName("Nông dân").avatarUrl("").build());
+                    .defaultIfEmpty(User.builder().fullName("Farmer").avatarUrl("").build());
 
             return Mono.zip(profileMono, userMono)
                     .map(tuple -> {
@@ -139,7 +139,7 @@ public class FavoriteService {
                 .customerId(fav.getCustomerId())
                 .targetType(type)
                 .targetId(id)
-                .targetTitle("Mục yêu thích #" + id)
+                .targetTitle("Favorite item #" + id)
                 .createdAt(fav.getCreatedAt())
                 .build());
     }

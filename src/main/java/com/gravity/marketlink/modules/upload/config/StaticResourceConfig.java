@@ -27,7 +27,7 @@ public class StaticResourceConfig implements WebMvcConfigurer {
             Path root = Paths.get(uploadDir).toAbsolutePath();
             if (!Files.exists(root)) {
                 Files.createDirectories(root);
-                log.info("Đã tạo thư mục lưu trữ tập tin tải lên: {}", root);
+                log.info("Created uploads storage directory: {}", root);
             }
             // Sub-folders for organization
             Files.createDirectories(root.resolve("images").resolve("markets"));
@@ -36,7 +36,7 @@ public class StaticResourceConfig implements WebMvcConfigurer {
             Files.createDirectories(root.resolve("images").resolve("kyc"));
             Files.createDirectories(root.resolve("images").resolve("general"));
         } catch (IOException e) {
-            log.error("Không thể khởi tạo thư mục lưu trữ tải lên: {}", e.getMessage());
+            log.error("Cannot initialize uploads storage directory: {}", e.getMessage());
         }
     }
 

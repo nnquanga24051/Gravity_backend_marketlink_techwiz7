@@ -11,14 +11,14 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu gửi mã OTP xác minh (Email/Phone/Reset password)")
+@Schema(description = "Request to send OTP verification code (Email/Phone/Reset password)")
 public class SendOtpRequest {
 
-    @NotBlank(message = "Email hoặc số điện thoại không được để trống")
-    @Schema(description = "Email hoặc số điện thoại nhận mã", example = "farmer1@marketlink.com")
+    @NotBlank(message = "Email or phone cannot be blank")
+    @Schema(description = "Email or phone number to receive code", example = "farmer1@marketlink.com")
     private String emailOrPhone;
 
-    @NotBlank(message = "Loại xác minh không được để trống")
-    @Schema(description = "Loại xác minh: EMAIL_CONFIRMATION, PHONE_OTP, PASSWORD_RESET", example = "EMAIL_CONFIRMATION")
+    @NotBlank(message = "Verification type cannot be blank")
+    @Schema(description = "Verification type: EMAIL_CONFIRMATION, PHONE_OTP, PASSWORD_RESET", example = "EMAIL_CONFIRMATION")
     private String type;
 }

@@ -12,24 +12,24 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Tình trạng hồ sơ KYC hiện tại của Nông dân")
+@Schema(description = "Current KYC verification status of Farmer")
 public class FarmerKycStatusResponse {
 
-    @Schema(description = "ID Nông dân", example = "2")
+    @Schema(description = "Farmer ID", example = "2")
     private Long farmerId;
 
-    @Schema(description = "Trạng thái KYC tài khoản: UNVERIFIED, PENDING, VERIFIED, REJECTED", example = "PENDING")
+    @Schema(description = "Account KYC status: UNVERIFIED, PENDING, VERIFIED, REJECTED", example = "PENDING")
     private String kycStatus;
 
-    @Schema(description = "Đã được phê duyệt bán hàng hay chưa", example = "false")
+    @Schema(description = "Whether farmer has approved selling permission", example = "false")
     private Boolean isApproved;
 
-    @Schema(description = "Ghi chú/lý do kiểm duyệt gần nhất từ Quản trị viên", example = "Cần chụp rõ nét lại mặt sau CCCD")
+    @Schema(description = "Latest review notes/feedback from Administrator", example = "Please provide clearer photo of ID card back side")
     private String latestRemark;
 
-    @Schema(description = "Danh sách tài liệu KYC đã nộp")
+    @Schema(description = "List of submitted KYC documents")
     private List<FarmerKycDocumentResponse> documents;
 
-    @Schema(description = "Lịch sử kiểm duyệt hồ sơ")
+    @Schema(description = "Application moderation history")
     private List<VerificationAuditLogResponse> auditLogs;
 }

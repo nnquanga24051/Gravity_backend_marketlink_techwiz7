@@ -112,7 +112,7 @@ public class AnnouncementService {
 
     public Mono<AnnouncementResponse> getAnnouncementById(Long id) {
         return announcementRepository.findById(id)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông báo hệ thống với ID: " + id)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("System announcement not found with ID: " + id)))
                 .flatMap(this::enrichAnnouncement);
     }
 
@@ -136,7 +136,7 @@ public class AnnouncementService {
     @Transactional
     public Mono<AnnouncementResponse> updateAnnouncement(Long announcementId, AnnouncementRequest request) {
         return announcementRepository.findById(announcementId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông báo hệ thống với ID: " + announcementId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("System announcement not found with ID: " + announcementId)))
                 .flatMap(announcement -> {
                     announcement.setTitle(request.getTitle());
                     announcement.setContent(request.getContent());
@@ -160,7 +160,7 @@ public class AnnouncementService {
     @Transactional
     public Mono<AnnouncementResponse> toggleAnnouncementStatus(Long announcementId, Boolean explicitStatus) {
         return announcementRepository.findById(announcementId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông báo hệ thống với ID: " + announcementId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("System announcement not found with ID: " + announcementId)))
                 .flatMap(announcement -> {
                     boolean nextStatus = (explicitStatus != null) ? explicitStatus : !Boolean.TRUE.equals(announcement.getIsActive());
                     announcement.setIsActive(nextStatus);
@@ -172,7 +172,7 @@ public class AnnouncementService {
     @Transactional
     public Mono<Void> deleteAnnouncement(Long announcementId) {
         return announcementRepository.findById(announcementId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông báo hệ thống với ID: " + announcementId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("System announcement not found with ID: " + announcementId)))
                 .flatMap(announcementRepository::delete);
     }
 
@@ -187,11 +187,11 @@ public class AnnouncementService {
 
     private Mono<AnnouncementResponse> enrichAnnouncement(SystemAnnouncement a) {
         return userRepository.findById(a.getAdminId())
-                .defaultIfEmpty(User.builder().fullName("Quản trị viên MarketLink").build())
+                .defaultIfEmpty(User.builder().fullName("MarketLink Administrator").build())
                 .map(admin -> AnnouncementResponse.builder()
                         .announcementId(a.getAnnouncementId())
                         .adminId(a.getAdminId())
-                        .adminName(admin.getFullName() != null ? admin.getFullName() : "Ban Quản Trị")
+                        .adminName(admin.getFullName() != null ? admin.getFullName() : "Administration Board")
                         .title(a.getTitle())
                         .content(a.getContent())
                         .type(a.getType() != null ? a.getType() : "GENERAL")

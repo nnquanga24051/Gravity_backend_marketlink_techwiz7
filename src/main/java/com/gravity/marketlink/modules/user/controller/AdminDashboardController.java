@@ -16,7 +16,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@Tag(name = "6. Quản trị viên - Báo cáo & Thống kê sàn (Admin Dashboard & Analytics)", description = "Các API tổng hợp chỉ số toàn sàn, doanh thu theo chợ và xếp hạng nông dân tích cực nhất")
+@Tag(name = "6. Admin Dashboard & Platform Analytics", description = "APIs for platform-wide metrics aggregation, market revenue, and active farmer rankings")
 @SecurityRequirement(name = "Bearer Authentication")
 @RestController
 @RequestMapping("/api/admin/dashboard")
@@ -25,27 +25,27 @@ public class AdminDashboardController {
 
     private final AdminDashboardService dashboardService;
 
-    @Operation(summary = "Tổng quan chỉ số cốt lõi toàn sàn", description = "Thống kê tổng số Nông dân, Khách hàng, Chợ nông sản, Đơn hàng, Doanh thu hoàn thành và Hồ sơ KYC chờ duyệt.")
+    @Operation(summary = "Platform core metrics overview", description = "Statistics of Farmers, Customers, Markets, Orders, Completed Revenue, and Pending KYC applications.")
     @GetMapping("/metrics")
     public Mono<ResponseEntity<ApiResponse<PlatformMetricsResponse>>> getPlatformMetrics() {
         return dashboardService.getPlatformMetrics()
-                .map(metrics -> ResponseEntity.ok(ApiResponse.success("Lấy chỉ số thống kê toàn sàn thành công.", metrics)));
+                .map(metrics -> ResponseEntity.ok(ApiResponse.success("Retrieved platform statistics successfully.", metrics)));
     }
 
-    @Operation(summary = "Báo cáo doanh thu & đơn hàng theo từng chợ", description = "Tổng hợp doanh thu, tổng số đơn đặt trước và số lượng nông dân hoạt động phân bổ theo từng điểm chợ.")
+    @Operation(summary = "Revenue and orders report by market", description = "Aggregates revenue, pre-orders, and active farmers distribution by market location.")
     @GetMapping(value = {"/reports/markets", "/reports/revenue"})
     public Mono<ResponseEntity<ApiResponse<List<MarketRevenueReportDto>>>> getMarketRevenueReports() {
         return dashboardService.getMarketRevenueReports()
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy báo cáo doanh thu theo chợ thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved market revenue report successfully.", list)));
     }
 
-    @Operation(summary = "Xếp hạng nông dân tích cực nhất (Most Active Farmers)", description = "Danh sách top nông dân có số đơn hàng hoàn tất cao nhất và doanh thu tốt nhất trên sàn.")
+    @Operation(summary = "Most Active Farmers Rankings", description = "Top farmers with highest completed orders and best platform sales performance.")
     @GetMapping(value = {"/reports/most-active-farmers", "/reports/active-farmers"})
     public Mono<ResponseEntity<ApiResponse<List<ActiveFarmerReportDto>>>> getMostActiveFarmers(
             @RequestParam(value = "limit", defaultValue = "10") int limit) {
         return dashboardService.getMostActiveFarmers(limit)
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy xếp hạng nông dân tích cực thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved active farmers ranking successfully.", list)));
     }
 }

@@ -13,19 +13,19 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Thông tin chi tiết một tài liệu KYC của Nông dân")
+@Schema(description = "Farmer KYC document submission details")
 public class FarmerKycItemRequest {
 
-    @NotBlank(message = "URL tài liệu không được để trống")
-    @Schema(description = "Đường dẫn hình ảnh/tài liệu đã tải lên", example = "https://example.com/kyc/cccd-mat-truoc.jpg")
+    @NotBlank(message = "Document URL cannot be blank")
+    @Schema(description = "Uploaded image/document file URL", example = "https://example.com/kyc/cccd-mat-truoc.jpg")
     private String documentUrl;
 
-    @Schema(description = "Số giấy tờ/chứng nhận nếu có", example = "079090123456")
+    @Schema(description = "Document / Certificate number (optional)", example = "079090123456")
     private String documentNumber;
 
-    @Schema(description = "Ngày cấp", example = "2022-05-15")
+    @Schema(description = "Issuance date", example = "2022-05-15")
     private LocalDate issuedDate;
 
-    @Schema(description = "Ngày hết hạn nếu có", example = "2032-05-15")
+    @Schema(description = "Expiration date (optional)", example = "2032-05-15")
     private LocalDate expiryDate;
 }

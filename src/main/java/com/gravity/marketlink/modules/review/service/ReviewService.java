@@ -41,18 +41,18 @@ public class ReviewService {
     @Transactional
     public Mono<ReviewResponse> createReview(Long customerId, ReviewCreateRequest request) {
         return orderRepository.findById(request.getOrderId())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + request.getOrderId())))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Order not found with ID: " + request.getOrderId())))
                 .flatMap(order -> {
                     if (!order.getCustomerId().equals(customerId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không thể đánh giá đơn hàng của người khác."));
+                        return Mono.error(new IllegalArgumentException("You cannot review another customer's order."));
                     }
 
                     if (!"COMPLETED".equalsIgnoreCase(order.getOrderStatus())) {
-                        return Mono.error(new IllegalStateException("Chỉ có thể đánh giá sau khi đơn hàng đã hoàn tất (COMPLETED). Trạng thái hiện tại: " + order.getOrderStatus()));
+                        return Mono.error(new IllegalStateException("You can only review after order is completed (COMPLETED). Current status: " + order.getOrderStatus()));
                     }
 
                     return reviewRepository.findByOrderId(order.getOrderId())
-                            .flatMap(existing -> Mono.<ReviewResponse>error(new IllegalStateException("Đơn hàng này đã được đánh giá trước đó.")))
+                            .flatMap(existing -> Mono.<ReviewResponse>error(new IllegalStateException("This order has already been reviewed.")))
                             .switchIfEmpty(determineProductIdAndSave(order, request));
                 });
     }
@@ -83,8 +83,8 @@ public class ReviewService {
             return reviewRepository.save(review)
                     .flatMap(saved -> notificationService.createNotification(
                             order.getFarmerId(),
-                            "Đánh giá mới cho đơn " + order.getOrderCode(),
-                            "Khách hàng vừa đánh giá " + request.getRating() + " sao: \""
+                            "New review for order " + order.getOrderCode(),
+                            "A customer just rated " + request.getRating() + " sao: \""
                                     + (request.getComment() != null ? request.getComment() : "") + "\"",
                             "SYSTEM",
                             saved.getReviewId())
@@ -95,10 +95,10 @@ public class ReviewService {
     @Transactional
     public Mono<ReviewResponse> replyReview(Long farmerId, Long reviewId, ReviewReplyRequest request) {
         return reviewRepository.findById(reviewId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy đánh giá với ID: " + reviewId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Review not found with ID: " + reviewId)))
                 .flatMap(review -> {
                     if (!review.getFarmerId().equals(farmerId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền phản hồi đánh giá này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to reply to this review."));
                     }
 
                     review.setFarmerReply(request.getFarmerReply());
@@ -107,8 +107,8 @@ public class ReviewService {
                     return reviewRepository.save(review)
                             .flatMap(saved -> notificationService.createNotification(
                                     saved.getCustomerId(),
-                                    "Nông dân đã phản hồi đánh giá của bạn",
-                                    "Sạp nông dân vừa gửi phản hồi: \"" + request.getFarmerReply() + "\"",
+                                    "Farmer replied to your review",
+                                    "Farmer responded: \"" + request.getFarmerReply() + "\"",
                                     "SYSTEM",
                                     saved.getReviewId())
                                     .then(enrichReview(saved)));
@@ -179,7 +179,7 @@ public class ReviewService {
     @Transactional
     public Mono<ReviewResponse> setReviewVisibility(Long reviewId, boolean isHidden) {
         return reviewRepository.findById(reviewId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy đánh giá với ID: " + reviewId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Review not found with ID: " + reviewId)))
                 .flatMap(review -> {
                     review.setIsHidden(isHidden);
                     return reviewRepository.save(review);
@@ -189,13 +189,13 @@ public class ReviewService {
 
     private Mono<ReviewResponse> enrichReview(Review r) {
         Mono<User> customerMono = userRepository.findById(r.getCustomerId())
-                .defaultIfEmpty(User.builder().fullName("Khách hàng").avatarUrl("").build());
+                .defaultIfEmpty(User.builder().fullName("Customer").avatarUrl("").build());
 
         Mono<FarmerProfile> farmerProfileMono = farmerProfileRepository.findById(r.getFarmerId())
-                .defaultIfEmpty(FarmerProfile.builder().stallName("Gian hàng nông dân").build());
+                .defaultIfEmpty(FarmerProfile.builder().stallName("Farmer Stall").build());
 
         Mono<User> farmerUserMono = userRepository.findById(r.getFarmerId())
-                .defaultIfEmpty(User.builder().fullName("Nông dân").build());
+                .defaultIfEmpty(User.builder().fullName("Farmer").build());
 
         Mono<String> productNameMono = (r.getProductId() != null)
                 ? productRepository.findById(r.getProductId()).map(Product::getName).defaultIfEmpty("")

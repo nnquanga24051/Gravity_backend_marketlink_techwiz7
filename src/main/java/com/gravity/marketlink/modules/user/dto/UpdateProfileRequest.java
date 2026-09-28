@@ -13,37 +13,37 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Dữ liệu yêu cầu cập nhật hồ sơ cá nhân")
+@Schema(description = "Personal profile update request payload")
 public class UpdateProfileRequest {
 
-    @Schema(description = "Họ và tên", example = "Nguyễn Văn Nông Dân")
-    @Size(max = 150, message = "Họ và tên không được vượt quá 150 ký tự")
+    @Schema(description = "Full name", example = "John Doe")
+    @Size(max = 150, message = "Full name must not exceed 150 characters")
     private String fullName;
 
-    @Schema(description = "Số điện thoại liên hệ", example = "0987654321")
-    @Size(max = 20, message = "Số điện thoại không hợp lệ")
+    @Schema(description = "Contact phone number", example = "0987654321")
+    @Size(max = 20, message = "Invalid phone number format")
     private String phoneNumber;
 
-    @Schema(description = "Đường dẫn ảnh đại diện (Avatar URL)", example = "https://images.unsplash.com/photo-1534528741775-53994a69daeb")
+    @Schema(description = "Avatar image URL", example = "https://images.unsplash.com/photo-1534528741775-53994a69daeb")
     private String avatarUrl;
 
-    // --- Thông tin dành riêng cho Khách hàng (Customer) ---
-    @Schema(description = "Địa chỉ giao hàng mặc định (Dành cho Customer)", example = "Số 123 Đường Láng, Đống Đa, Hà Nội")
+    // --- Customer specific details ---
+    @Schema(description = "Default pickup/delivery address (For Customer)", example = "123 Lang Street, Dong Da, Hanoi")
     private String defaultAddress;
 
-    @Schema(description = "Tọa độ vĩ độ (Latitude)", example = "21.028511")
+    @Schema(description = "Latitude coordinate", example = "21.028511")
     private BigDecimal latitude;
 
-    @Schema(description = "Tọa độ kinh độ (Longitude)", example = "105.804817")
+    @Schema(description = "Longitude coordinate", example = "105.804817")
     private BigDecimal longitude;
 
-    // --- Thông tin dành riêng cho Nông dân (Farmer) ---
-    @Schema(description = "Tên gian hàng / Sạp nông sản (Dành cho Farmer)", example = "Sạp Rau Củ Hữu Cơ Ba Đình")
+    // --- Farmer specific details ---
+    @Schema(description = "Stall / Farm name (For Farmer)", example = "Ba Dinh Organic Veggie Stall")
     private String stallName;
 
-    @Schema(description = "Tiểu sử / giới thiệu nhà vườn (Dành cho Farmer)", example = "Trang trại hữu cơ đạt chuẩn VietGAP, chuyên rau củ sạch.")
+    @Schema(description = "Farm biography / grower intro (For Farmer)", example = "Certified VietGAP organic farm specializing in clean vegetables.")
     private String bio;
 
-    @Schema(description = "Địa chỉ trang trại (Dành cho Farmer)", example = "Thôn 2, Xã Yên Bài, Ba Vì, Hà Nội")
+    @Schema(description = "Farm address (For Farmer)", example = "Hamlet 2, Yen Bai, Ba Vi, Hanoi")
     private String farmAddress;
 }

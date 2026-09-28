@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CategoryRequest {
 
-    @NotBlank(message = "Tên danh mục không được để trống")
+    @NotBlank(message = "Category name cannot be blank")
     private String name;
 
     private String slug;

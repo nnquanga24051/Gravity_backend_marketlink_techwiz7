@@ -48,18 +48,18 @@ public class PickupSlotService {
     @Transactional
     public Mono<PickupSlotResponse> createSlot(Long farmerId, PickupSlotRequest request) {
         if (request.getStartTime().isAfter(request.getEndTime()) || request.getStartTime().equals(request.getEndTime())) {
-            return Mono.error(new IllegalArgumentException("Giờ bắt đầu ca nhận hàng phải trước giờ kết thúc."));
+            return Mono.error(new IllegalArgumentException("Pickup slot start time must be before end time."));
         }
 
         return farmerProfileRepository.findById(farmerId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy hồ sơ nông dân với ID: " + farmerId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer profile not found with ID: " + farmerId)))
                 .flatMap(profile -> {
                     if (profile.getIsApproved() == null || !profile.getIsApproved()) {
-                        return Mono.error(new IllegalStateException("Hồ sơ nông dân chưa được duyệt KYC, không thể tạo ca nhận hàng."));
+                        return Mono.error(new IllegalStateException("Farmer profile has not been KYC approved, cannot create pickup slots."));
                     }
 
                     return marketRepository.findById(request.getMarketId())
-                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy chợ nông sản với ID: " + request.getMarketId())))
+                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmers market not found with ID: " + request.getMarketId())))
                             .flatMap(market -> {
                                 PickupTimeSlot slot = PickupTimeSlot.builder()
                                         .farmerId(farmerId)
@@ -77,10 +77,10 @@ public class PickupSlotService {
     @Transactional
     public Mono<Void> deleteSlot(Long farmerId, Long slotId) {
         return slotRepository.findById(slotId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy ca nhận hàng với ID: " + slotId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Pickup slot not found with ID: " + slotId)))
                 .flatMap(slot -> {
                     if (!slot.getFarmerId().equals(farmerId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền xóa ca nhận hàng này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to delete this pickup slot."));
                     }
                     return slotRepository.delete(slot);
                 });
@@ -88,13 +88,13 @@ public class PickupSlotService {
 
     private Mono<PickupSlotResponse> enrichSlotResponse(PickupTimeSlot slot) {
         Mono<Market> marketMono = marketRepository.findById(slot.getMarketId())
-                .defaultIfEmpty(Market.builder().name("Chợ #" + slot.getMarketId()).build());
+                .defaultIfEmpty(Market.builder().name("Market #" + slot.getMarketId()).build());
 
         Mono<FarmerProfile> profileMono = farmerProfileRepository.findById(slot.getFarmerId())
-                .defaultIfEmpty(FarmerProfile.builder().stallName("Sạp nông dân #" + slot.getFarmerId()).build());
+                .defaultIfEmpty(FarmerProfile.builder().stallName("Farmer Stall #" + slot.getFarmerId()).build());
 
         Mono<User> userMono = userRepository.findById(slot.getFarmerId())
-                .defaultIfEmpty(User.builder().fullName("Nông dân #" + slot.getFarmerId()).build());
+                .defaultIfEmpty(User.builder().fullName("Farmer #" + slot.getFarmerId()).build());
 
         return Mono.zip(marketMono, profileMono, userMono)
                 .map(tuple -> {

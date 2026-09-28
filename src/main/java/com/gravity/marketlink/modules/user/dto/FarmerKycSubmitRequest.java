@@ -14,11 +14,11 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu nộp hồ sơ định danh KYC của Nông dân")
+@Schema(description = "Farmer KYC verification submission request")
 public class FarmerKycSubmitRequest {
 
-    @NotEmpty(message = "Danh sách tài liệu KYC không được rỗng")
+    @NotEmpty(message = "KYC document list cannot be empty")
     @Valid
-    @Schema(description = "Danh sách các tài liệu KYC đính kèm")
+    @Schema(description = "List of attached KYC documents")
     private List<FarmerKycItemRequest> documents;
 }

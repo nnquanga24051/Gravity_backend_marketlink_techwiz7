@@ -33,11 +33,11 @@ public class FileUploadService {
     );
 
     /**
-     * Lưu trữ một tệp ảnh từ MultipartFile từ máy người dùng
+     * Stores an uploaded image file from client MultipartFile
      */
     public FileUploadResponse saveImage(MultipartFile file, String folder) {
         if (file == null || file.isEmpty() || !StringUtils.hasText(file.getOriginalFilename())) {
-            throw new IllegalArgumentException("Tệp tin tải lên rỗng hoặc không hợp lệ.");
+            throw new IllegalArgumentException("Uploaded file is empty or invalid.");
         }
 
         String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
@@ -45,7 +45,7 @@ public class FileUploadService {
 
         if (!ALLOWED_IMAGE_EXTENSIONS.contains(extension)) {
             throw new IllegalArgumentException(
-                    "Định dạng tệp không được hỗ trợ: ." + extension + ". Chỉ chấp nhận các tệp ảnh: " + String.join(", ", ALLOWED_IMAGE_EXTENSIONS)
+                    "Unsupported file extension: ." + extension + ". Only image formats accepted: " + String.join(", ", ALLOWED_IMAGE_EXTENSIONS)
             );
         }
 
@@ -66,7 +66,7 @@ public class FileUploadService {
                 Files.createDirectories(targetDir);
             }
 
-            // Ghi file ra ổ đĩa
+            // Write file to disk
             file.transferTo(targetPath.toFile());
 
             long size = file.getSize();
@@ -78,7 +78,7 @@ public class FileUploadService {
             String fullUrl = baseUrl.replaceAll("/+$", "") + relativeUrl;
             String contentType = file.getContentType() != null ? file.getContentType() : "image/" + extension;
 
-            log.info("Đã lưu ảnh tải lên thành công: {} ({} KB) -> {}", originalFilename, size / 1024, relativeUrl);
+            log.info("Uploaded image saved successfully: {} ({} KB) -> {}", originalFilename, size / 1024, relativeUrl);
 
             return FileUploadResponse.builder()
                     .url(relativeUrl)
@@ -91,13 +91,13 @@ public class FileUploadService {
                     .build();
 
         } catch (IOException e) {
-            log.error("Lỗi khi lưu tệp ảnh lên ổ đĩa: {}", e.getMessage(), e);
-            throw new RuntimeException("Không thể lưu trữ tệp ảnh: " + e.getMessage(), e);
+            log.error("Error saving image to disk: {}", e.getMessage(), e);
+            throw new RuntimeException("Unable to store image file: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Lưu trữ danh sách nhiều ảnh cùng lúc
+     * Stores multiple uploaded image files simultaneously
      */
     public List<FileUploadResponse> saveMultipleImages(List<MultipartFile> files, String folder) {
         if (files == null || files.isEmpty()) {

@@ -14,24 +14,24 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class BestSellingProductDto {
 
-    @Schema(description = "Mã sản phẩm nông sản", example = "1")
+    @Schema(description = "Produce product ID", example = "1")
     private Long productId;
 
-    @Schema(description = "Tên sản phẩm", example = "Cà chua hữu cơ Ba Vì")
+    @Schema(description = "Product name", example = "Organic Vine Tomatoes")
     private String productName;
 
-    @Schema(description = "Đơn vị tính", example = "kg")
+    @Schema(description = "Unit of measurement", example = "kg")
     private String unit;
 
-    @Schema(description = "Ảnh đại diện sản phẩm", example = "https://example.com/images/tomato.jpg")
+    @Schema(description = "Product thumbnail image URL", example = "https://example.com/images/tomato.jpg")
     private String imageUrl;
 
-    @Schema(description = "Tổng sản lượng đã bán thành công", example = "150.5")
+    @Schema(description = "Total units sold successfully", example = "150.5")
     private BigDecimal totalSoldQuantity;
 
-    @Schema(description = "Tổng doanh thu từ sản phẩm này", example = "4500000")
+    @Schema(description = "Total revenue generated from this product", example = "4500000")
     private BigDecimal totalRevenue;
 
-    @Schema(description = "Số lượng đơn hàng có chứa sản phẩm này", example = "35")
+    @Schema(description = "Total order count containing this product", example = "35")
     private Long orderCount;
 }

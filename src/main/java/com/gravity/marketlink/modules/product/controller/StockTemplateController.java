@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@Tag(name = "4. Tồn kho mẫu theo tuần (Weekly Stock Templates)", description = "Các API thiết lập định mức tồn kho tự động lặp lại theo thứ trong tuần cho nông dân")
+@Tag(name = "4. Weekly Stock Templates", description = "APIs for configuring recurring weekly inventory quotas by day of week for Farmers")
 @RestController
 @RequestMapping(value = {"/api/farmer/stock-templates", "/api/farmer/weekly-stock"})
 @RequiredArgsConstructor
@@ -28,7 +28,7 @@ public class StockTemplateController {
     private final StockTemplateService stockTemplateService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Lấy danh sách định mức tồn kho mẫu của nông dân", description = "Lấy các cấu hình định mức lặp lại hàng tuần theo từng phiên chợ (marketId tùy chọn) và từ khóa tìm kiếm.")
+    @Operation(summary = "Get farmer weekly stock template list", description = "Retrieves recurring weekly stock quotas by market session and keyword search.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping
     public Mono<ResponseEntity<ApiResponse<List<WeeklyStockTemplateResponse>>>> getTemplates(
@@ -40,12 +40,12 @@ public class StockTemplateController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> stockTemplateService.getTemplates(user.getUserId(), marketId, keyword).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách mẫu định mức tồn kho thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved stock template list successfully.", list)));
     }
 
-    @Operation(summary = "Thêm mới hoặc cập nhật định mức tồn kho mẫu", description = "Tạo mẫu phân bổ tồn kho tự động theo thứ (1: Thứ 2 ... 7: Chủ nhật) cho sản phẩm tại một chợ.")
+    @Operation(summary = "Create or update stock template", description = "Configures recurring inventory allocation by day of week (1: Monday ... 7: Sunday) for product at market.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping
     public Mono<ResponseEntity<ApiResponse<WeeklyStockTemplateResponse>>> saveTemplate(
@@ -56,13 +56,13 @@ public class StockTemplateController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> stockTemplateService.saveTemplate(user.getUserId(), request))
                 .map(res -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success("Lưu mẫu định mức tồn kho thành công.", res)));
+                        .body(ApiResponse.success("Saved stock template successfully.", res)));
     }
 
-    @Operation(summary = "Xóa một mẫu định mức tồn kho", description = "Xóa cấu hình định mức tồn kho theo ID.")
+    @Operation(summary = "Delete a stock template", description = "Delete stock template by ID.")
     @SecurityRequirement(name = "Bearer Authentication")
     @DeleteMapping("/{id:[0-9]+}")
     public Mono<ResponseEntity<ApiResponse<Void>>> deleteTemplate(
@@ -73,8 +73,8 @@ public class StockTemplateController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> stockTemplateService.deleteTemplate(user.getUserId(), id))
-                .thenReturn(ResponseEntity.ok(ApiResponse.success("Xóa mẫu định mức tồn kho thành công.", null)));
+                .thenReturn(ResponseEntity.ok(ApiResponse.success("Deleted stock template successfully.", null)));
     }
 }

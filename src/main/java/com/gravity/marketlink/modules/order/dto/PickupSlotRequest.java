@@ -15,15 +15,15 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class PickupSlotRequest {
 
-    @NotNull(message = "Mã chợ (marketId) không được để trống")
+    @NotNull(message = "Market ID (marketId) cannot be null")
     private Long marketId;
 
-    @NotNull(message = "Giờ bắt đầu ca nhận hàng không được để trống")
-    @Schema(example = "07:00:00", description = "Định dạng HH:mm:ss")
+    @NotNull(message = "Pickup slot start time cannot be null")
+    @Schema(example = "07:00:00", description = "Format: HH:mm:ss")
     private LocalTime startTime;
 
-    @NotNull(message = "Giờ kết thúc ca nhận hàng không được để trống")
-    @Schema(example = "08:00:00", description = "Định dạng HH:mm:ss")
+    @NotNull(message = "Pickup slot end time cannot be null")
+    @Schema(example = "08:00:00", description = "Format: HH:mm:ss")
     private LocalTime endTime;
 
     @Builder.Default

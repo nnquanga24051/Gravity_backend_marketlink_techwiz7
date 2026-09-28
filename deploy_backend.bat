@@ -20,6 +20,6 @@ python "%~dp0scripts\deploy_backend.py"
 echo.
 echo ==============================================
 echo ✅ BACKEND ĐÃ ĐƯỢC CẬP NHẬT THÀNH CÔNG!
-echo 👉 API URL: https://nnquangdev.id.vn/api/
+echo 👉 API URL: http://36.50.176.64/api/
 echo ==============================================
 pause

@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@Tag(name = "4. Sản phẩm & Nông sản (Products)", description = "Các API tìm kiếm, duyệt sản phẩm cho khách hàng và quản lý sản phẩm cho Nông dân")
+@Tag(name = "4. Products & Fresh Produce", description = "APIs for searching/browsing produce for customers and inventory management for Farmers")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -30,10 +30,10 @@ public class ProductController {
     private final UserRepository userRepository;
 
     // ==========================================
-    // 1. PUBLIC ENDPOINTS (Khách hàng & Người dùng)
+    // 1. PUBLIC ENDPOINTS (Customers & General Users)
     // ==========================================
 
-    @Operation(summary = "Tìm kiếm & duyệt danh sách nông sản", description = "Lọc sản phẩm theo danh mục (categoryId), theo nông dân (farmerId), theo chợ (marketId), sạp (stallNumber), từ khóa (keyword) hoặc trạng thái.")
+    @Operation(summary = "Search and browse fresh produce", description = "Filter produce by category (categoryId), farmer (farmerId), market (marketId), stall (stallNumber), keyword, or status.")
     @GetMapping("/products")
     public Mono<ResponseEntity<ApiResponse<List<ProductResponse>>>> getAllProducts(
             @RequestParam(value = "categoryId", required = false) Integer categoryId,
@@ -44,31 +44,31 @@ public class ProductController {
             @RequestParam(value = "status", required = false, defaultValue = "AVAILABLE") String status) {
         return productService.getAllProducts(categoryId, farmerId, marketId, stallNumber, keyword, status)
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved product list successfully.", list)));
     }
 
-    @Operation(summary = "Tìm kiếm sản phẩm theo từ khóa", description = "Tìm kiếm nhanh nông sản theo từ khóa và danh mục.")
+    @Operation(summary = "Search products by keyword", description = "Quick search for produce by keyword and category.")
     @GetMapping("/products/search")
     public Mono<ResponseEntity<ApiResponse<List<ProductResponse>>>> searchProducts(
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "categoryId", required = false) Integer categoryId) {
         return productService.searchProducts(keyword, categoryId)
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Tìm kiếm sản phẩm thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Searched products successfully.", list)));
     }
 
-    @Operation(summary = "Xem chi tiết một sản phẩm", description = "Lấy đầy đủ thông tin mặt hàng, hình ảnh, đơn giá, tồn kho sẵn sàng đặt trước và sạp nông dân.")
+    @Operation(summary = "View product details", description = "Retrieves full produce details, images, unit price, available pre-order stock, and farmer stall info.")
     @GetMapping("/products/{id:[0-9]+}")
     public Mono<ResponseEntity<ApiResponse<ProductResponse>>> getProductById(@PathVariable("id") Long id) {
         return productService.getProductById(id)
-                .map(p -> ResponseEntity.ok(ApiResponse.success("Lấy chi tiết sản phẩm thành công.", p)));
+                .map(p -> ResponseEntity.ok(ApiResponse.success("Retrieved product details successfully.", p)));
     }
 
     // ==========================================
-    // 2. FARMER ENDPOINTS (Dành cho Nông dân)
+    // 2. FARMER ENDPOINTS (Farmer Management)
     // ==========================================
 
-    @Operation(summary = "Nông dân xem danh sách sản phẩm của gian hàng", description = "Yêu cầu quyền ROLE_FARMER. Trả về toàn bộ các mặt hàng thuộc sạp của nông dân, hỗ trợ tìm kiếm từ khóa và lọc danh mục, chợ, trạng thái.")
+    @Operation(summary = "Farmer views stall product list", description = "Requires ROLE_FARMER authority. Returns all items belonging to farmer stall with filters.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/farmer/products")
     public Mono<ResponseEntity<ApiResponse<List<ProductResponse>>>> getMyProducts(
@@ -82,12 +82,12 @@ public class ProductController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> productService.getFarmerProducts(user.getUserId(), keyword, categoryId, marketId, status).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm của nông dân thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved farmer product list successfully.", list)));
     }
 
-    @Operation(summary = "Nông dân đăng bán sản phẩm mới", description = "Yêu cầu quyền ROLE_FARMER và tài khoản nông dân đã được duyệt KYC (is_approved = true).")
+    @Operation(summary = "Farmer creates new product", description = "Requires ROLE_FARMER authority and approved KYC verification (is_approved = true).")
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/farmer/products")
     public Mono<ResponseEntity<ApiResponse<ProductResponse>>> createProduct(
@@ -98,13 +98,13 @@ public class ProductController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> productService.createProduct(user.getUserId(), request))
                 .map(created -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success("Đăng bán sản phẩm mới thành công.", created)));
+                        .body(ApiResponse.success("Created new product successfully.", created)));
     }
 
-    @Operation(summary = "Nông dân chỉnh sửa thông tin & tồn kho sản phẩm", description = "Yêu cầu quyền ROLE_FARMER. Cho phép sửa đơn giá, số lượng tồn kho đặt trước, ảnh và mô tả.")
+    @Operation(summary = "Farmer updates product details and stock", description = "Requires ROLE_FARMER authority. Allows updating unit price, pre-order inventory, image, and description.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PutMapping("/farmer/products/{id}")
     public Mono<ResponseEntity<ApiResponse<ProductResponse>>> updateProduct(
@@ -116,12 +116,12 @@ public class ProductController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> productService.updateProduct(user.getUserId(), id, request))
-                .map(updated -> ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin sản phẩm thành công.", updated)));
+                .map(updated -> ResponseEntity.ok(ApiResponse.success("Updated product information successfully.", updated)));
     }
 
-    @Operation(summary = "Nông dân đổi trạng thái bán hàng", description = "Đổi trạng thái sản phẩm: AVAILABLE, SOLD_OUT, hoặc TEMPORARILY_UNAVAILABLE.")
+    @Operation(summary = "Farmer updates product sale status", description = "Change product status: AVAILABLE, SOLD_OUT, or TEMPORARILY_UNAVAILABLE.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PatchMapping("/farmer/products/{id}/status")
     public Mono<ResponseEntity<ApiResponse<ProductResponse>>> updateProductStatus(
@@ -133,12 +133,12 @@ public class ProductController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> productService.updateProductStatus(user.getUserId(), id, status))
-                .map(updated -> ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái sản phẩm thành công.", updated)));
+                .map(updated -> ResponseEntity.ok(ApiResponse.success("Updated product status successfully.", updated)));
     }
 
-    @Operation(summary = "Nông dân xóa sản phẩm", description = "Gỡ bỏ hoàn toàn sản phẩm khỏi danh mục gian hàng.")
+    @Operation(summary = "Farmer deletes product", description = "Permanently removes product from stall catalog.")
     @SecurityRequirement(name = "Bearer Authentication")
     @DeleteMapping("/farmer/products/{id}")
     public Mono<ResponseEntity<ApiResponse<Void>>> deleteProduct(
@@ -149,22 +149,22 @@ public class ProductController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> productService.deleteProduct(user.getUserId(), id))
-                .then(Mono.just(ResponseEntity.ok(ApiResponse.success("Đã xóa sản phẩm thành công.", null))));
+                .then(Mono.just(ResponseEntity.ok(ApiResponse.success("Deleted product successfully.", null))));
     }
 
     // ==========================================
-    // 3. ADMIN ENDPOINTS (Dành cho Quản trị viên)
+    // 3. ADMIN ENDPOINTS (System Administration)
     // ==========================================
 
-    @Operation(summary = "Admin kiểm duyệt & khóa mặt hàng vi phạm", description = "Quản trị viên đổi trạng thái sản phẩm thành BANNED hoặc mở lại AVAILABLE.")
+    @Operation(summary = "Admin moderates and bans violating product", description = "Administrator changes product status to BANNED or restores to AVAILABLE.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PatchMapping("/admin/products/{id}/moderate")
     public Mono<ResponseEntity<ApiResponse<ProductResponse>>> adminModerateProduct(
             @PathVariable("id") Long id,
             @RequestParam("status") String status) {
         return productService.adminModerateProduct(id, status)
-                .map(mod -> ResponseEntity.ok(ApiResponse.success("Đã kiểm duyệt trạng thái sản phẩm thành công.", mod)));
+                .map(mod -> ResponseEntity.ok(ApiResponse.success("Product moderation status updated successfully.", mod)));
     }
 }

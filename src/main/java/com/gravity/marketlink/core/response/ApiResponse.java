@@ -12,20 +12,20 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Phản hồi chuẩn từ hệ thống MarketLink")
+@Schema(description = "Standard response from MarketLink system")
 public class ApiResponse<T> {
 
-    @Schema(description = "Trạng thái thành công", example = "true")
+    @Schema(description = "Success status", example = "true")
     @Builder.Default
     private Boolean success = true;
 
-    @Schema(description = "Thông báo kết quả", example = "Thao tác thành công.")
+    @Schema(description = "Result message", example = "Operation successful.")
     private String message;
 
-    @Schema(description = "Dữ liệu trả về")
+    @Schema(description = "Response data")
     private T data;
 
-    @Schema(description = "Thời gian phản hồi")
+    @Schema(description = "Response timestamp")
     @Builder.Default
     private LocalDateTime timestamp = LocalDateTime.now();
 
@@ -39,7 +39,7 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> success(T data) {
-        return success("Thành công", data);
+        return success("Success", data);
     }
 
     public static <T> ApiResponse<T> error(String message) {

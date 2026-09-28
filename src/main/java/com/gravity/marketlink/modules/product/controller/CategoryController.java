@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-@Tag(name = "2. Danh mục sản phẩm (Categories)", description = "Các API truy xuất và quản lý danh mục hàng hóa, nông sản")
+@Tag(name = "2. Product Categories", description = "APIs for retrieving and managing fresh produce categories")
 @RestController
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
@@ -32,7 +32,7 @@ public class CategoryController {
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
 
-    @Operation(summary = "Lấy tất cả danh mục", description = "Trả về danh sách tất cả các danh mục sản phẩm (Public endpoint), hỗ trợ tìm kiếm theo từ khóa.")
+    @Operation(summary = "Get all categories", description = "Returns list of all produce categories (Public endpoint), supports keyword search.")
     @GetMapping
     public Mono<ResponseEntity<ApiResponse<List<Category>>>> getAllCategories(
             @RequestParam(value = "keyword", required = false) String keyword) {
@@ -43,18 +43,18 @@ public class CategoryController {
                         || (c.getDescription() != null && c.getDescription().toLowerCase().contains(kw))
                         || (c.getSlug() != null && c.getSlug().toLowerCase().contains(kw)))
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh mục sản phẩm thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved categories successfully.", list)));
     }
 
-    @Operation(summary = "Xem chi tiết một danh mục theo ID", description = "Lấy thông tin của một danh mục cụ thể")
+    @Operation(summary = "View category details by ID", description = "Get details of a specific category")
     @GetMapping("/{id:[0-9]+}")
     public Mono<ResponseEntity<ApiResponse<Category>>> getCategoryById(@PathVariable("id") Integer id) {
         return categoryRepository.findById(id)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy danh mục với ID: " + id)))
-                .map(cat -> ResponseEntity.ok(ApiResponse.success("Lấy thông tin danh mục thành công.", cat)));
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Category not found with ID: " + id)))
+                .map(cat -> ResponseEntity.ok(ApiResponse.success("Retrieved category details successfully.", cat)));
     }
 
-    @Operation(summary = "Admin tạo danh mục sản phẩm mới", description = "Yêu cầu quyền Quản trị viên (ROLE_ADMIN).")
+    @Operation(summary = "Admin creates new product category", description = "Requires Administrator authority (ROLE_ADMIN).")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
@@ -71,10 +71,10 @@ public class CategoryController {
 
         return categoryRepository.save(category)
                 .map(saved -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success("Tạo danh mục sản phẩm thành công.", saved)));
+                        .body(ApiResponse.success("Created product category successfully.", saved)));
     }
 
-    @Operation(summary = "Admin cập nhật danh mục sản phẩm", description = "Yêu cầu quyền Quản trị viên (ROLE_ADMIN).")
+    @Operation(summary = "Admin updates product category", description = "Requires Administrator authority (ROLE_ADMIN).")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
@@ -82,7 +82,7 @@ public class CategoryController {
             @PathVariable("id") Integer id,
             @Valid @RequestBody CategoryRequest request) {
         return categoryRepository.findById(id)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy danh mục với ID: " + id)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Category not found with ID: " + id)))
                 .flatMap(cat -> {
                     cat.setName(request.getName());
                     if (request.getSlug() != null && !request.getSlug().isBlank()) {
@@ -93,18 +93,18 @@ public class CategoryController {
                     cat.setDescription(request.getDescription());
                     return categoryRepository.save(cat);
                 })
-                .map(updated -> ResponseEntity.ok(ApiResponse.success("Cập nhật danh mục sản phẩm thành công.", updated)));
+                .map(updated -> ResponseEntity.ok(ApiResponse.success("Updated product category successfully.", updated)));
     }
 
-    @Operation(summary = "Admin xóa danh mục sản phẩm", description = "Yêu cầu quyền Quản trị viên (ROLE_ADMIN).")
+    @Operation(summary = "Admin deletes product category", description = "Requires Administrator authority (ROLE_ADMIN).")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public Mono<ResponseEntity<ApiResponse<Void>>> deleteCategory(@PathVariable("id") Integer id) {
         return categoryRepository.findById(id)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy danh mục với ID: " + id)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Category not found with ID: " + id)))
                 .flatMap(categoryRepository::delete)
-                .thenReturn(ResponseEntity.ok(ApiResponse.success("Xóa danh mục sản phẩm thành công.", null)));
+                .thenReturn(ResponseEntity.ok(ApiResponse.success("Deleted product category successfully.", null)));
     }
 
     private String toSlug(String input) {

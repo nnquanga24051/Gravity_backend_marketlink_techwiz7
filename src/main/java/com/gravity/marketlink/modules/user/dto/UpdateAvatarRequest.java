@@ -11,10 +11,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Dữ liệu cập nhật ảnh đại diện người dùng")
+@Schema(description = "User avatar update payload")
 public class UpdateAvatarRequest {
 
-    @NotBlank(message = "Avatar không được để trống")
-    @Schema(description = "Đường dẫn URL của ảnh đại diện mới", example = "https://images.unsplash.com/photo-1534528741775-53994a69daeb")
+    @NotBlank(message = "Avatar URL cannot be blank")
+    @Schema(description = "URL path of new avatar image", example = "https://images.unsplash.com/photo-1534528741775-53994a69daeb")
     private String avatarUrl;
 }

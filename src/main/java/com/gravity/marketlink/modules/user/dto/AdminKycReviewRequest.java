@@ -11,13 +11,13 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu Quản trị viên duyệt hồ sơ KYC của Nông dân")
+@Schema(description = "Admin request to review farmer KYC application")
 public class AdminKycReviewRequest {
 
-    @NotBlank(message = "Hành động phê duyệt không được để trống")
-    @Schema(description = "Hành động: APPROVE, REJECT, REQUEST_REVISION", example = "APPROVE")
+    @NotBlank(message = "Review action cannot be blank")
+    @Schema(description = "Action: APPROVE, REJECT, REQUEST_REVISION", example = "APPROVE")
     private String action;
 
-    @Schema(description = "Lý do hoặc ghi chú phản hồi cho nông dân", example = "Hồ sơ hợp lệ, đã đối chiếu mã số chứng nhận VietGAP thành công.")
+    @Schema(description = "Reason or feedback note for farmer", example = "Documents valid, VietGAP certification code verified successfully.")
     private String reason;
 }

@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@Tag(name = "6. Quản trị viên - Phê duyệt KYC (Admin KYC)", description = "Các API dành cho Quản trị viên duyệt hồ sơ KYC, kiểm tra tính hợp lệ chứng chỉ VietGAP và kích hoạt quyền bán hàng cho Nông dân")
+@Tag(name = "6. Admin Farmer KYC Review", description = "APIs for Admin KYC review, VietGAP certificate validation, and granting selling permissions to Farmers")
 @SecurityRequirement(name = "Bearer Authentication")
 @RestController
 @RequestMapping("/api/admin/kyc")
@@ -30,24 +30,24 @@ public class AdminKycController {
     private final KycService kycService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Xem danh sách hồ sơ KYC chờ duyệt", description = "Lấy tất cả các nông dân đang có trạng thái KYC là PENDING cùng số lượng tài liệu đã nộp, hỗ trợ tìm kiếm từ khóa.")
+    @Operation(summary = "View pending KYC applications", description = "Retrieves all farmers with PENDING KYC status and submitted document count, with keyword search.")
     @GetMapping("/pending")
     public Mono<ResponseEntity<ApiResponse<List<PendingFarmerKycResponse>>>> getPendingKycList(
             @RequestParam(value = "keyword", required = false) String keyword) {
         return kycService.getPendingKycList(keyword)
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách hồ sơ KYC chờ duyệt thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved pending KYC application list successfully.", list)));
     }
 
-    @Operation(summary = "Xem chi tiết hồ sơ KYC của một nông dân", description = "Lấy thông tin tài khoản, nông trại, chi tiết toàn bộ giấy tờ đính kèm và lịch sử duyệt trước đó.")
+    @Operation(summary = "View detailed farmer KYC application", description = "Retrieves account info, farm details, attached documents, and previous moderation history.")
     @GetMapping("/farmers/{farmerId}")
     public Mono<ResponseEntity<ApiResponse<FarmerKycStatusResponse>>> getFarmerKycDetail(
             @PathVariable("farmerId") Long farmerId) {
         return kycService.getFarmerKycStatus(farmerId)
-                .map(res -> ResponseEntity.ok(ApiResponse.success("Lấy chi tiết hồ sơ KYC nông dân thành công.", res)));
+                .map(res -> ResponseEntity.ok(ApiResponse.success("Retrieved farmer KYC application details successfully.", res)));
     }
 
-    @Operation(summary = "Phê duyệt hoặc từ chối hồ sơ KYC", description = "Quản trị viên thực hiện hành động: APPROVE (kích hoạt quyền bán hàng is_approved=true), REJECT (từ chối), hoặc REQUEST_REVISION (yêu cầu nộp lại giấy tờ). Lưu lịch sử vào verification_audit_logs.")
+    @Operation(summary = "Approve or decline KYC application", description = "Administrator performs: APPROVE (grants selling authority is_approved=true), REJECT, or REQUEST_REVISION. Audit trail saved to verification_audit_logs.")
     @PostMapping("/farmers/{farmerId}/review")
     public Mono<ResponseEntity<ApiResponse<FarmerKycStatusResponse>>> reviewFarmerKyc(
             Authentication authentication,
@@ -58,8 +58,8 @@ public class AdminKycController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin quản trị viên.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Administrator information not found.")))
                 .flatMap(admin -> kycService.reviewFarmerKyc(admin.getUserId(), farmerId, request))
-                .map(res -> ResponseEntity.ok(ApiResponse.success("Đã xử lý phê duyệt hồ sơ KYC thành công.", res)));
+                .map(res -> ResponseEntity.ok(ApiResponse.success("Processed KYC application decision successfully.", res)));
     }
 }

@@ -11,13 +11,13 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu đăng ký tham gia bán hàng tại chợ nông sản (Dành cho Nông dân)")
+@Schema(description = "Market stall participation request (For Farmers)")
 public class FarmerRegisterMarketRequest {
 
-    @NotNull(message = "Mã chợ không được để trống")
-    @Schema(description = "Mã định danh chợ muốn tham gia", example = "1")
+    @NotNull(message = "Market ID cannot be null")
+    @Schema(description = "Market ID to register for", example = "1")
     private Long marketId;
 
-    @Schema(description = "Số hiệu sạp mong muốn (nếu có)", example = "Sạp A05")
+    @Schema(description = "Desired stall number (optional)", example = "Stall A-05")
     private String stallNumber;
 }

@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ReviewReplyRequest {
 
-    @NotBlank(message = "Nội dung phản hồi không được để trống")
+    @NotBlank(message = "Reply content cannot be blank")
     private String farmerReply;
 }

@@ -14,21 +14,21 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class PlatformMetricsResponse {
 
-    @Schema(description = "Tổng số lượng nông dân đăng ký trên sàn", example = "45")
+    @Schema(description = "Total registered farmers on platform", example = "45")
     private Long totalFarmers;
 
-    @Schema(description = "Tổng số lượng khách hàng đã tạo tài khoản", example = "320")
+    @Schema(description = "Total registered customers on platform", example = "320")
     private Long totalCustomers;
 
-    @Schema(description = "Tổng số điểm chợ nông sản địa phương", example = "12")
+    @Schema(description = "Total local farmers market locations", example = "12")
     private Long totalMarkets;
 
-    @Schema(description = "Tổng số đơn đặt trước đã tạo", example = "1540")
+    @Schema(description = "Total pre-orders placed", example = "1540")
     private Long totalOrders;
 
-    @Schema(description = "Tổng doanh thu toàn sàn từ các đơn đã giao thành công", example = "125000000")
+    @Schema(description = "Total platform revenue from completed orders", example = "125000000")
     private BigDecimal totalRevenue;
 
-    @Schema(description = "Số lượng hồ sơ KYC nông dân đang chờ phê duyệt", example = "5")
+    @Schema(description = "Number of farmer KYC applications pending review", example = "5")
     private Long pendingKycCount;
 }

@@ -12,11 +12,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu gửi lời mời thành viên gia đình (Family Account)")
+@Schema(description = "Send family member invitation request (Family Account)")
 public class FamilyInviteRequest {
 
-    @NotBlank(message = "Email người được mời không được để trống")
-    @Email(message = "Email người được mời không hợp lệ")
-    @Schema(description = "Email của thành viên gia đình muốn mời", example = "family_member@marketlink.com")
+    @NotBlank(message = "Invited member email cannot be blank")
+    @Email(message = "Invalid email format for invited member")
+    @Schema(description = "Email address of family member to invite", example = "family_member@marketlink.com")
     private String inviteeEmail;
 }

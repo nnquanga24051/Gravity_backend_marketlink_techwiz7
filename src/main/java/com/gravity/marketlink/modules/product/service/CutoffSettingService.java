@@ -25,7 +25,7 @@ public class CutoffSettingService {
     public Flux<FarmerCutoffSettingResponse> getSettings(Long farmerId) {
         return cutoffRepository.findByFarmerId(farmerId)
                 .flatMap(setting -> marketRepository.findById(setting.getMarketId())
-                        .defaultIfEmpty(Market.builder().name("Chợ #" + setting.getMarketId()).build())
+                        .defaultIfEmpty(Market.builder().name("Market #" + setting.getMarketId()).build())
                         .map(market -> FarmerCutoffSettingResponse.builder()
                                 .settingId(setting.getSettingId())
                                 .farmerId(setting.getFarmerId())
@@ -39,7 +39,7 @@ public class CutoffSettingService {
     @Transactional
     public Mono<FarmerCutoffSettingResponse> saveSetting(Long farmerId, FarmerCutoffSettingRequest request) {
         return marketRepository.findById(request.getMarketId())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy chợ nông sản với ID: " + request.getMarketId())))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmers market not found with ID: " + request.getMarketId())))
                 .flatMap(market -> cutoffRepository.findByFarmerIdAndMarketIdAndDayOfWeek(
                                 farmerId, request.getMarketId(), request.getDayOfWeek())
                         .flatMap(existing -> {
@@ -65,10 +65,10 @@ public class CutoffSettingService {
     @Transactional
     public Mono<Void> deleteSetting(Long farmerId, Long settingId) {
         return cutoffRepository.findById(settingId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy cấu hình chốt đơn với ID: " + settingId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Cutoff setting not found with ID: " + settingId)))
                 .flatMap(setting -> {
                     if (!setting.getFarmerId().equals(farmerId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền xóa cấu hình chốt đơn này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to delete this cutoff setting."));
                     }
                     return cutoffRepository.delete(setting);
                 });

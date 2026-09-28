@@ -17,7 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-@Tag(name = "5. Nông dân - Định danh KYC (Farmer KYC)", description = "Các API nộp hồ sơ, tải lên giấy phép/chứng nhận VietGAP và theo dõi trạng thái duyệt KYC của Nông dân")
+@Tag(name = "5. Farmer KYC Verification", description = "APIs for submitting documents, uploading VietGAP certifications, and tracking farmer KYC status")
 @SecurityRequirement(name = "Bearer Authentication")
 @RestController
 @RequestMapping("/api/farmer/kyc")
@@ -27,7 +27,7 @@ public class FarmerKycController {
     private final KycService kycService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Nộp hồ sơ định danh KYC", description = "Nông dân nộp danh sách tài liệu KYC (CCCD, Giấy phép kinh doanh, Chứng nhận VietGAP/Hữu cơ, Ảnh trang trại). Trạng thái tài khoản sẽ chuyển sang PENDING.")
+    @Operation(summary = "Submit KYC verification documents", description = "Farmer submits KYC documents (National ID, Business license, VietGAP/Organic certificates, Farm photos). Account status transitions to PENDING.")
     @PostMapping("/submit")
     public Mono<ResponseEntity<ApiResponse<FarmerKycStatusResponse>>> submitKyc(
             Authentication authentication,
@@ -37,12 +37,12 @@ public class FarmerKycController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> kycService.submitKyc(user.getUserId(), request))
-                .map(res -> ResponseEntity.ok(ApiResponse.success("Hồ sơ KYC đã được nộp thành công và đang chờ Quản trị viên phê duyệt.", res)));
+                .map(res -> ResponseEntity.ok(ApiResponse.success("KYC documents submitted successfully, awaiting Administrator review.", res)));
     }
 
-    @Operation(summary = "Xem hồ sơ & trạng thái KYC cá nhân", description = "Lấy trạng thái phê duyệt bán hàng, danh sách tài liệu đã nộp và các phản hồi/nhật ký kiểm duyệt từ Quản trị viên.")
+    @Operation(summary = "View personal KYC profile & status", description = "Retrieves selling permission status, submitted document list, and Administrator audit notes.")
     @GetMapping("/my-documents")
     public Mono<ResponseEntity<ApiResponse<FarmerKycStatusResponse>>> getMyKycDocuments(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
@@ -50,8 +50,8 @@ public class FarmerKycController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> kycService.getFarmerKycStatus(user.getUserId()))
-                .map(res -> ResponseEntity.ok(ApiResponse.success("Lấy thông tin hồ sơ KYC thành công.", res)));
+                .map(res -> ResponseEntity.ok(ApiResponse.success("Retrieved KYC application details successfully.", res)));
     }
 }

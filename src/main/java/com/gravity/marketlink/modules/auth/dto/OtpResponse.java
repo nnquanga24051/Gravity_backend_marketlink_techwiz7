@@ -10,15 +10,15 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Kết quả gửi/xác minh mã OTP")
+@Schema(description = "Result of OTP sending/verification")
 public class OtpResponse {
 
-    @Schema(description = "Trạng thái thành công hay thất bại", example = "true")
+    @Schema(description = "Success or failure status", example = "true")
     private Boolean success;
 
-    @Schema(description = "Thông báo kết quả", example = "Mã OTP đã được gửi thành công.")
+    @Schema(description = "Result message", example = "OTP code sent successfully.")
     private String message;
 
-    @Schema(description = "Mã OTP (cung cấp trong môi trường test/dev)", example = "123456")
+    @Schema(description = "OTP code (provided in test/dev environment)", example = "123456")
     private String devCode;
 }

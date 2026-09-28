@@ -45,14 +45,14 @@ public class StockTemplateService {
     @Transactional
     public Mono<WeeklyStockTemplateResponse> saveTemplate(Long farmerId, WeeklyStockTemplateRequest request) {
         return productRepository.findById(request.getProductId())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy sản phẩm với ID: " + request.getProductId())))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Product not found with ID: " + request.getProductId())))
                 .flatMap(product -> {
                     if (!product.getFarmerId().equals(farmerId)) {
-                        return Mono.error(new IllegalArgumentException("Sản phẩm này không thuộc quyền quản lý của bạn."));
+                        return Mono.error(new IllegalArgumentException("This product does not belong to your stall."));
                     }
 
                     return marketRepository.findById(request.getMarketId())
-                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy phiên chợ với ID: " + request.getMarketId())))
+                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmers market not found with ID: " + request.getMarketId())))
                             .flatMap(market -> templateRepository.findByFarmerIdAndMarketIdAndProductIdAndDayOfWeek(
                                             farmerId, request.getMarketId(), request.getProductId(), request.getDayOfWeek())
                                     .flatMap(existing -> {
@@ -75,10 +75,10 @@ public class StockTemplateService {
     @Transactional
     public Mono<Void> deleteTemplate(Long farmerId, Long templateId) {
         return templateRepository.findById(templateId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy mẫu định mức với ID: " + templateId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Stock template not found with ID: " + templateId)))
                 .flatMap(tpl -> {
                     if (!tpl.getFarmerId().equals(farmerId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền xóa mẫu tồn kho này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to delete this stock template."));
                     }
                     return templateRepository.delete(tpl);
                 });
@@ -86,10 +86,10 @@ public class StockTemplateService {
 
     private Mono<WeeklyStockTemplateResponse> enrichTemplateResponse(WeeklyStockTemplate tpl) {
         Mono<Product> productMono = productRepository.findById(tpl.getProductId())
-                .defaultIfEmpty(Product.builder().name("Nông sản #" + tpl.getProductId()).build());
+                .defaultIfEmpty(Product.builder().name("Produce #" + tpl.getProductId()).build());
 
         Mono<Market> marketMono = marketRepository.findById(tpl.getMarketId())
-                .defaultIfEmpty(Market.builder().name("Chợ #" + tpl.getMarketId()).build());
+                .defaultIfEmpty(Market.builder().name("Market #" + tpl.getMarketId()).build());
 
         return Mono.zip(productMono, marketMono)
                 .map(tuple -> {

@@ -14,10 +14,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class FavoriteRequest {
 
-    @NotBlank(message = "Loại đối tượng yêu thích không được để trống")
-    @Schema(example = "PRODUCT", description = "Các loại hợp lệ: FARMER, PRODUCT, MARKET")
+    @NotBlank(message = "Favorite target type cannot be blank")
+    @Schema(example = "PRODUCT", description = "Valid types: FARMER, PRODUCT, MARKET")
     private String targetType;
 
-    @NotNull(message = "Mã đối tượng (targetId) không được để trống")
+    @NotNull(message = "Target ID (targetId) cannot be null")
     private Long targetId;
 }

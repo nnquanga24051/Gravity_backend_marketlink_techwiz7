@@ -25,7 +25,7 @@ public class MarketSchedule {
     private Long marketId;
 
     @Column("day_of_week")
-    private Integer dayOfWeek; // 1 = Thứ 2, ..., 7 = Chủ nhật
+    private Integer dayOfWeek; // 1 = Monday, ..., 7 = Sunday
 
     @Column("open_time")
     private LocalTime openTime;

@@ -12,45 +12,45 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Kết quả giải thuật tìm chợ gần nhất và lộ trình đường đi ngắn nhất")
+@Schema(description = "Nearest market routing and navigation results")
 public class RouteResponse {
 
-    @Schema(description = "ID chợ", example = "101")
+    @Schema(description = "Market ID", example = "101")
     private Long marketId;
 
-    @Schema(description = "Tên chợ nông sản", example = "Phiên Chợ Xanh Nông Sản Ba Đình")
+    @Schema(description = "Farmers market name", example = "Ba Dinh Green Farmers Market")
     private String marketName;
 
-    @Schema(description = "Địa chỉ chợ", example = "12 Núi Trúc, Phường Giảng Võ, Quận Ba Đình, Hà Nội")
+    @Schema(description = "Market address", example = "12 Nui Truc, Giang Vo, Ba Dinh, Hanoi")
     private String marketAddress;
 
-    @Schema(description = "Vĩ độ của chợ", example = "21.0312")
+    @Schema(description = "Market latitude", example = "21.0312")
     private Double marketLatitude;
 
-    @Schema(description = "Kinh độ của chợ", example = "105.8189")
+    @Schema(description = "Market longitude", example = "105.8189")
     private Double marketLongitude;
 
-    @Schema(description = "Vĩ độ của khách hàng", example = "21.0185")
+    @Schema(description = "Customer latitude", example = "21.0185")
     private Double originLatitude;
 
-    @Schema(description = "Kinh độ của khách hàng", example = "105.8290")
+    @Schema(description = "Customer longitude", example = "105.8290")
     private Double originLongitude;
 
-    @Schema(description = "Khoảng cách thực tế theo mạng lưới đường giao thông (km)", example = "2.8")
+    @Schema(description = "Actual travel distance via road network (km)", example = "2.8")
     private Double distanceKilometers;
 
-    @Schema(description = "Thời gian di chuyển ước tính (phút)", example = "8")
+    @Schema(description = "Estimated travel duration (minutes)", example = "8")
     private Integer estimatedMinutes;
 
-    @Schema(description = "Tập hợp toạ độ [[lat, lon], ...] để vẽ nét đường đi trên OpenStreetMap Leaflet")
+    @Schema(description = "Array of [[lat, lon], ...] coordinates for OpenStreetMap Leaflet rendering")
     private List<List<Double>> routeGeometry;
 
-    @Schema(description = "Danh sách các chặng rẽ chỉ đường chi tiết (Turn-by-turn)")
+    @Schema(description = "Turn-by-turn navigation instruction list")
     private List<String> navigationSteps;
 
-    @Schema(description = "Liên kết mở trực tiếp ứng dụng Google Maps Navigation")
+    @Schema(description = "Direct launch link for Google Maps Navigation")
     private String googleMapsNavUrl;
 
-    @Schema(description = "Khách hàng có đang trong bán kính Geofencing 300m quanh chợ không", example = "false")
+    @Schema(description = "Whether customer is within 300m Geofencing radius around market", example = "false")
     private Boolean inGeofence;
 }

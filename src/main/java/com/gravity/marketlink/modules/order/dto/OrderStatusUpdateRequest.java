@@ -14,12 +14,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OrderStatusUpdateRequest {
 
-    @NotBlank(message = "Trạng thái đơn hàng không được để trống")
-    @Schema(example = "ACCEPTED", description = "Các trạng thái hợp lệ: ACCEPTED, READY_FOR_PICKUP, COMPLETED, DECLINED")
+    @NotBlank(message = "Order status cannot be blank")
+    @Schema(example = "ACCEPTED", description = "Valid statuses: ACCEPTED, READY_FOR_PICKUP, COMPLETED, DECLINED")
     @JsonAlias({"newStatus", "status"})
     private String orderStatus;
 
-    @Schema(description = "Lý do (nếu từ chối đơn hàng)")
+    @Schema(description = "Reason (if order is declined)")
     private String reason;
 
     public void setNewStatus(String newStatus) {

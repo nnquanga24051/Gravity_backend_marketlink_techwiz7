@@ -9,40 +9,40 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-@Tag(name = "3. Kiểm thử phân quyền RBAC (Role-Based Access Control)", description = "Các API kiểm tra quyền truy cập theo từng Role (ADMIN, FARMER, CUSTOMER)")
+@Tag(name = "3. Role-Based Access Control (RBAC) Testing", description = "APIs for testing role-based access permissions (ADMIN, FARMER, CUSTOMER)")
 @RestController
 public class TestRbacController {
 
-    @Operation(summary = "Dashboard Nông dân", description = "Chỉ cho phép tài khoản có ROLE_FARMER truy cập")
+    @Operation(summary = "Farmer Dashboard", description = "Accessible only by accounts with ROLE_FARMER")
     @GetMapping("/api/farmer/dashboard")
     @PreAuthorize("hasRole('FARMER')")
     public ResponseEntity<Map<String, Object>> getFarmerDashboard() {
         return ResponseEntity.ok(Map.of(
                 "status", "SUCCESS",
                 "roleRequired", "ROLE_FARMER",
-                "message", "Chào mừng đến trang quản trị của Nông Dân! Bạn có quyền quản lý sản phẩm và tồn kho phiên chợ."
+                "message", "Welcome to Farmer Dashboard! You have permissions to manage products and market session inventory."
         ));
     }
 
-    @Operation(summary = "Tóm tắt hồ sơ Khách hàng", description = "Chỉ cho phép tài khoản có ROLE_CUSTOMER truy cập")
+    @Operation(summary = "Customer Profile Summary", description = "Accessible only by accounts with ROLE_CUSTOMER")
     @GetMapping("/api/customer/profile-summary")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<Map<String, Object>> getCustomerProfileSummary() {
         return ResponseEntity.ok(Map.of(
                 "status", "SUCCESS",
                 "roleRequired", "ROLE_CUSTOMER",
-                "message", "Chào mừng Khách Hàng! Bạn có quyền đặt trước nông sản và chọn khung giờ nhận hàng (Pay-at-pickup)."
+                "message", "Welcome Customer! You have permissions to pre-order fresh produce and select pickup time slots (Pay-at-pickup)."
         ));
     }
 
-    @Operation(summary = "Trạng thái hệ thống (Admin)", description = "Chỉ cho phép tài khoản có ROLE_ADMIN truy cập")
+    @Operation(summary = "System Status (Admin)", description = "Accessible only by accounts with ROLE_ADMIN")
     @GetMapping("/api/admin/system-status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getAdminSystemStatus() {
         return ResponseEntity.ok(Map.of(
                 "status", "SUCCESS",
                 "roleRequired", "ROLE_ADMIN",
-                "message", "Khu vực Quản trị viên hệ thống MarketLink: Kiểm duyệt KYC nông dân và quản lý chợ phiên."
+                "message", "MarketLink Administrator Zone: Review farmer KYC documents and manage farmers markets."
         ));
     }
 }

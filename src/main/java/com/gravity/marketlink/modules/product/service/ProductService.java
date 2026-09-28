@@ -91,29 +91,29 @@ public class ProductService {
 
     public Mono<ProductResponse> getProductById(Long productId) {
         return productRepository.findById(productId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy sản phẩm với ID: " + productId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Product not found with ID: " + productId)))
                 .flatMap(this::enrichProductResponse);
     }
 
     @Transactional
     public Mono<ProductResponse> createProduct(Long farmerId, ProductCreateRequest request) {
         return farmerProfileRepository.findByFarmerId(farmerId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin sạp nông dân với ID: " + farmerId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer stall not found with ID: " + farmerId)))
                 .flatMap(profile -> {
                     if (Boolean.FALSE.equals(profile.getIsApproved())) {
-                        return Mono.error(new IllegalStateException("Hồ sơ Nông dân chưa được Quản trị viên duyệt KYC. Bạn chưa có quyền đăng bán sản phẩm."));
+                        return Mono.error(new IllegalStateException("Farmer profile has not been KYC approved by Administrator. You cannot list products yet."));
                     }
 
                     // Validate market assignment
                     return assignmentRepository.findByFarmerIdAndMarketId(farmerId, request.getMarketId())
-                            .switchIfEmpty(Mono.error(new IllegalArgumentException("Bạn chưa đăng ký hoặc chưa có sạp tại phiên chợ này. Vui lòng đăng ký tham gia chợ trước khi đăng bán sản phẩm.")))
+                            .switchIfEmpty(Mono.error(new IllegalArgumentException("You have not registered or do not have an active stall at this market. Please register for market participation before selling products.")))
                             .flatMap(assignment -> {
                                 String stallNum = (request.getStallNumber() != null && !request.getStallNumber().isBlank())
                                         ? request.getStallNumber().trim()
                                         : assignment.getStallNumber();
 
                                 return categoryRepository.findById(request.getCategoryId())
-                                        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Danh mục không tồn tại với ID: " + request.getCategoryId())))
+                                        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Category does not exist with ID: " + request.getCategoryId())))
                                         .flatMap(category -> {
                                             Product product = Product.builder()
                                                     .farmerId(farmerId)
@@ -132,7 +132,7 @@ public class ProductService {
                                                     .build();
 
                                             return productRepository.save(product)
-                                                    .doOnSuccess(saved -> log.info("Nông dân [{}] đã tạo sản phẩm mới [{}] gán tại sạp [{}] chợ [{}] (ID: {})",
+                                                    .doOnSuccess(saved -> log.info("Farmer [{}] created new product [{}] assigned to stall [{}] at market [{}] (ID: {})",
                                                             farmerId, saved.getName(), saved.getStallNumber(), saved.getMarketId(), saved.getProductId()))
                                                     .flatMap(this::enrichProductResponse);
                                         });
@@ -143,10 +143,10 @@ public class ProductService {
     @Transactional
     public Mono<ProductResponse> updateProduct(Long farmerId, Long productId, ProductUpdateRequest request) {
         return productRepository.findById(productId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy sản phẩm với ID: " + productId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Product not found with ID: " + productId)))
                 .flatMap(product -> {
                     if (!product.getFarmerId().equals(farmerId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền chỉnh sửa sản phẩm của nhà vườn khác."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to edit another farmer's product."));
                     }
 
                     if (request.getCategoryId() != null) product.setCategoryId(request.getCategoryId());
@@ -170,10 +170,10 @@ public class ProductService {
     @Transactional
     public Mono<ProductResponse> updateProductStatus(Long farmerId, Long productId, String status) {
         return productRepository.findById(productId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy sản phẩm với ID: " + productId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Product not found with ID: " + productId)))
                 .flatMap(product -> {
                     if (!product.getFarmerId().equals(farmerId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền thay đổi trạng thái sản phẩm này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to change this product's status."));
                     }
 
                     product.setStatus(status.trim().toUpperCase());
@@ -187,10 +187,10 @@ public class ProductService {
     @Transactional
     public Mono<Void> deleteProduct(Long farmerId, Long productId) {
         return productRepository.findById(productId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy sản phẩm với ID: " + productId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Product not found with ID: " + productId)))
                 .flatMap(product -> {
                     if (!product.getFarmerId().equals(farmerId)) {
-                        return Mono.error(new IllegalArgumentException("Bạn không có quyền xóa sản phẩm này."));
+                        return Mono.error(new IllegalArgumentException("You do not have permission to delete this product."));
                     }
                     return productRepository.delete(product);
                 });
@@ -199,26 +199,26 @@ public class ProductService {
     @Transactional
     public Mono<ProductResponse> adminModerateProduct(Long productId, String status) {
         return productRepository.findById(productId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy sản phẩm với ID: " + productId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Product not found with ID: " + productId)))
                 .flatMap(product -> {
                     product.setStatus(status.trim().toUpperCase());
                     product.setUpdatedAt(LocalDateTime.now());
                     return productRepository.save(product)
-                            .doOnSuccess(saved -> log.warn("Admin đã thay đổi trạng thái sản phẩm [{}] thành [{}]", productId, status))
+                            .doOnSuccess(saved -> log.warn("Admin updated product status [{}] to [{}]", productId, status))
                             .flatMap(this::enrichProductResponse);
                 });
     }
 
     private Mono<ProductResponse> enrichProductResponse(Product product) {
         Mono<Category> categoryMono = categoryRepository.findById(product.getCategoryId())
-                .defaultIfEmpty(Category.builder().name("Khác").build());
+                .defaultIfEmpty(Category.builder().name("Other").build());
 
         Mono<FarmerProfile> profileMono = farmerProfileRepository.findByFarmerId(product.getFarmerId())
-                .defaultIfEmpty(FarmerProfile.builder().stallName("Nông trại #" + product.getFarmerId()).build());
+                .defaultIfEmpty(FarmerProfile.builder().stallName("Farm #" + product.getFarmerId()).build());
 
         Mono<String> marketNameMono = product.getMarketId() != null
-                ? marketRepository.findById(product.getMarketId()).map(m -> m.getName()).defaultIfEmpty("Chợ Nông Sản")
-                : Mono.just("Chợ Nông Sản");
+                ? marketRepository.findById(product.getMarketId()).map(m -> m.getName()).defaultIfEmpty("Farmers Market")
+                : Mono.just("Farmers Market");
 
         return Mono.zip(categoryMono, profileMono, marketNameMono)
                 .map(tuple -> {

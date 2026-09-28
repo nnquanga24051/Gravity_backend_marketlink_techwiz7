@@ -13,27 +13,27 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Thông tin chi tiết một tài liệu KYC đã nộp")
+@Schema(description = "Detailed submitted KYC document information")
 public class FarmerKycDocumentResponse {
 
-    @Schema(description = "ID tài liệu", example = "1")
+    @Schema(description = "Document ID", example = "1")
     private Long documentId;
 
-    @Schema(description = "ID Nông dân", example = "2")
+    @Schema(description = "Farmer ID", example = "2")
     private Long farmerId;
 
-    @Schema(description = "URL tài liệu", example = "https://example.com/kyc/cccd-mat-truoc.jpg")
+    @Schema(description = "Document URL", example = "https://example.com/kyc/cccd-mat-truoc.jpg")
     private String documentUrl;
 
-    @Schema(description = "Số giấy tờ", example = "079090123456")
+    @Schema(description = "Document number", example = "079090123456")
     private String documentNumber;
 
-    @Schema(description = "Ngày cấp", example = "2022-05-15")
+    @Schema(description = "Issuance date", example = "2022-05-15")
     private LocalDate issuedDate;
 
-    @Schema(description = "Ngày hết hạn", example = "2032-05-15")
+    @Schema(description = "Expiration date", example = "2032-05-15")
     private LocalDate expiryDate;
 
-    @Schema(description = "Thời gian tải lên")
+    @Schema(description = "Upload timestamp")
     private LocalDateTime createdAt;
 }

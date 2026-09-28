@@ -14,15 +14,15 @@ import java.util.List;
 @AllArgsConstructor
 public class AiChatResponse {
 
-    @Schema(description = "Câu trả lời thông minh từ trợ lý AI", example = "Chào bạn! Hiện tại có Chợ Phiên Ba Vì họp vào Chủ nhật (07:00 - 11:30) với 4 sạp nông sản sạch sẵn sàng phục vụ.")
+    @Schema(description = "Intelligent response from AI assistant", example = "Hello! Ba Vi Farmers Market is open this Sunday (07:00 - 11:30) with 4 organic stalls ready to serve you.")
     private String reply;
 
-    @Schema(description = "Danh sách phiên chợ phù hợp được tìm thấy")
+    @Schema(description = "List of matching farmers markets found")
     private List<String> relevantMarkets;
 
-    @Schema(description = "Danh sách nông sản liên quan")
+    @Schema(description = "List of related fresh produce")
     private List<String> relevantProducts;
 
-    @Schema(description = "Khung giờ nhận hàng hoặc lưu ý chốt đơn")
+    @Schema(description = "Pickup time slots or cutoff reminders")
     private String timingNotes;
 }

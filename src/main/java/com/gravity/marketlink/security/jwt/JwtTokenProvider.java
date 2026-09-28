@@ -16,8 +16,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Quản lý vòng đời JSON Web Token (JWT) theo chuẩn bảo mật Dual-Token (Access + Refresh Token)
- * Tuân thủ RFC 7519: JTI UUID định danh, Issuer kiểm chứng, HMAC-SHA256 Timing-Safe, và Auto-Evicting Blacklist.
+ * Manages JSON Web Token (JWT) lifecycle following Dual-Token security standards (Access + Refresh Token)
+ * Compliant with RFC 7519: JTI UUID identifier, Issuer validation, HMAC-SHA256 Timing-Safe, and Auto-Evicting Blacklist.
  */
 @Slf4j
 @Component
@@ -28,40 +28,40 @@ public class JwtTokenProvider {
 
     @Getter
     @Value("${security.jwt.expiration-ms:1800000}")
-    private long jwtExpirationInMs; // Mặc định 30 phút
+    private long jwtExpirationInMs; // Default 30 minutes
 
     @Getter
     @Value("${security.jwt.refresh-expiration-ms:604800000}")
-    private long jwtRefreshExpirationInMs; // Mặc định 7 ngày
+    private long jwtRefreshExpirationInMs; // Default 7 days
 
     @Value("${security.jwt.issuer:http://localhost:8081}")
     private String jwtIssuer;
 
     private static final String HMAC_SHA256 = "HmacSHA256";
-    private static final long CLOCK_SKEW_SECONDS = 60; // Cho phép dung sai chênh lệch đồng hồ 60 giây
+    private static final long CLOCK_SKEW_SECONDS = 60; // Allow 60-second clock skew tolerance
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private SecretKeySpec secretKeySpec;
 
-    // Danh sách Token bị thu hồi (Blacklist) kèm hạn hết hạn TTL để tự động dọn dẹp RAM
+    // Blacklisted tokens with TTL expiration for automatic RAM eviction
     private final Map<String, Long> blacklistedTokens = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
         this.secretKeySpec = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), HMAC_SHA256);
-        log.info("JwtTokenProvider đã khởi tạo: HMAC-SHA256 với Issuer={}, AccessTokenTTL={}ms, RefreshTokenTTL={}ms",
+        log.info("JwtTokenProvider initialized: HMAC-SHA256 with Issuer={}, AccessTokenTTL={}ms, RefreshTokenTTL={}ms",
                 jwtIssuer, jwtExpirationInMs, jwtRefreshExpirationInMs);
     }
 
     /**
-     * 1. Sinh Access Token (Ngắn hạn - Mặc định 30 phút)
+     * 1. Generates Access Token (Short-lived - Default 30 minutes)
      */
     public String generateAccessToken(Long userId, String email, List<String> roles) {
         long nowMillis = System.currentTimeMillis();
         long expMillis = nowMillis + jwtExpirationInMs;
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("jti", UUID.randomUUID().toString()); // Mã định danh token duy nhất
+        payload.put("jti", UUID.randomUUID().toString()); // Unique token identifier (JTI)
         payload.put("iss", jwtIssuer);
         payload.put("sub", email);
         payload.put("userId", userId);
@@ -74,7 +74,7 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 2. Sinh Refresh Token (Dài hạn - Mặc định 7 ngày)
+     * 2. Generates Refresh Token (Long-lived - Default 7 days)
      */
     public String generateRefreshToken(Long userId, String email) {
         long nowMillis = System.currentTimeMillis();
@@ -93,21 +93,21 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Tương thích ngược: Mặc định tạo Access Token
+     * Backward compatibility: Default generates Access Token
      */
     public String generateToken(Long userId, String email, List<String> roles) {
         return generateAccessToken(userId, email, roles);
     }
 
     /**
-     * 3. Xác thực Access Token gửi kèm Header Authorization
+     * 3. Validates Access Token passed in Authorization header
      */
     public boolean validateToken(String token) {
         return validateJwt(token, "ACCESS");
     }
 
     /**
-     * 4. Xác thực Refresh Token dùng để cấp mới Access Token
+     * 4. Validates Refresh Token used for token renewal
      */
     public boolean validateRefreshToken(String token) {
         return validateJwt(token, "REFRESH");
@@ -121,65 +121,65 @@ public class JwtTokenProvider {
 
             String cleanToken = cleanBearer(token);
             if (isTokenBlacklisted(cleanToken)) {
-                log.warn("Token JWT đã bị đưa vào danh sách vô hiệu hóa (Blacklist).");
+                log.warn("JWT token has been revoked (Blacklist).");
                 return false;
             }
 
             String[] parts = cleanToken.split("\\.");
             if (parts.length != 3) {
-                log.warn("Cấu trúc JWT không đúng 3 phần (header.payload.signature).");
+                log.warn("Invalid JWT structure: must consist of 3 parts (header.payload.signature).");
                 return false;
             }
 
-            // 1. Kiểm tra chữ ký HMAC-SHA256 (Timing-Safe)
+            // 1. Verify HMAC-SHA256 signature (Timing-Safe)
             String dataToSign = parts[0] + "." + parts[1];
             String expectedSignature = sign(dataToSign);
 
             if (!MessageDigest.isEqual(parts[2].getBytes(StandardCharsets.UTF_8),
                     expectedSignature.getBytes(StandardCharsets.UTF_8))) {
-                log.warn("Chữ ký JWT không khớp hoặc token đã bị giả mạo.");
+                log.warn("JWT signature mismatch or token has been tampered with.");
                 return false;
             }
 
-            // 2. Kiểm tra Payload Claims
+            // 2. Verify Payload Claims
             Map<String, Object> claims = parsePayload(parts[1]);
 
             // Issuer
             Object issObj = claims.get("iss");
             if (issObj != null && !jwtIssuer.equals(issObj)) {
-                log.warn("JWT issuer không khớp: expected {}, got {}", jwtIssuer, issObj);
+                log.warn("JWT issuer mismatch: expected {}, got {}", jwtIssuer, issObj);
                 return false;
             }
 
-            // Token Type (nếu có yêu cầu)
+            // Token Type (if required)
             if (expectedType != null) {
                 Object typeObj = claims.get("tokenType");
                 if (typeObj != null && !expectedType.equalsIgnoreCase(typeObj.toString())) {
-                    log.warn("Loại token không đúng: expected {}, got {}", expectedType, typeObj);
+                    log.warn("Invalid token type: expected {}, got {}", expectedType, typeObj);
                     return false;
                 }
             }
 
-            // Expiration Time (kèm Clock Skew)
+            // Expiration Time (with Clock Skew tolerance)
             Object expObj = claims.get("exp");
             if (expObj instanceof Number expNumber) {
                 long expSeconds = expNumber.longValue();
                 long nowSeconds = System.currentTimeMillis() / 1000;
                 if (nowSeconds - CLOCK_SKEW_SECONDS > expSeconds) {
-                    log.warn("Token JWT đã hết hạn lúc: {} (hiện tại: {})", expSeconds, nowSeconds);
+                    log.warn("JWT token expired at: {} (current: {})", expSeconds, nowSeconds);
                     return false;
                 }
             }
 
             return true;
         } catch (Exception e) {
-            log.warn("Lỗi khi xác thực token JWT: {}", e.getMessage());
+            log.warn("Error validating JWT token: {}", e.getMessage());
             return false;
         }
     }
 
     /**
-     * 5. Thu hồi Token và đưa vào Blacklist có thời gian sống (TTL)
+     * 5. Revokes token and adds to memory Blacklist with TTL
      */
     public void blacklistToken(String token) {
         if (token == null || token.isBlank()) return;
@@ -195,12 +195,12 @@ public class JwtTokenProvider {
             }
 
             blacklistedTokens.put(cleanToken, expMillis);
-            log.info("Token JTI={} đã được thêm vào Blacklist cho đến {}", claims.get("jti"), new Date(expMillis));
+            log.info("Token JTI={} added to Blacklist until {}", claims.get("jti"), new Date(expMillis));
 
-            // Tự động dọn dẹp các token đã quá hạn trong Blacklist để bảo toàn dung lượng RAM
+            // Automatically clean up expired tokens from Blacklist to prevent memory leak
             cleanExpiredBlacklist();
         } catch (Exception e) {
-            // Nếu token hỏng, vẫn lưu chặn tạm thời
+            // If token is malformed, block temporarily
             blacklistedTokens.put(cleanToken, System.currentTimeMillis() + jwtExpirationInMs);
         }
     }
@@ -258,11 +258,11 @@ public class JwtTokenProvider {
             String cleanToken = cleanBearer(token);
             String[] parts = cleanToken.split("\\.");
             if (parts.length != 3) {
-                throw new IllegalArgumentException("Định dạng token không đúng 3 phần");
+                throw new IllegalArgumentException("Invalid token format: must consist of 3 parts");
             }
             return parsePayload(parts[1]);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Không thể giải mã claims từ token", e);
+            throw new IllegalArgumentException("Cannot decode claims from token", e);
         }
     }
 
@@ -282,8 +282,8 @@ public class JwtTokenProvider {
 
             return dataToSign + "." + signature;
         } catch (Exception e) {
-            log.error("Lỗi khi tạo JWT token: {}", e.getMessage());
-            throw new RuntimeException("Không thể tạo JWT Token", e);
+            log.error("Error generating JWT token: {}", e.getMessage());
+            throw new RuntimeException("Unable to generate JWT token", e);
         }
     }
 

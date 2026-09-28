@@ -18,22 +18,22 @@ import java.util.List;
 @AllArgsConstructor
 public class OrderCreateRequest {
 
-    @NotNull(message = "Mã nông dân (farmerId) không được để trống")
+    @NotNull(message = "Farmer ID (farmerId) cannot be null")
     private Long farmerId;
 
-    @NotNull(message = "Mã chợ (marketId) không được để trống")
+    @NotNull(message = "Market ID (marketId) cannot be null")
     private Long marketId;
 
-    @NotNull(message = "Khung giờ nhận hàng (slotId) không được để trống")
+    @NotNull(message = "Pickup slot ID (slotId) cannot be null")
     private Long slotId;
 
-    @NotNull(message = "Ngày nhận hàng (pickupDate) không được để trống")
-    @Schema(example = "2026-09-27", description = "Ngày khách đến nhận hàng tại chợ")
+    @NotNull(message = "Pickup date (pickupDate) cannot be null")
+    @Schema(example = "2026-09-27", description = "Scheduled pickup date at farmers market")
     private LocalDate pickupDate;
 
     private String note;
 
-    @NotEmpty(message = "Đơn hàng phải có ít nhất 1 sản phẩm")
+    @NotEmpty(message = "Order must contain at least 1 product item")
     @Valid
     private List<OrderItemRequest> items;
 }

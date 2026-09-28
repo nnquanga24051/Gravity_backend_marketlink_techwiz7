@@ -18,7 +18,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@Tag(name = "8. Khách hàng - Tài khoản gia đình (Family Account)", description = "Các API liên kết tài khoản gia đình để cùng chia sẻ đơn hàng, danh sách đặt trước (Pre-reservation) và cùng nhận hàng")
+@Tag(name = "8. Customer Family Accounts", description = "APIs for linking family accounts to share orders, pre-reservations, and pickup slots")
 @SecurityRequirement(name = "Bearer Authentication")
 @RestController
 @RequestMapping("/api/customer/family")
@@ -28,7 +28,7 @@ public class FamilyAccountController {
     private final FamilyAccountService familyAccountService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Gửi lời mời tham gia nhóm gia đình", description = "Khách hàng mời thành viên khác vào nhóm gia đình thông qua email. Hệ thống sinh mã token mời có hiệu lực trong 7 ngày.")
+    @Operation(summary = "Send family group invitation", description = "Customer invites member via email. System generates invitation token valid for 7 days.")
     @PostMapping("/invite")
     public Mono<ResponseEntity<ApiResponse<FamilyInvitationResponse>>> inviteMember(
             Authentication authentication,
@@ -38,12 +38,12 @@ public class FamilyAccountController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer information not found.")))
                 .flatMap(user -> familyAccountService.inviteMember(user.getUserId(), request))
-                .map(res -> ResponseEntity.ok(ApiResponse.success("Lời mời tham gia gia đình đã được gửi thành công.", res)));
+                .map(res -> ResponseEntity.ok(ApiResponse.success("Family invitation sent successfully.", res)));
     }
 
-    @Operation(summary = "Xem danh sách lời mời gửi đi và nhận được", description = "Lấy các lời mời gia đình do tài khoản hiện tại gửi hoặc các lời mời gửi đến email của tài khoản.")
+    @Operation(summary = "View sent and received family invitations", description = "Retrieves family invitations sent by or received for current user account.")
     @GetMapping("/invitations")
     public Mono<ResponseEntity<ApiResponse<List<FamilyInvitationResponse>>>> getMyInvitations(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
@@ -51,12 +51,12 @@ public class FamilyAccountController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer information not found.")))
                 .flatMap(user -> familyAccountService.getMyInvitations(user.getUserId(), user.getEmail()).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách lời mời gia đình thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved family invitations successfully.", list)));
     }
 
-    @Operation(summary = "Chấp nhận lời mời tham gia gia đình", description = "Khách hàng sử dụng token lời mời nhận được để liên kết tài khoản vào nhóm gia đình chung.")
+    @Operation(summary = "Accept family group invitation", description = "Customer uses received token to link account with family group.")
     @PostMapping("/accept")
     public Mono<ResponseEntity<ApiResponse<FamilyInvitationResponse>>> acceptInvitation(
             Authentication authentication,
@@ -66,12 +66,12 @@ public class FamilyAccountController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer information not found.")))
                 .flatMap(user -> familyAccountService.acceptInvitation(user.getUserId(), user.getEmail(), request))
-                .map(res -> ResponseEntity.ok(ApiResponse.success("Đã chấp nhận lời mời và gia nhập nhóm gia đình thành công.", res)));
+                .map(res -> ResponseEntity.ok(ApiResponse.success("Accepted invitation and joined family group successfully.", res)));
     }
 
-    @Operation(summary = "Từ chối lời mời tham gia gia đình", description = "Từ chối lời mời gia đình.")
+    @Operation(summary = "Decline family group invitation", description = "Decline family invitation.")
     @PostMapping("/reject")
     public Mono<ResponseEntity<ApiResponse<FamilyInvitationResponse>>> rejectInvitation(
             Authentication authentication,
@@ -81,12 +81,12 @@ public class FamilyAccountController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer information not found.")))
                 .flatMap(user -> familyAccountService.rejectInvitation(user.getEmail(), request))
-                .map(res -> ResponseEntity.ok(ApiResponse.success("Đã từ chối lời mời gia đình.", res)));
+                .map(res -> ResponseEntity.ok(ApiResponse.success("Declined family invitation.", res)));
     }
 
-    @Operation(summary = "Xem danh sách thành viên trong nhóm gia đình", description = "Lấy tất cả các thành viên cùng nhóm gia đình (bao gồm chủ nhóm và các thành viên liên kết).")
+    @Operation(summary = "View family group members", description = "Retrieves all members of family group (including group head and linked members).")
     @GetMapping("/members")
     public Mono<ResponseEntity<ApiResponse<List<FamilyMemberResponse>>>> getFamilyMembers(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
@@ -94,12 +94,12 @@ public class FamilyAccountController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer information not found.")))
                 .flatMap(user -> familyAccountService.getFamilyMembers(user.getUserId()).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách thành viên gia đình thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved family members successfully.", list)));
     }
 
-    @Operation(summary = "Rời khỏi nhóm gia đình", description = "Thành viên tự hủy liên kết tài khoản của mình khỏi nhóm gia đình.")
+    @Operation(summary = "Leave family group", description = "Member voluntarily unlinks account from family group.")
     @DeleteMapping("/leave")
     public Mono<ResponseEntity<ApiResponse<Void>>> leaveFamily(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
@@ -107,12 +107,12 @@ public class FamilyAccountController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer information not found.")))
                 .flatMap(user -> familyAccountService.leaveFamily(user.getUserId()))
-                .thenReturn(ResponseEntity.ok(ApiResponse.success("Bạn đã rời khỏi nhóm gia đình thành công.", null)));
+                .thenReturn(ResponseEntity.ok(ApiResponse.success("You have left the family group successfully.", null)));
     }
 
-    @Operation(summary = "Chủ nhóm xóa thành viên khỏi nhóm gia đình", description = "Chỉ chủ nhóm (Head of Family) mới có quyền xóa thành viên khác khỏi nhóm gia đình.")
+    @Operation(summary = "Family head removes member from family group", description = "Only the head of family has permission to remove members from family group.")
     @DeleteMapping("/members/{memberId}")
     public Mono<ResponseEntity<ApiResponse<Void>>> removeMember(
             Authentication authentication,
@@ -122,8 +122,8 @@ public class FamilyAccountController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer information not found.")))
                 .flatMap(user -> familyAccountService.removeMember(user.getUserId(), memberId))
-                .thenReturn(ResponseEntity.ok(ApiResponse.success("Đã xóa thành viên khỏi nhóm gia đình thành công.", null)));
+                .thenReturn(ResponseEntity.ok(ApiResponse.success("Removed member from family group successfully.", null)));
     }
 }

@@ -17,19 +17,19 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class WeeklyStockTemplateRequest {
 
-    @NotNull(message = "Mã sản phẩm không được để trống")
+    @NotNull(message = "Product ID cannot be null")
     private Long productId;
 
-    @NotNull(message = "Mã chợ phiên không được để trống")
+    @NotNull(message = "Market ID cannot be null")
     private Long marketId;
 
-    @NotNull(message = "Thứ trong tuần không được để trống")
-    @Min(value = 1, message = "Thứ trong tuần từ 1 (Thứ Hai) đến 7 (Chủ Nhật)")
-    @Max(value = 7, message = "Thứ trong tuần từ 1 (Thứ Hai) đến 7 (Chủ Nhật)")
+    @NotNull(message = "Day of week cannot be null")
+    @Min(value = 1, message = "Day of week from 1 (Monday) to 7 (Sunday)")
+    @Max(value = 7, message = "Day of week from 1 (Monday) to 7 (Sunday)")
     private Integer dayOfWeek;
 
-    @NotNull(message = "Số lượng định mức không được để trống")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Số lượng định mức phải lớn hơn 0")
+    @NotNull(message = "Target quota quantity cannot be null")
+    @DecimalMin(value = "0.0", inclusive = false, message = "Target quota quantity must be greater than 0")
     private BigDecimal recurringQuantity;
 
     @Builder.Default

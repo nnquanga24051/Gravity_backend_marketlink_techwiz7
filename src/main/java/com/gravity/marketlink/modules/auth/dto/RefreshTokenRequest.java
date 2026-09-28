@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RefreshTokenRequest {
 
-    @NotBlank(message = "Refresh Token không được để trống")
-    @Schema(description = "Refresh Token dài hạn đã nhận được khi đăng nhập", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+    @NotBlank(message = "Refresh token cannot be blank")
+    @Schema(description = "Long-term Refresh Token received during login", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
     private String refreshToken;
 }

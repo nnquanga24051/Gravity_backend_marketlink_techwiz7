@@ -20,7 +20,7 @@ public class AdminDashboardService {
     private final DatabaseClient databaseClient;
 
     /**
-     * Tổng hợp các chỉ số cốt lõi toàn sàn (Platform Metrics)
+     * Aggregates core platform metrics (Platform Metrics)
      */
     public Mono<PlatformMetricsResponse> getPlatformMetrics() {
         String sql = """
@@ -46,7 +46,7 @@ public class AdminDashboardService {
     }
 
     /**
-     * Báo cáo doanh thu và đơn hàng theo từng điểm chợ (Revenue Summary Across Markets)
+     * Revenue and order summary report across market locations (Revenue Summary Across Markets)
      */
     public Flux<MarketRevenueReportDto> getMarketRevenueReports() {
         String sql = """
@@ -75,7 +75,7 @@ public class AdminDashboardService {
     }
 
     /**
-     * Báo cáo xếp hạng nông dân tích cực nhất (Most Active Farmers)
+     * Ranking report of top active farmers (Most Active Farmers)
      */
     public Flux<ActiveFarmerReportDto> getMostActiveFarmers(int limit) {
         String sql = """

@@ -12,21 +12,21 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu Admin chỉ định hoặc cập nhật phân sạp chợ cho nông dân")
+@Schema(description = "Admin request to assign or update stall for farmer")
 public class AdminAssignStallRequest {
 
-    @NotNull(message = "ID nông dân không được để trống")
-    @Schema(description = "User ID của nông dân", example = "5")
+    @NotNull(message = "Farmer ID cannot be null")
+    @Schema(description = "User ID of farmer", example = "5")
     private Long farmerId;
 
-    @NotNull(message = "ID chợ không được để trống")
-    @Schema(description = "Market ID của chợ nông sản", example = "1")
+    @NotNull(message = "Market ID cannot be null")
+    @Schema(description = "Market ID of farmers market", example = "1")
     private Long marketId;
 
-    @NotBlank(message = "Số sạp không được để trống")
-    @Schema(description = "Mã số / vị trí gian hàng tại chợ", example = "Sạp A-08")
+    @NotBlank(message = "Stall number cannot be blank")
+    @Schema(description = "Stall code / booth position at market", example = "Stall A-08")
     private String stallNumber;
 
-    @Schema(description = "Trạng thái phê duyệt (ACTIVE, REGISTERED, REVOKED). Mặc định là ACTIVE", example = "ACTIVE")
+    @Schema(description = "Approval status (ACTIVE, REGISTERED, REVOKED). Default: ACTIVE", example = "ACTIVE")
     private String status;
 }

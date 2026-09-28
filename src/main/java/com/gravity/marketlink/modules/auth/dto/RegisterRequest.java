@@ -15,36 +15,36 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RegisterRequest {
 
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không đúng định dạng")
-    @Schema(description = "Email đăng nhập", example = "farmer.bavi@marketlink.vn")
+    @NotBlank(message = "Email cannot be blank")
+    @Email(message = "Invalid email format")
+    @Schema(description = "Login email", example = "farmer.bavi@marketlink.vn")
     private String email;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 6, message = "Mật khẩu phải chứa ít nhất 6 ký tự")
-    @Schema(description = "Mật khẩu tài khoản (tối thiểu 6 ký tự)", example = "Farmer@123")
+    @NotBlank(message = "Password cannot be blank")
+    @Size(min = 6, message = "Password must be at least 6 characters")
+    @Schema(description = "Account password (minimum 6 characters)", example = "Farmer@123")
     private String password;
 
-    @NotBlank(message = "Họ và tên không được để trống")
-    @Schema(description = "Họ và tên chủ tài khoản", example = "Nguyễn Văn Nông Dân")
+    @NotBlank(message = "Full name cannot be blank")
+    @Schema(description = "Account holder full name", example = "John Doe")
     private String fullName;
 
-    @NotBlank(message = "Số điện thoại không được để trống")
-    @Schema(description = "Số điện thoại liên hệ", example = "0987654321")
+    @NotBlank(message = "Phone number cannot be blank")
+    @Schema(description = "Contact phone number", example = "0987654321")
     private String phoneNumber;
 
-    @NotBlank(message = "Vai trò không được để trống (FARMER hoặc CUSTOMER)")
-    @Schema(description = "Vai trò: FARMER hoặc CUSTOMER", example = "FARMER")
+    @NotBlank(message = "Role cannot be blank (FARMER or CUSTOMER)")
+    @Schema(description = "Role: FARMER or CUSTOMER", example = "FARMER")
     private String role; // FARMER, CUSTOMER
 
     // Farmer specific fields
-    @Schema(description = "Tên nông trại / sạp hàng (chỉ dành cho FARMER)", example = "Nông Trại Ba Vì Xanh")
+    @Schema(description = "Farm / Stall name (for FARMER only)", example = "Green Valley Farm")
     private String farmName;
 
-    @Schema(description = "Địa chỉ nông trại / vùng canh tác (chỉ dành cho FARMER)", example = "Xã Vân Hòa, Ba Vì, Hà Nội")
+    @Schema(description = "Farm / Cultivation address (for FARMER only)", example = "Green Valley, Highland District")
     private String farmAddress;
 
     // Customer specific fields
-    @Schema(description = "Địa chỉ giao hàng mặc định (chỉ dành cho CUSTOMER)", example = "123 Cầu Giấy, Hà Nội")
+    @Schema(description = "Default delivery / pickup address (for CUSTOMER only)", example = "123 Market Street, Downtown")
     private String deliveryAddress;
 }

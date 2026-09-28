@@ -11,13 +11,13 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu thay đổi trạng thái hoạt động tài khoản người dùng")
+@Schema(description = "Request to change user account active status")
 public class AdminUpdateUserStatusRequest {
 
-    @NotBlank(message = "Trạng thái mới không được để trống")
-    @Schema(description = "Trạng thái mới: ACTIVE, SUSPENDED, PENDING", example = "SUSPENDED")
+    @NotBlank(message = "New status cannot be blank")
+    @Schema(description = "New status: ACTIVE, SUSPENDED, PENDING", example = "SUSPENDED")
     private String status;
 
-    @Schema(description = "Lý do khóa hoặc mở khóa tài khoản", example = "Vi phạm chính sách bán hàng hoặc có phản hồi gian lận.")
+    @Schema(description = "Reason for suspending or activating account", example = "Violation of marketplace policies or fraud complaint.")
     private String reason;
 }

@@ -20,21 +20,21 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "Auth - Verification & Password Reset", description = "Các API gửi mã OTP xác minh Email/Phone và Đặt lại mật khẩu")
+@Tag(name = "Auth - Verification & Password Reset", description = "APIs for sending email/phone OTP verification and password resetting")
 public class VerificationController {
 
     private final VerificationService verificationService;
 
     @PostMapping("/verification/send-otp")
-    @Operation(summary = "Gửi mã OTP", description = "Tạo và gửi mã OTP 6 số qua Email hoặc SMS để xác minh tài khoản hoặc đặt lại mật khẩu")
+    @Operation(summary = "Send OTP verification code", description = "Generates and sends 6-digit OTP code via email/SMS for account verification or password reset")
     public Mono<ResponseEntity<ApiResponse<OtpResponse>>> sendOtp(
             @Valid @RequestBody SendOtpRequest request) {
         return verificationService.sendOtp(request)
-                .map(response -> ResponseEntity.ok(ApiResponse.success("Mã OTP đã được gửi.", response)));
+                .map(response -> ResponseEntity.ok(ApiResponse.success("OTP code has been sent.", response)));
     }
 
     @PostMapping("/verification/verify-otp")
-    @Operation(summary = "Xác minh mã OTP", description = "Kiểm tra mã OTP nhập vào, tối đa 5 lần thử trước khi mã bị vô hiệu hóa")
+    @Operation(summary = "Verify OTP code", description = "Validates entered OTP code, maximum 5 attempts before invalidation")
     public Mono<ResponseEntity<ApiResponse<OtpResponse>>> verifyOtp(
             @Valid @RequestBody VerifyOtpRequest request) {
         return verificationService.verifyOtp(request)
@@ -42,7 +42,7 @@ public class VerificationController {
     }
 
     @PostMapping("/reset-password")
-    @Operation(summary = "Đặt lại mật khẩu", description = "Khách hàng hoặc Nông dân đặt lại mật khẩu mới bằng mã OTP đã nhận")
+    @Operation(summary = "Reset password", description = "Customer or Farmer resets new password using received OTP code")
     public Mono<ResponseEntity<ApiResponse<OtpResponse>>> resetPassword(
             @Valid @RequestBody ResetPasswordRequest request) {
         return verificationService.resetPassword(request)

@@ -12,10 +12,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AnnouncementRequest {
 
-    @NotBlank(message = "Tiêu đề thông báo không được để trống")
+    @NotBlank(message = "Announcement title cannot be blank")
     private String title;
 
-    @NotBlank(message = "Nội dung thông báo không được để trống")
+    @NotBlank(message = "Announcement content cannot be blank")
     private String content;
 
     @Builder.Default

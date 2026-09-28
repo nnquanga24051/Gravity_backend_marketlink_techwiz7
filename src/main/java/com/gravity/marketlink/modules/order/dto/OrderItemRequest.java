@@ -15,10 +15,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class OrderItemRequest {
 
-    @NotNull(message = "Mã sản phẩm (productId) không được để trống")
+    @NotNull(message = "Product ID (productId) cannot be null")
     private Long productId;
 
-    @NotNull(message = "Số lượng đặt không được để trống")
-    @DecimalMin(value = "0.01", message = "Số lượng đặt tối thiểu là 0.01")
+    @NotNull(message = "Quantity cannot be null")
+    @DecimalMin(value = "0.01", message = "Minimum quantity is 0.01")
     private BigDecimal quantity;
 }

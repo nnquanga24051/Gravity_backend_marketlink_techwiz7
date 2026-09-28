@@ -16,24 +16,24 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class ProductCreateRequest {
 
-    @NotNull(message = "Vui lòng chọn phiên chợ / sạp chỉ định để đăng bán sản phẩm")
+    @NotNull(message = "Please select designated market session / stall to sell product")
     private Long marketId;
 
     private String stallNumber;
 
-    @NotNull(message = "Danh mục sản phẩm không được để trống")
+    @NotNull(message = "Product category cannot be null")
     private Integer categoryId;
 
-    @NotBlank(message = "Tên sản phẩm không được để trống")
+    @NotBlank(message = "Product name cannot be blank")
     private String name;
 
     private String description;
 
-    @NotBlank(message = "Đơn vị tính không được để trống (ví dụ: kg, bó, hộp)")
+    @NotBlank(message = "Unit of measurement cannot be blank (e.g. kg, bunch, box)")
     private String unit;
 
-    @NotNull(message = "Đơn giá không được để trống")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Đơn giá phải lớn hơn 0")
+    @NotNull(message = "Unit price cannot be null")
+    @DecimalMin(value = "0.0", inclusive = false, message = "Unit price must be greater than 0")
     private BigDecimal price;
 
     @Builder.Default

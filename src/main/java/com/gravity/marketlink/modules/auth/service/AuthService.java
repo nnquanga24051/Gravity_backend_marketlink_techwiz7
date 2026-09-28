@@ -41,19 +41,19 @@ public class AuthService {
     public Mono<AuthResponse> register(RegisterRequest request) {
         String rawRole = request.getRole() != null ? request.getRole().toUpperCase().replace("ROLE_", "") : "CUSTOMER";
         if (!rawRole.equals("FARMER") && !rawRole.equals("CUSTOMER")) {
-            return Mono.error(new IllegalArgumentException("Vai trò không hợp lệ: chỉ chấp nhận FARMER hoặc CUSTOMER"));
+            return Mono.error(new IllegalArgumentException("Invalid role: only FARMER or CUSTOMER accepted"));
         }
         final String roleName = rawRole;
 
         return userRepository.existsByEmail(request.getEmail())
                 .flatMap(exists -> {
                     if (exists) {
-                        return Mono.error(new IllegalArgumentException("Email đã tồn tại: " + request.getEmail()));
+                        return Mono.error(new IllegalArgumentException("Email already exists: " + request.getEmail()));
                     }
 
                     return roleRepository.findByRoleName(roleName)
                             .switchIfEmpty(roleRepository.findByRoleName("ROLE_" + roleName))
-                            .switchIfEmpty(Mono.error(new IllegalArgumentException("Vai trò không tồn tại trong hệ thống: " + roleName)))
+                            .switchIfEmpty(Mono.error(new IllegalArgumentException("Role does not exist in system: " + roleName)))
                             .flatMap(role -> {
                                 User newUser = User.builder()
                                         .email(request.getEmail())
@@ -100,8 +100,8 @@ public class AuthService {
         if ("FARMER".equalsIgnoreCase(roleName) || "ROLE_FARMER".equalsIgnoreCase(roleName)) {
             FarmerProfile profile = FarmerProfile.builder()
                     .farmerId(userId)
-                    .stallName(request.getFarmName() != null ? request.getFarmName() : "Nông Trại " + request.getFullName())
-                    .farmAddress(request.getFarmAddress() != null ? request.getFarmAddress() : "Chưa cập nhật")
+                    .stallName(request.getFarmName() != null ? request.getFarmName() : "Farm of " + request.getFullName())
+                    .farmAddress(request.getFarmAddress() != null ? request.getFarmAddress() : "Not updated")
                     .isApproved(false)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
@@ -110,7 +110,7 @@ public class AuthService {
         } else {
             CustomerProfile profile = CustomerProfile.builder()
                     .customerId(userId)
-                    .defaultAddress(request.getDeliveryAddress() != null ? request.getDeliveryAddress() : "Chưa cập nhật")
+                    .defaultAddress(request.getDeliveryAddress() != null ? request.getDeliveryAddress() : "Not updated")
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();
@@ -120,14 +120,14 @@ public class AuthService {
 
     public Mono<AuthResponse> login(LoginRequest request) {
         return userRepository.findByEmail(request.getEmail())
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Email hoặc mật khẩu không chính xác")))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Incorrect email or password")))
                 .flatMap(user -> {
                     if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-                        return Mono.error(new IllegalArgumentException("Email hoặc mật khẩu không chính xác"));
+                        return Mono.error(new IllegalArgumentException("Incorrect email or password"));
                     }
 
                     if (!"ACTIVE".equals(user.getStatus())) {
-                        return Mono.error(new IllegalArgumentException("Tài khoản của bạn đã bị khóa hoặc tạm ngưng"));
+                        return Mono.error(new IllegalArgumentException("Your account has been locked or suspended"));
                     }
 
                     return userRoleRepository.findRolesByUserId(user.getUserId())
@@ -153,24 +153,24 @@ public class AuthService {
     }
 
     /**
-     * Cấp mới Access Token bằng Refresh Token (Refresh Token Rotation - RTR)
+     * Issues new Access Token using Refresh Token (Refresh Token Rotation - RTR)
      */
     public Mono<AuthResponse> refreshToken(String oldRefreshToken) {
         if (oldRefreshToken == null || oldRefreshToken.isBlank()) {
-            return Mono.error(new IllegalArgumentException("Refresh token không được để trống"));
+            return Mono.error(new IllegalArgumentException("Refresh token cannot be blank"));
         }
 
         if (!tokenProvider.validateRefreshToken(oldRefreshToken)) {
-            return Mono.error(new IllegalArgumentException("Refresh token không hợp lệ hoặc đã hết hạn"));
+            return Mono.error(new IllegalArgumentException("Invalid or expired refresh token"));
         }
 
         String email = tokenProvider.getEmailFromToken(oldRefreshToken);
 
         return userRepository.findByEmail(email)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Người dùng không tồn tại hoặc đã bị xóa")))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("User not found or has been deleted")))
                 .flatMap(user -> {
                     if (!"ACTIVE".equals(user.getStatus())) {
-                        return Mono.error(new IllegalArgumentException("Tài khoản của bạn đã bị khóa hoặc tạm ngưng"));
+                        return Mono.error(new IllegalArgumentException("Your account has been locked or suspended"));
                     }
 
                     return userRoleRepository.findRolesByUserId(user.getUserId())
@@ -178,10 +178,10 @@ public class AuthService {
                             .map(r -> r.startsWith("ROLE_") ? r : "ROLE_" + r)
                             .collectList()
                             .map(roles -> {
-                                // 1. Thu hồi Refresh Token cũ (Blacklist) để chống Replay Attack
+                                // 1. Revoke old Refresh Token (Blacklist) to prevent Replay Attack
                                 tokenProvider.blacklistToken(oldRefreshToken);
 
-                                // 2. Phát hành cặp Token mới (RTR)
+                                // 2. Issue new Token pair (RTR)
                                 String newAccessToken = tokenProvider.generateAccessToken(user.getUserId(), user.getEmail(), roles);
                                 String newRefreshToken = tokenProvider.generateRefreshToken(user.getUserId(), user.getEmail());
 
@@ -201,7 +201,7 @@ public class AuthService {
 
     public Mono<UserProfileResponse> getCurrentUserProfile(String email) {
         return userRepository.findByEmail(email)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Người dùng không tồn tại")))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("User not found")))
                 .flatMap(user ->
                         userRoleRepository.findRolesByUserId(user.getUserId())
                                 .map(Role::getRoleName)
@@ -233,7 +233,7 @@ public class AuthService {
     }
 
     /**
-     * Đăng xuất người dùng: Thu hồi và đưa token JWT vào danh sách Blacklist
+     * Logout user: Revoke and place JWT token into Blacklist
      */
     public Mono<Void> logout(String bearerToken) {
         if (bearerToken != null && !bearerToken.trim().isEmpty()) {

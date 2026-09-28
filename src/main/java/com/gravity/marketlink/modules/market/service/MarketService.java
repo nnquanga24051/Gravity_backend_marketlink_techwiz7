@@ -39,7 +39,7 @@ public class MarketService {
     private final TransactionalOperator transactionalOperator;
 
     /**
-     * 1. Lấy danh sách tất cả các điểm chợ đang hoạt động (kèm tọa độ để vẽ Map Pin, hỗ trợ tìm kiếm từ khóa, lọc theo thành phố & ngày họp)
+     * 1. Retrieves all active markets (including coordinates for Map Pin, keyword search, city & schedule filtering)
      */
     public Flux<Market> getAllActiveMarkets(String search, String city, Integer dayOfWeek) {
         Flux<Market> marketFlux;
@@ -74,7 +74,7 @@ public class MarketService {
     }
 
     /**
-     * Lấy danh sách tất cả sạp nông dân trên toàn sàn hoặc theo chợ kèm tìm kiếm từ khóa
+     * Retrieves all farmer stalls across the platform or by market with keyword search
      */
     public Flux<FarmerAtMarketResponse> getAllStalls(String search, Long marketId) {
         Flux<FarmerAtMarketResponse> flux = (marketId != null)
@@ -96,11 +96,11 @@ public class MarketService {
     }
 
     /**
-     * 2. Lấy thông tin chi tiết một chợ (kèm lịch họp chợ định kỳ & số lượng sạp)
+     * 2. Retrieves detailed market information (including recurring schedule & stall count)
      */
     public Mono<MarketDetailResponse> getMarketDetail(Long marketId) {
         return marketRepository.findById(marketId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy chợ nông sản với ID: " + marketId)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Farmers market not found with ID: " + marketId)))
                 .flatMap(market ->
                         marketScheduleRepository.findByMarketId(marketId)
                                 .map(this::toScheduleDto)
@@ -127,39 +127,39 @@ public class MarketService {
     }
 
     /**
-     * 3. Khách hàng lọc chợ theo ngày họp chợ trong tuần (1: Thứ 2, ..., 7: Chủ nhật)
+     * 3. Customer filters markets by operating day of the week (1: Monday, ..., 7: Sunday)
      */
     public Flux<Market> getMarketsByDayOfWeek(Integer dayOfWeek) {
         if (dayOfWeek < 1 || dayOfWeek > 7) {
-            return Flux.error(new IllegalArgumentException("Ngày trong tuần phải từ 1 (Thứ 2) đến 7 (Chủ nhật)"));
+            return Flux.error(new IllegalArgumentException("Day of week must be between 1 (Monday) and 7 (Sunday)"));
         }
         return marketRepository.findActiveMarketsByDayOfWeek(dayOfWeek);
     }
 
     /**
-     * 4. Xem danh sách các sạp nông dân đang bán tại chợ cụ thể
+     * 4. View list of farmer stalls operating at a specific market
      */
     public Flux<FarmerAtMarketResponse> getFarmersAtMarket(Long marketId) {
         return assignmentRepository.findActiveFarmersByMarketId(marketId);
     }
 
     /**
-     * 5. Nông dân đăng ký tham gia bán hàng tại chợ
+     * 5. Farmer registers for market participation
      */
     public Mono<FarmerMarketAssignment> farmerRegisterMarket(String farmerEmail, FarmerRegisterMarketRequest request) {
         return userRepository.findByEmail(farmerEmail)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy thông tin nông dân: " + farmerEmail)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Farmer profile not found: " + farmerEmail)))
                 .flatMap(user -> marketRepository.findById(request.getMarketId())
-                        .switchIfEmpty(Mono.error(new IllegalArgumentException("Chợ nông sản không tồn tại: " + request.getMarketId())))
+                        .switchIfEmpty(Mono.error(new IllegalArgumentException("Farmers market does not exist: " + request.getMarketId())))
                         .flatMap(market -> {
                             if (!"ACTIVE".equalsIgnoreCase(market.getStatus())) {
-                                return Mono.error(new IllegalArgumentException("Chợ hiện tại đang tạm ngưng hoạt động"));
+                                return Mono.error(new IllegalArgumentException("Market is currently inactive"));
                             }
 
                             return assignmentRepository.findByFarmerIdAndMarketId(user.getUserId(), request.getMarketId())
                                     .flatMap(existing -> {
                                         if ("ACTIVE".equalsIgnoreCase(existing.getStatus()) || "REGISTERED".equalsIgnoreCase(existing.getStatus())) {
-                                            return Mono.<FarmerMarketAssignment>error(new IllegalArgumentException("Bạn đã đăng ký tham gia chợ này rồi (Trạng thái: " + existing.getStatus() + ")"));
+                                            return Mono.<FarmerMarketAssignment>error(new IllegalArgumentException("You have already registered for this market (Status: " + existing.getStatus() + ")"));
                                         }
                                         existing.setStatus("REGISTERED");
                                         existing.setStallNumber(request.getStallNumber());
@@ -169,7 +169,7 @@ public class MarketService {
                                             assignmentRepository.save(FarmerMarketAssignment.builder()
                                                     .farmerId(user.getUserId())
                                                     .marketId(request.getMarketId())
-                                                    .stallNumber(request.getStallNumber() != null ? request.getStallNumber() : "Chờ phân sạp")
+                                                    .stallNumber(request.getStallNumber() != null ? request.getStallNumber() : "Pending stall assignment")
                                                     .status("REGISTERED")
                                                     .createdAt(LocalDateTime.now())
                                                     .build())
@@ -179,11 +179,11 @@ public class MarketService {
     }
 
     /**
-     * 6. Nông dân xem danh sách các chợ mình đã đăng ký
+     * 6. Farmer views list of registered markets
      */
     public Flux<FarmerMarketAssignment> getMyMarketAssignments(String farmerEmail) {
         return userRepository.findByEmail(farmerEmail)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy nông dân")))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Farmer not found")))
                 .flatMapMany(user -> assignmentRepository.findByFarmerId(user.getUserId()))
                 .flatMap(assignment -> marketRepository.findById(assignment.getMarketId())
                         .map(market -> {
@@ -196,11 +196,11 @@ public class MarketService {
     }
 
     // ===================================================================
-    // CÁC CHỨC NĂNG DÀNH CHO QUẢN TRỊ VIÊN (ADMIN)
+    // ADMIN MANAGEMENT FUNCTIONS
     // ===================================================================
 
     /**
-     * Admin tạo mới điểm chợ kèm lịch họp chợ
+     * Admin creates new market location with recurring schedule
      */
     public Mono<MarketDetailResponse> createMarket(MarketRequest request) {
         LocalDateTime now = LocalDateTime.now();
@@ -238,11 +238,11 @@ public class MarketService {
     }
 
     /**
-     * Admin cập nhật thông tin chợ và lịch họp chợ
+     * Admin updates market details and schedule
      */
     public Mono<MarketDetailResponse> updateMarket(Long marketId, MarketRequest request) {
         return marketRepository.findById(marketId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy chợ nông sản với ID: " + marketId)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Farmers market not found with ID: " + marketId)))
                 .flatMap(market -> {
                     market.setName(request.getName());
                     market.setAddress(request.getAddress());
@@ -277,10 +277,10 @@ public class MarketService {
     }
 
     /**
-     * Admin đổi trạng thái chợ (Xóa mềm hoặc Tạm ngưng hoạt động)
+     * Admin changes market status (Soft delete or Deactivate)
      */
     /**
-     * Admin lấy danh sách tất cả chợ (kèm bộ lọc trạng thái và tìm kiếm)
+     * Admin retrieves all markets (with status filter and search)
      */
     public Flux<MarketDetailResponse> getAllMarketsForAdmin(String status, String search) {
         Flux<Market> marketFlux;
@@ -304,16 +304,16 @@ public class MarketService {
     }
 
     /**
-     * Admin đổi trạng thái hoạt động của chợ (ACTIVE / INACTIVE)
+     * Admin toggles active status of market (ACTIVE / INACTIVE)
      */
     public Mono<MarketDetailResponse> updateMarketStatus(Long marketId, String status) {
         String upper = status != null ? status.toUpperCase() : "ACTIVE";
         if (!upper.equals("ACTIVE") && !upper.equals("INACTIVE")) {
-            return Mono.error(new IllegalArgumentException("Trạng thái chợ chỉ chấp nhận ACTIVE hoặc INACTIVE"));
+            return Mono.error(new IllegalArgumentException("Market status only accepts ACTIVE or INACTIVE"));
         }
 
         return marketRepository.findById(marketId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy chợ nông sản với ID: " + marketId)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Farmers market not found with ID: " + marketId)))
                 .flatMap(market -> {
                     market.setStatus(upper);
                     market.setUpdatedAt(LocalDateTime.now());
@@ -323,36 +323,36 @@ public class MarketService {
     }
 
     /**
-     * Admin xóa mềm (tạm dừng hoạt động) chợ
+     * Admin soft-deletes (deactivates) a market
      */
     public Mono<Map<String, Object>> deleteMarket(Long marketId) {
         return marketRepository.findById(marketId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy chợ nông sản với ID: " + marketId)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Farmers market not found with ID: " + marketId)))
                 .flatMap(market -> {
                     market.setStatus("INACTIVE");
                     market.setUpdatedAt(LocalDateTime.now());
                     return marketRepository.save(market)
                             .thenReturn(Map.<String, Object>of(
                                     "status", "SUCCESS",
-                                    "message", "Đã tạm dừng hoạt động chợ nông sản: " + market.getName()
+                                    "message", "Paused farmers market operations: " + market.getName()
                             ));
                 });
     }
 
     /**
-     * Admin xóa vĩnh viễn chợ (Có kiểm tra bảo toàn toàn vẹn đơn hàng)
+     * Admin permanently deletes market (with order integrity checks)
      */
     public Mono<Map<String, Object>> deleteMarketPermanently(Long marketId) {
         return marketRepository.findById(marketId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy chợ nông sản với ID: " + marketId)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Farmers market not found with ID: " + marketId)))
                 .flatMap(market ->
                         orderRepository.countByMarketId(marketId)
                                 .defaultIfEmpty(0L)
                                 .flatMap(orderCount -> {
                                     if (orderCount > 0) {
                                         return Mono.error(new IllegalStateException(
-                                                "Không thể xóa vĩnh viễn chợ '" + market.getName() +
-                                                "' vì đã có " + orderCount + " đơn hàng liên kết. Hãy sử dụng tính năng 'Tạm Dừng' (Xóa mềm)."
+                                                "Cannot permanently delete market '" + market.getName() +
+                                                "' because there are " + orderCount + " associated orders. Please use the 'Pause' (soft delete) feature instead."
                                         ));
                                     }
 
@@ -361,7 +361,7 @@ public class MarketService {
                                             .then(marketRepository.deleteById(marketId))
                                             .thenReturn(Map.<String, Object>of(
                                                     "status", "SUCCESS",
-                                                    "message", "Đã xóa vĩnh viễn chợ nông sản '" + market.getName() + "' cùng toàn bộ lịch họp và phân sạp liên quan."
+                                                    "message", "Permanently deleted farmers market '" + market.getName() + "' along with all associated schedules and stall assignments."
                                             ));
                                 })
                 )
@@ -369,13 +369,13 @@ public class MarketService {
     }
 
     /**
-     * Admin phân sạp hoặc chỉ định gian hàng cho nông dân
+     * Admin assigns stall to farmer
      */
     public Mono<FarmerMarketAssignment> adminAssignStall(AdminAssignStallRequest request) {
         return userRepository.findById(request.getFarmerId())
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy tài khoản nông dân với ID: " + request.getFarmerId())))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Farmer account not found with ID: " + request.getFarmerId())))
                 .flatMap(farmer -> marketRepository.findById(request.getMarketId())
-                        .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy chợ nông sản với ID: " + request.getMarketId())))
+                        .switchIfEmpty(Mono.error(new IllegalArgumentException("Farmers market not found with ID: " + request.getMarketId())))
                         .flatMap(market -> {
                             String targetStatus = request.getStatus() != null && !request.getStatus().isBlank()
                                     ? request.getStatus().toUpperCase()
@@ -401,42 +401,42 @@ public class MarketService {
     }
 
     /**
-     * Admin xem tất cả các sạp nông dân tại chợ (mọi trạng thái)
+     * Admin views all farmer stalls at market (all statuses)
      */
     public Flux<FarmerAtMarketResponse> getMarketAssignmentsForAdmin(Long marketId) {
         return assignmentRepository.findAllFarmersByMarketId(marketId);
     }
 
     /**
-     * Admin hủy / xóa phân sạp
+     * Admin cancels / deletes stall assignment
      */
     public Mono<Map<String, Object>> deleteAssignment(Long assignmentId) {
         return assignmentRepository.findById(assignmentId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy phân bổ sạp ID: " + assignmentId)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Stall assignment not found with ID: " + assignmentId)))
                 .flatMap(assignment -> assignmentRepository.deleteById(assignmentId)
                         .thenReturn(Map.<String, Object>of(
                                 "status", "SUCCESS",
-                                "message", "Đã xóa phân bổ sạp số: " + assignment.getStallNumber()
+                                "message", "Deleted stall assignment number: " + assignment.getStallNumber()
                         )));
     }
 
     /**
-     * Admin duyệt hoặc thu hồi sạp chợ của nông dân (ACTIVE, REVOKED, REGISTERED)
+     * Admin approves or revokes farmer stall (ACTIVE, REVOKED, REGISTERED)
      */
     public Mono<Map<String, Object>> updateAssignmentStatus(Long assignmentId, String status) {
         String upperStatus = status.toUpperCase();
         if (!upperStatus.equals("ACTIVE") && !upperStatus.equals("REVOKED") && !upperStatus.equals("REGISTERED")) {
-            return Mono.error(new IllegalArgumentException("Trạng thái không hợp lệ: chỉ chấp nhận ACTIVE, REVOKED, hoặc REGISTERED"));
+            return Mono.error(new IllegalArgumentException("Invalid status: only ACTIVE, REVOKED, or REGISTERED are supported"));
         }
 
         return assignmentRepository.findById(assignmentId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy đơn đăng ký sạp: " + assignmentId)))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Stall registration not found: " + assignmentId)))
                 .flatMap(assignment -> {
                     assignment.setStatus(upperStatus);
                     return assignmentRepository.save(assignment)
                             .thenReturn(Map.<String, Object>of(
                                     "status", "SUCCESS",
-                                    "message", "Đã cập nhật trạng thái sạp thành: " + upperStatus
+                                    "message", "Updated stall status to: " + upperStatus
                             ));
                 });
     }

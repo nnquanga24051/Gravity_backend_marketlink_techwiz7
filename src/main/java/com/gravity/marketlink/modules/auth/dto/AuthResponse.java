@@ -14,19 +14,19 @@ import java.util.List;
 @AllArgsConstructor
 public class AuthResponse {
 
-    @Schema(description = "Access Token chính dùng trong Header: Authorization: Bearer <token>")
-    private String token; // Giữ để tương thích ngược với code cũ
+    @Schema(description = "Primary Access Token used in Header: Authorization: Bearer <token>")
+    private String token; // Retained for backward compatibility with legacy clients
 
-    @Schema(description = "Access Token (30 phút)")
+    @Schema(description = "Access Token (30 minutes)")
     private String accessToken;
 
-    @Schema(description = "Refresh Token (7 ngày) dùng để cấp mới Access Token qua /api/auth/refresh")
+    @Schema(description = "Refresh Token (7 days) used to issue new Access Token via /api/auth/refresh")
     private String refreshToken;
 
     @Builder.Default
     private String type = "Bearer";
 
-    @Schema(description = "Thời gian hết hạn của Access Token tính bằng mili giây (VD: 1800000 = 30 phút)")
+    @Schema(description = "Access Token expiration time in milliseconds (e.g. 1800000 = 30 mins)")
     private Long expiresIn;
 
     private Long userId;

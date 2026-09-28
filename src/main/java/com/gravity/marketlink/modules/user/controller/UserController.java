@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
-@Tag(name = "4. Quản lý Hồ sơ & Người dùng (User Profile)", description = "Các API xem thông tin cá nhân, cập nhật hồ sơ, đổi mật khẩu và đổi avatar")
+@Tag(name = "4. User Profile Management", description = "APIs for viewing personal info, updating profile, changing password, and updating avatar")
 @SecurityRequirement(name = "Bearer Authentication")
 @RestController
 @RequestMapping("/api/users/profile")
@@ -32,7 +32,7 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "Xem hồ sơ cá nhân", description = "Lấy toàn bộ thông tin tài khoản và thông tin chi tiết (Farmer/Customer) của người dùng đang đăng nhập.")
+    @Operation(summary = "View personal profile", description = "Retrieves all account and detail information (Farmer/Customer) of authenticated user.")
     @GetMapping
     public Mono<ResponseEntity<UserProfileResponse>> getMyProfile(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
@@ -42,7 +42,7 @@ public class UserController {
                 .map(ResponseEntity::ok);
     }
 
-    @Operation(summary = "Cập nhật thông tin hồ sơ", description = "Cập nhật họ tên, số điện thoại, địa chỉ nhận hàng (Customer) hoặc tên sạp/địa chỉ trang trại (Farmer).")
+    @Operation(summary = "Update profile information", description = "Updates name, phone, delivery address (Customer) or stall name/farm address (Farmer).")
     @PutMapping
     public Mono<ResponseEntity<UserProfileResponse>> updateProfile(
             Authentication authentication,
@@ -54,7 +54,7 @@ public class UserController {
                 .map(ResponseEntity::ok);
     }
 
-    @Operation(summary = "Cập nhật ảnh đại diện (Avatar)", description = "Cập nhật link avatarUrl cho tài khoản người dùng.")
+    @Operation(summary = "Update user avatar", description = "Update avatarUrl for user account.")
     @PatchMapping("/avatar")
     public Mono<ResponseEntity<Map<String, Object>>> updateAvatar(
             Authentication authentication,
@@ -66,7 +66,7 @@ public class UserController {
                 .map(ResponseEntity::ok);
     }
 
-    @Operation(summary = "Đổi mật khẩu", description = "Xác thực mật khẩu hiện tại và cập nhật mật khẩu mới.")
+    @Operation(summary = "Change password", description = "Authenticate current password and update new password.")
     @PutMapping("/change-password")
     public Mono<ResponseEntity<Map<String, Object>>> changePassword(
             Authentication authentication,

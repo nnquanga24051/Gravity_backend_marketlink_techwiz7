@@ -27,7 +27,7 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDate;
 import java.util.List;
 
-@Tag(name = "5. Đơn đặt trước nông sản (Orders)", description = "Các API tạo đơn đặt trước, thanh toán tại sạp, theo dõi và cập nhật trạng thái đơn hàng")
+@Tag(name = "5. Produce Pre-orders (Orders)", description = "APIs for creating pre-orders, pay-at-pickup, tracking, and updating order lifecycle")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -37,10 +37,10 @@ public class OrderController {
     private final UserRepository userRepository;
 
     // ==========================================
-    // 1. CUSTOMER ENDPOINTS (Dành cho Khách hàng)
+    // 1. CUSTOMER ENDPOINTS
     // ==========================================
 
-    @Operation(summary = "Khách hàng tạo đơn đặt trước (Pre-reservation)", description = "Đặt nông sản tươi trước khi phiên chợ họp. Tự động kiểm tra tồn kho, giới hạn ca nhận hàng, tính hạn chốt đơn và gửi thông báo cho nông dân.")
+    @Operation(summary = "Customer creates pre-order", description = "Pre-order fresh produce before market session. Checks inventory, validates pickup quota, calculates cutoff, and notifies farmer.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/customer/orders")
     public Mono<ResponseEntity<ApiResponse<OrderDetailResponse>>> createOrder(
@@ -51,13 +51,13 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer account information not found.")))
                 .flatMap(user -> orderService.createOrder(user.getUserId(), request))
                 .map(created -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success("Đặt hàng thành công. Hẹn gặp bạn tại phiên chợ!", created)));
+                        .body(ApiResponse.success("Order placed successfully. See you at the market session!", created)));
     }
 
-    @Operation(summary = "Khách hàng xem lịch sử đơn đặt trước của mình", description = "Lấy danh sách các đơn hàng đã đặt của người dùng đang đăng nhập, hỗ trợ tìm kiếm từ khóa và lọc trạng thái.")
+    @Operation(summary = "Customer views personal pre-order history", description = "Retrieves order history for logged-in user with keyword search and status filters.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/customer/orders")
     public Mono<ResponseEntity<ApiResponse<List<OrderDetailResponse>>>> getMyOrders(
@@ -69,12 +69,12 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer account information not found.")))
                 .flatMap(user -> orderService.getCustomerOrders(user.getUserId(), keyword, status).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy lịch sử đơn hàng thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved order history successfully.", list)));
     }
 
-    @Operation(summary = "Khách hàng xem chi tiết một đơn hàng", description = "Xem đầy đủ danh sách sản phẩm, địa chỉ sạp chợ, thời gian nhận và hạn chốt đơn.")
+    @Operation(summary = "Customer views order details", description = "View item list, stall address, scheduled pickup time, and cutoff deadline.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/customer/orders/{id:[0-9]+}")
     public Mono<ResponseEntity<ApiResponse<OrderDetailResponse>>> getCustomerOrderById(
@@ -85,12 +85,12 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer account information not found.")))
                 .flatMap(user -> orderService.getOrderById(id, user.getUserId(), false))
-                .map(order -> ResponseEntity.ok(ApiResponse.success("Lấy thông tin đơn hàng thành công.", order)));
+                .map(order -> ResponseEntity.ok(ApiResponse.success("Retrieved order details successfully.", order)));
     }
 
-    @Operation(summary = "Khách hàng hủy đơn hàng trước hạn chốt đơn (Cutoff Time)", description = "Chỉ cho phép hủy khi chưa qua thời hạn chốt đơn của nông dân. Tự động hoàn tồn kho cho sản phẩm.")
+    @Operation(summary = "Customer cancels order before cutoff time", description = "Only allowed before farmer cutoff deadline. Restores product inventory automatically.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PutMapping("/customer/orders/{id}/cancel")
     public Mono<ResponseEntity<ApiResponse<OrderDetailResponse>>> cancelOrder(
@@ -101,12 +101,12 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer account information not found.")))
                 .flatMap(user -> orderService.cancelOrderByCustomer(user.getUserId(), id))
-                .map(cancelled -> ResponseEntity.ok(ApiResponse.success("Hủy đơn hàng thành công. Tồn kho sản phẩm đã được hoàn lại.", cancelled)));
+                .map(cancelled -> ResponseEntity.ok(ApiResponse.success("Order cancelled successfully. Product stock has been restored.", cancelled)));
     }
 
-    @Operation(summary = "Khách hàng điều chỉnh đơn hàng trước giờ chốt đơn (Modify Order)", description = "Thay đổi ca nhận hàng, ngày lấy hàng hoặc ghi chú trước thời hạn chốt đơn của nông dân.")
+    @Operation(summary = "Customer modifies order before cutoff deadline", description = "Change pickup slot, pickup date, or order notes before farmer cutoff deadline.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PutMapping("/customer/orders/{id}/modify")
     public Mono<ResponseEntity<ApiResponse<OrderDetailResponse>>> modifyOrder(
@@ -118,12 +118,12 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer account information not found.")))
                 .flatMap(user -> orderService.modifyOrderByCustomer(user.getUserId(), id, request))
-                .map(modified -> ResponseEntity.ok(ApiResponse.success("Cập nhật đơn hàng thành công.", modified)));
+                .map(modified -> ResponseEntity.ok(ApiResponse.success("Order updated successfully.", modified)));
     }
 
-    @Operation(summary = "Khách hàng tái đặt hàng nhanh chóng từ lịch sử (Reorder)", description = "Lấy lại danh sách mặt hàng từ đơn cũ để tạo đơn đặt mới với ngày họp chợ và ca nhận hàng tùy chọn.")
+    @Operation(summary = "Customer re-orders from past order", description = "Recreates previous item list into a new pre-order with selected market date and pickup slot.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/customer/orders/{id}/reorder")
     public Mono<ResponseEntity<ApiResponse<OrderDetailResponse>>> reorder(
@@ -135,17 +135,17 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản khách hàng.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Customer account information not found.")))
                 .flatMap(user -> orderService.reorder(user.getUserId(), id, request))
                 .map(created -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success("Tái đặt hàng thành công. Hẹn gặp bạn tại phiên chợ!", created)));
+                        .body(ApiResponse.success("Re-order placed successfully. See you at the market session!", created)));
     }
 
     // ==========================================
-    // 2. FARMER ENDPOINTS (Dành cho Nông dân)
+    // 2. FARMER ENDPOINTS
     // ==========================================
 
-    @Operation(summary = "Nông dân xem danh sách đơn hàng của gian hàng", description = "Lọc theo ngày họp chợ (pickupDate), từ khóa tìm kiếm (keyword) hoặc trạng thái đơn hàng (status).")
+    @Operation(summary = "Farmer views stall orders", description = "Filter by market date (pickupDate), keyword search, or order status.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/farmer/orders")
     public Mono<ResponseEntity<ApiResponse<List<OrderDetailResponse>>>> getFarmerOrders(
@@ -158,12 +158,12 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> orderService.getFarmerOrders(user.getUserId(), pickupDate, status, keyword).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách đơn hàng của nông dân thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved farmer order list successfully.", list)));
     }
 
-    @Operation(summary = "Nông dân xem chi tiết đơn hàng", description = "Xem chi tiết người mua, mặt hàng cần chuẩn bị, ghi chú đơn hàng.")
+    @Operation(summary = "Farmer views order details", description = "View customer details, items to prepare, and order notes.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/farmer/orders/{id:[0-9]+}")
     public Mono<ResponseEntity<ApiResponse<OrderDetailResponse>>> getFarmerOrderById(
@@ -174,12 +174,12 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> orderService.getOrderById(id, user.getUserId(), true))
-                .map(order -> ResponseEntity.ok(ApiResponse.success("Lấy chi tiết đơn hàng thành công.", order)));
+                .map(order -> ResponseEntity.ok(ApiResponse.success("Retrieved order details successfully.", order)));
     }
 
-    @Operation(summary = "Nông dân cập nhật trạng thái đơn hàng", description = "Chuyển trạng thái: ACCEPTED (Đã tiếp nhận), READY_FOR_PICKUP (Đã sẵn sàng tại sạp), COMPLETED (Khách đã nhận & trả tiền), DECLINED (Từ chối).")
+    @Operation(summary = "Farmer updates order status", description = "Change status: ACCEPTED, READY_FOR_PICKUP, COMPLETED, or DECLINED.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PutMapping("/farmer/orders/{id}/status")
     public Mono<ResponseEntity<ApiResponse<OrderDetailResponse>>> updateOrderStatus(
@@ -191,12 +191,12 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> orderService.updateOrderStatusByFarmer(user.getUserId(), id, request))
-                .map(updated -> ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái đơn hàng thành công.", updated)));
+                .map(updated -> ResponseEntity.ok(ApiResponse.success("Updated order status successfully.", updated)));
     }
 
-    @Operation(summary = "Nông dân xem tổng quan thống kê đơn hàng", description = "Tổng số đơn hàng, doanh thu thực tế từ đơn hoàn thành, số lượng đơn theo từng trạng thái.")
+    @Operation(summary = "Farmer views order summary statistics", description = "Total orders, actual revenue from completed orders, and order counts by status.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/farmer/orders/summary")
     public Mono<ResponseEntity<ApiResponse<OrderSummaryResponse>>> getFarmerSummary(Authentication authentication) {
@@ -205,12 +205,12 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> orderService.getFarmerSummary(user.getUserId()))
-                .map(summary -> ResponseEntity.ok(ApiResponse.success("Lấy thống kê đơn hàng thành công.", summary)));
+                .map(summary -> ResponseEntity.ok(ApiResponse.success("Retrieved order statistics successfully.", summary)));
     }
 
-    @Operation(summary = "Nông dân xem sản phẩm bán chạy nhất (Farmer Insights: Best-Selling)", description = "Thống kê top sản phẩm bán chạy nhất từ các đơn hàng đã hoàn tất tại các phiên chợ.")
+    @Operation(summary = "Farmer views best-selling produce insights", description = "Aggregates top-selling products from completed pre-orders at market sessions.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/farmer/orders/insights/best-selling")
     public Mono<ResponseEntity<ApiResponse<List<BestSellingProductDto>>>> getBestSellingProducts(
@@ -221,16 +221,16 @@ public class OrderController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> orderService.getFarmerBestSelling(user.getUserId(), limit).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách sản phẩm bán chạy nhất thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved best-selling products successfully.", list)));
     }
 
     // ==========================================
-    // 3. ADMIN ENDPOINTS (Dành cho Quản trị viên)
+    // 3. ADMIN ENDPOINTS
     // ==========================================
 
-    @Operation(summary = "Quản trị viên xem tất cả các đơn hàng", description = "Yêu cầu quyền ROLE_ADMIN. Hỗ trợ tìm kiếm từ khóa, lọc theo trạng thái, chợ hoặc ngày nhận hàng.")
+    @Operation(summary = "Administrator views all orders", description = "Requires ROLE_ADMIN authority. Supports keyword search, status, market, and date filters.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/orders")
@@ -241,6 +241,6 @@ public class OrderController {
             @RequestParam(value = "pickupDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate pickupDate) {
         return orderService.getAllOrdersForAdmin(keyword, status, marketId, pickupDate)
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy toàn bộ đơn hàng hệ thống thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved all system orders successfully.", list)));
     }
 }

@@ -34,7 +34,7 @@ public class VerificationService {
         String type = request.getType().trim().toUpperCase();
 
         return findUserByEmailOrPhone(destination)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy người dùng với thông tin: " + destination)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("User not found with information: " + destination)))
                 .flatMap(user -> {
                     // Generate 6-digit OTP
                     int randomNum = 100000 + secureRandom.nextInt(900000);
@@ -52,16 +52,16 @@ public class VerificationService {
                             .build();
 
                     return userVerificationRepository.save(verification)
-                            .doOnSuccess(saved -> log.info("Đã tạo mã OTP [{}] loại [{}] cho người dùng ID [{}]", otpCode, type, user.getUserId()))
+                            .doOnSuccess(saved -> log.info("Generated OTP [{}] type [{}] for user ID [{}]", otpCode, type, user.getUserId()))
                             .flatMap(saved -> emailService.sendOtpEmail(user.getEmail(), user.getFullName(), otpCode, type)
                                     .thenReturn(saved)
                                     .onErrorResume(err -> {
-                                        log.error("Lỗi khi gửi email OTP đến {}: {}", user.getEmail(), err.getMessage());
-                                        return Mono.error(new RuntimeException("Không thể gửi email OTP đến " + user.getEmail() + ". Chi tiết: " + err.getMessage()));
+                                        log.error("Error sending OTP email to {}: {}", user.getEmail(), err.getMessage());
+                                        return Mono.error(new RuntimeException("Unable to send OTP email to " + user.getEmail() + ". Details: " + err.getMessage()));
                                     }))
                             .map(saved -> OtpResponse.builder()
                                     .success(true)
-                                    .message("Mã xác minh OTP đã được gửi đến email " + maskEmail(user.getEmail()) + ". Vui lòng kiểm tra hộp thư đến (Inbox) hoặc mục Spam.")
+                                    .message("Verification OTP code has been sent to email " + maskEmail(user.getEmail()) + ". Please check your Inbox or Spam folder.")
                                     .devCode(null)
                                     .build());
                 });
@@ -81,22 +81,22 @@ public class VerificationService {
         String code = request.getCode().trim();
 
         return findUserByEmailOrPhone(destination)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy người dùng với thông tin: " + destination)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("User not found with information: " + destination)))
                 .flatMap(user -> userVerificationRepository.findTopByUserIdAndVerificationTypeAndIsUsedFalseOrderByCreatedAtDesc(user.getUserId(), type)
-                        .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy yêu cầu xác minh hợp lệ hoặc mã đã được sử dụng.")))
+                        .switchIfEmpty(Mono.error(new IllegalArgumentException("No valid verification request found or code already used.")))
                         .flatMap(verification -> {
                             if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
-                                return Mono.error(new IllegalArgumentException("Mã xác minh OTP đã hết hạn. Vui lòng yêu cầu mã mới."));
+                                return Mono.error(new IllegalArgumentException("OTP verification code has expired. Please request a new one."));
                             }
 
                             if (verification.getAttemptsCount() >= 5) {
-                                return Mono.error(new IllegalArgumentException("Bạn đã nhập sai mã xác minh quá 5 lần. Vui lòng yêu cầu mã mới."));
+                                return Mono.error(new IllegalArgumentException("You entered the wrong code more than 5 times. Please request a new code."));
                             }
 
                             if (!verification.getVerificationCode().equals(code)) {
                                 verification.setAttemptsCount(verification.getAttemptsCount() + 1);
                                 return userVerificationRepository.save(verification)
-                                        .then(Mono.error(new IllegalArgumentException("Mã xác minh không chính xác. Số lần còn lại: " + (5 - verification.getAttemptsCount()))));
+                                        .then(Mono.error(new IllegalArgumentException("Incorrect verification code. Attempts remaining: " + (5 - verification.getAttemptsCount()))));
                             }
 
                             // Match found
@@ -105,7 +105,7 @@ public class VerificationService {
                                     .then(applyVerificationSuccess(user.getUserId(), type))
                                     .thenReturn(OtpResponse.builder()
                                             .success(true)
-                                            .message("Xác minh mã OTP thành công cho loại: " + type)
+                                            .message("OTP code verified successfully for type: " + type)
                                             .devCode(null)
                                             .build());
                         }));
@@ -117,20 +117,20 @@ public class VerificationService {
         String newPassword = request.getNewPassword().trim();
 
         return findUserByEmailOrPhone(destination)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy người dùng với thông tin: " + destination)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("User not found with information: " + destination)))
                 .flatMap(user -> userVerificationRepository.findTopByUserIdAndVerificationTypeAndIsUsedFalseOrderByCreatedAtDesc(user.getUserId(), "PASSWORD_RESET")
-                        .switchIfEmpty(Mono.error(new IllegalArgumentException("Không tìm thấy yêu cầu đặt lại mật khẩu hợp lệ hoặc mã OTP đã hết hiệu lực.")))
+                        .switchIfEmpty(Mono.error(new IllegalArgumentException("No valid password reset request found or code has expired.")))
                         .flatMap(verification -> {
                             if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
-                                return Mono.error(new IllegalArgumentException("Mã OTP đặt lại mật khẩu đã hết hạn."));
+                                return Mono.error(new IllegalArgumentException("Password reset OTP code has expired."));
                             }
                             if (verification.getAttemptsCount() >= 5) {
-                                return Mono.error(new IllegalArgumentException("Đã nhập sai mã quá 5 lần."));
+                                return Mono.error(new IllegalArgumentException("Incorrect code entered more than 5 times."));
                             }
                             if (!verification.getVerificationCode().equals(code)) {
                                 verification.setAttemptsCount(verification.getAttemptsCount() + 1);
                                 return userVerificationRepository.save(verification)
-                                        .then(Mono.error(new IllegalArgumentException("Mã OTP không chính xác.")));
+                                        .then(Mono.error(new IllegalArgumentException("Incorrect OTP code.")));
                             }
 
                             verification.setIsUsed(true);
@@ -140,7 +140,7 @@ public class VerificationService {
                                     .then(userRepository.updatePassword(user.getUserId(), encodedPass, LocalDateTime.now()))
                                     .thenReturn(OtpResponse.builder()
                                             .success(true)
-                                            .message("Đặt lại mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới.")
+                                            .message("Password reset successfully. You can now log in with your new password.")
                                             .devCode(null)
                                             .build());
                         }));

@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@Tag(name = "6. Tin tức & Thông báo hệ thống (System Announcements)", description = "Các API bảng tin, thông báo vận hành chợ và chính sách của Ban quản trị")
+@Tag(name = "6. System Announcements & News", description = "APIs for platform news, market operational notices, and administrative policies")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -29,7 +29,7 @@ public class AnnouncementController {
     private final AnnouncementService announcementService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Xem danh sách tin tức hệ thống đang hoạt động", description = "Public endpoint. Dành cho người dùng và khách xem bảng tin, hỗ trợ tìm kiếm theo từ khóa, phân loại và đối tượng nhận.")
+    @Operation(summary = "View active system announcements", description = "Public endpoint. Accessible by all users, supports keyword search, type, and target role filters.")
     @GetMapping("/announcements")
     public Mono<ResponseEntity<ApiResponse<List<AnnouncementResponse>>>> getActiveAnnouncements(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -37,17 +37,17 @@ public class AnnouncementController {
             @RequestParam(value = "targetRole", required = false) String targetRole) {
         return announcementService.getActiveAnnouncements(keyword, type, targetRole)
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy danh sách tin tức hệ thống thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved system announcements successfully.", list)));
     }
 
-    @Operation(summary = "Xem chi tiết một bản tin thông báo", description = "Public endpoint. Xem nội dung chi tiết bài viết.")
+    @Operation(summary = "View detailed announcement article", description = "Public endpoint. View detailed article content.")
     @GetMapping("/announcements/{id}")
     public Mono<ResponseEntity<ApiResponse<AnnouncementResponse>>> getAnnouncementById(@PathVariable("id") Long id) {
         return announcementService.getAnnouncementById(id)
-                .map(res -> ResponseEntity.ok(ApiResponse.success("Lấy chi tiết tin tức thành công.", res)));
+                .map(res -> ResponseEntity.ok(ApiResponse.success("Retrieved announcement details successfully.", res)));
     }
 
-    @Operation(summary = "Quản trị viên xem tất cả các tin tức", description = "Bao gồm cả tin tức đang bật và tắt. Hỗ trợ tìm kiếm từ khóa, loại, đối tượng và trạng thái. Yêu cầu ROLE_ADMIN.")
+    @Operation(summary = "Administrator views all announcements", description = "Includes both active and inactive notices. Supports search, type, role, and status filters. Requires ROLE_ADMIN.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/announcements")
@@ -58,10 +58,10 @@ public class AnnouncementController {
             @RequestParam(value = "isActive", required = false) Boolean isActive) {
         return announcementService.getAllAnnouncements(keyword, type, targetRole, isActive)
                 .collectList()
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy tất cả tin tức hệ thống thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved all announcements successfully.", list)));
     }
 
-    @Operation(summary = "Quản trị viên đăng tin tức mới", description = "Yêu cầu ROLE_ADMIN.")
+    @Operation(summary = "Administrator creates new announcement", description = "Requires ROLE_ADMIN authority.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/admin/announcements")
@@ -73,13 +73,13 @@ public class AnnouncementController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin quản trị viên.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Administrator account information not found.")))
                 .flatMap(user -> announcementService.createAnnouncement(user.getUserId(), request))
                 .map(created -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success("Đăng tin tức hệ thống thành công.", created)));
+                        .body(ApiResponse.success("Created system announcement successfully.", created)));
     }
 
-    @Operation(summary = "Quản trị viên cập nhật tin tức", description = "Yêu cầu ROLE_ADMIN.")
+    @Operation(summary = "Administrator updates announcement", description = "Requires ROLE_ADMIN authority.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/admin/announcements/{id}")
@@ -87,10 +87,10 @@ public class AnnouncementController {
             @PathVariable("id") Long id,
             @Valid @RequestBody AnnouncementRequest request) {
         return announcementService.updateAnnouncement(id, request)
-                .map(updated -> ResponseEntity.ok(ApiResponse.success("Cập nhật tin tức hệ thống thành công.", updated)));
+                .map(updated -> ResponseEntity.ok(ApiResponse.success("Updated system announcement successfully.", updated)));
     }
 
-    @Operation(summary = "Quản trị viên bật/tắt hiển thị tin tức nhanh", description = "Yêu cầu ROLE_ADMIN.")
+    @Operation(summary = "Administrator toggles announcement visibility", description = "Requires ROLE_ADMIN authority.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/admin/announcements/{id}/toggle-status")
@@ -98,15 +98,15 @@ public class AnnouncementController {
             @PathVariable("id") Long id,
             @RequestParam(value = "isActive", required = false) Boolean isActive) {
         return announcementService.toggleAnnouncementStatus(id, isActive)
-                .map(updated -> ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái hiển thị bản tin thành công.", updated)));
+                .map(updated -> ResponseEntity.ok(ApiResponse.success("Updated announcement visibility status successfully.", updated)));
     }
 
-    @Operation(summary = "Quản trị viên xóa tin tức", description = "Yêu cầu ROLE_ADMIN.")
+    @Operation(summary = "Administrator deletes announcement", description = "Requires ROLE_ADMIN authority.")
     @SecurityRequirement(name = "Bearer Authentication")
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/admin/announcements/{id}")
     public Mono<ResponseEntity<ApiResponse<Void>>> deleteAnnouncement(@PathVariable("id") Long id) {
         return announcementService.deleteAnnouncement(id)
-                .thenReturn(ResponseEntity.ok(ApiResponse.success("Xóa tin tức hệ thống thành công.", null)));
+                .thenReturn(ResponseEntity.ok(ApiResponse.success("Deleted system announcement successfully.", null)));
     }
 }

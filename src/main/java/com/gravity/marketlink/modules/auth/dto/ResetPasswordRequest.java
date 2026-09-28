@@ -12,19 +12,19 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Yêu cầu đặt lại mật khẩu bằng mã OTP")
+@Schema(description = "Password reset request using OTP")
 public class ResetPasswordRequest {
 
-    @NotBlank(message = "Email hoặc số điện thoại không được để trống")
-    @Schema(description = "Email hoặc số điện thoại của tài khoản", example = "farmer1@marketlink.com")
+    @NotBlank(message = "Email or phone cannot be blank")
+    @Schema(description = "Account email or phone number", example = "farmer1@marketlink.com")
     private String emailOrPhone;
 
-    @NotBlank(message = "Mã xác minh không được để trống")
-    @Schema(description = "Mã xác minh OTP nhận được", example = "123456")
+    @NotBlank(message = "Verification code cannot be blank")
+    @Schema(description = "Received OTP verification code", example = "123456")
     private String code;
 
-    @NotBlank(message = "Mật khẩu mới không được để trống")
-    @Size(min = 6, message = "Mật khẩu mới phải có tối thiểu 6 ký tự")
-    @Schema(description = "Mật khẩu mới", example = "NewPass@123456")
+    @NotBlank(message = "New password cannot be blank")
+    @Size(min = 6, message = "New password must be at least 6 characters")
+    @Schema(description = "New password", example = "NewPass@123456")
     private String newPassword;
 }

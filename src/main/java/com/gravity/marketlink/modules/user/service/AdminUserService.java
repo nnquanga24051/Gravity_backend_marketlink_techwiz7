@@ -99,7 +99,7 @@ public class AdminUserService {
 
     public Mono<AdminUserDetailResponse> getUserDetail(Long userId) {
         Mono<User> userMono = userRepository.findById(userId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + userId)));
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("User not found with ID: " + userId)));
 
         Mono<List<String>> rolesMono = userRoleRepository.findRolesByUserId(userId)
                 .map(Role::getRoleName)
@@ -126,7 +126,7 @@ public class AdminUserService {
                                 .logId(logItem.getLogId())
                                 .targetUserId(logItem.getTargetUserId())
                                 .adminId(logItem.getAdminId())
-                                .adminName("Quản trị viên #" + logItem.getAdminId())
+                                .adminName("Administrator #" + logItem.getAdminId())
                                 .action(logItem.getAction())
                                 .reason(logItem.getReason())
                                 .reviewedAt(logItem.getReviewedAt())
@@ -175,11 +175,11 @@ public class AdminUserService {
     public Mono<AdminUserDetailResponse> updateUserStatus(Long adminId, Long userId, AdminUpdateUserStatusRequest request) {
         String newStatus = request.getStatus().trim().toUpperCase();
         if (!"ACTIVE".equals(newStatus) && !"SUSPENDED".equals(newStatus) && !"PENDING".equals(newStatus)) {
-            return Mono.error(new IllegalArgumentException("Trạng thái không hợp lệ: " + newStatus + ". Chọn ACTIVE, SUSPENDED hoặc PENDING."));
+            return Mono.error(new IllegalArgumentException("Invalid status: " + newStatus + ". Choose ACTIVE, SUSPENDED, or PENDING."));
         }
 
         return userRepository.findById(userId)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + userId)))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("User not found with ID: " + userId)))
                 .flatMap(user -> {
                     Mono<Integer> updateStatusMono = userRepository.updateStatus(userId, newStatus, LocalDateTime.now());
 
@@ -189,7 +189,7 @@ public class AdminUserService {
                                 .targetUserId(userId)
                                 .adminId(adminId)
                                 .action("SUSPENDED".equals(newStatus) ? "SUSPEND" : "APPROVE")
-                                .reason(request.getReason() != null ? request.getReason().trim() : "Quản trị viên cập nhật trạng thái sang " + newStatus)
+                                .reason(request.getReason() != null ? request.getReason().trim() : "Administrator updated status to " + newStatus)
                                 .reviewedAt(LocalDateTime.now())
                                 .build();
                         logMono = verificationAuditLogRepository.save(auditLog);
@@ -200,24 +200,24 @@ public class AdminUserService {
     }
 
     /**
-     * Admin tạo mới người dùng (CUSTOMER, FARMER hoặc ADMIN)
+     * Admin creates a new user account (CUSTOMER, FARMER, or ADMIN)
      */
     public Mono<AdminUserDetailResponse> createUser(Long adminId, AdminCreateUserRequest request) {
         String rawRole = request.getRole() != null ? request.getRole().trim().toUpperCase().replace("ROLE_", "") : "CUSTOMER";
         if (!rawRole.equals("ADMIN") && !rawRole.equals("FARMER") && !rawRole.equals("CUSTOMER")) {
-            return Mono.error(new IllegalArgumentException("Vai trò không hợp lệ: chỉ chấp nhận ADMIN, FARMER hoặc CUSTOMER"));
+            return Mono.error(new IllegalArgumentException("Invalid role: only ADMIN, FARMER, or CUSTOMER accepted"));
         }
         final String roleName = rawRole;
 
         return userRepository.existsByEmail(request.getEmail().trim().toLowerCase())
                 .flatMap(exists -> {
                     if (exists) {
-                        return Mono.error(new IllegalArgumentException("Email đã được đăng ký trên hệ thống: " + request.getEmail()));
+                        return Mono.error(new IllegalArgumentException("Email already registered in system: " + request.getEmail()));
                     }
 
                     return roleRepository.findByRoleName(roleName)
                             .switchIfEmpty(roleRepository.findByRoleName("ROLE_" + roleName))
-                            .switchIfEmpty(Mono.error(new IllegalArgumentException("Vai trò không tồn tại trong hệ thống: " + roleName)))
+                            .switchIfEmpty(Mono.error(new IllegalArgumentException("Role does not exist in system: " + roleName)))
                             .flatMap(role -> {
                                 String userStatus = (request.getStatus() != null && !request.getStatus().isBlank())
                                         ? request.getStatus().trim().toUpperCase()
@@ -258,10 +258,10 @@ public class AdminUserService {
                     .farmerId(userId)
                     .stallName(request.getFarmName() != null && !request.getFarmName().isBlank()
                             ? request.getFarmName().trim()
-                            : "Nông Trại " + request.getFullName().trim())
+                            : "Farm " + request.getFullName().trim())
                     .farmAddress(request.getFarmAddress() != null && !request.getFarmAddress().isBlank()
                             ? request.getFarmAddress().trim()
-                            : (request.getAddress() != null ? request.getAddress().trim() : "Chưa cập nhật"))
+                            : (request.getAddress() != null ? request.getAddress().trim() : "Not updated"))
                     .isApproved("VERIFIED".equalsIgnoreCase(kycStatus))
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
@@ -272,7 +272,7 @@ public class AdminUserService {
                     .customerId(userId)
                     .defaultAddress(request.getAddress() != null && !request.getAddress().isBlank()
                             ? request.getAddress().trim()
-                            : "Chưa cập nhật")
+                            : "Not updated")
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();
@@ -286,7 +286,7 @@ public class AdminUserService {
                     .targetUserId(targetUserId)
                     .adminId(adminId)
                     .action("APPROVE")
-                    .reason("Quản trị viên trực tiếp tạo tài khoản Nông dân và cấp quyền bán")
+                    .reason("Administrator directly created Farmer account and granted selling authority")
                     .reviewedAt(LocalDateTime.now())
                     .build();
             return verificationAuditLogRepository.save(logEntry).then();

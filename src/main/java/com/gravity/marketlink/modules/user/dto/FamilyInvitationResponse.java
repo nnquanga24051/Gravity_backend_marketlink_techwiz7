@@ -12,30 +12,30 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Thông tin lời mời tham gia nhóm gia đình")
+@Schema(description = "Family group invitation information")
 public class FamilyInvitationResponse {
 
-    @Schema(description = "ID lời mời", example = "1")
+    @Schema(description = "Invitation ID", example = "1")
     private Long invitationId;
 
-    @Schema(description = "ID người mời (Customer Head)", example = "3")
+    @Schema(description = "Inviter ID (Customer Head)", example = "3")
     private Long inviterId;
 
-    @Schema(description = "Họ tên người mời", example = "Nguyễn Văn Chồng")
+    @Schema(description = "Inviter full name", example = "Robert Head")
     private String inviterName;
 
-    @Schema(description = "Email người được mời", example = "family_member@marketlink.com")
+    @Schema(description = "Invited member email", example = "family_member@marketlink.com")
     private String inviteeEmail;
 
-    @Schema(description = "Mã token lời mời", example = "550e8400-e29b-41d4-a716-446655440000")
+    @Schema(description = "Invitation token code", example = "550e8400-e29b-41d4-a716-446655440000")
     private String invitationToken;
 
-    @Schema(description = "Trạng thái lời mời: PENDING, ACCEPTED, REJECTED, EXPIRED", example = "PENDING")
+    @Schema(description = "Invitation status: PENDING, ACCEPTED, REJECTED, EXPIRED", example = "PENDING")
     private String status;
 
-    @Schema(description = "Thời gian hết hạn của lời mời")
+    @Schema(description = "Invitation expiration time")
     private LocalDateTime expiresAt;
 
-    @Schema(description = "Thời gian tạo lời mời")
+    @Schema(description = "Invitation creation timestamp")
     private LocalDateTime createdAt;
 }

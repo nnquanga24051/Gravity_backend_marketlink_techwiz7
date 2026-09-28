@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@Tag(name = "4. Khung giờ chốt đơn (Farmer Cutoff Settings)", description = "Các API thiết lập hạn chốt đơn trước khi mở chợ cho Nông dân")
+@Tag(name = "4. Farmer Cutoff Settings", description = "APIs for setting pre-order cutoff hours before market opening for Farmers")
 @RestController
 @RequestMapping("/api/farmer/cutoff-settings")
 @RequiredArgsConstructor
@@ -28,7 +28,7 @@ public class CutoffController {
     private final CutoffSettingService cutoffSettingService;
     private final UserRepository userRepository;
 
-    @Operation(summary = "Xem danh sách cấu hình chốt đơn của nông dân", description = "Lấy toàn bộ cấu hình chốt đơn theo từng chợ và thứ trong tuần.")
+    @Operation(summary = "View farmer cutoff configurations", description = "Retrieves all cutoff configurations by market and day of week.")
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping
     public Mono<ResponseEntity<ApiResponse<List<FarmerCutoffSettingResponse>>>> getSettings(Authentication authentication) {
@@ -37,12 +37,12 @@ public class CutoffController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> cutoffSettingService.getSettings(user.getUserId()).collectList())
-                .map(list -> ResponseEntity.ok(ApiResponse.success("Lấy cấu hình chốt đơn thành công.", list)));
+                .map(list -> ResponseEntity.ok(ApiResponse.success("Retrieved cutoff configurations successfully.", list)));
     }
 
-    @Operation(summary = "Thêm mới hoặc cập nhật thời hạn chốt đơn", description = "Cấu hình số giờ chốt đơn trước khi phiên chợ mở (VD: 12 tiếng).")
+    @Operation(summary = "Create or update cutoff hours", description = "Configures pre-order cutoff hours before market opens (e.g. 12 hours).")
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping
     public Mono<ResponseEntity<ApiResponse<FarmerCutoffSettingResponse>>> saveSetting(
@@ -53,13 +53,13 @@ public class CutoffController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> cutoffSettingService.saveSetting(user.getUserId(), request))
                 .map(res -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(ApiResponse.success("Lưu cấu hình hạn chốt đơn thành công.", res)));
+                        .body(ApiResponse.success("Saved cutoff configuration successfully.", res)));
     }
 
-    @Operation(summary = "Xóa cấu hình chốt đơn", description = "Xóa cấu hình chốt đơn theo ID.")
+    @Operation(summary = "Delete cutoff configuration", description = "Delete cutoff configuration theo ID.")
     @SecurityRequirement(name = "Bearer Authentication")
     @DeleteMapping("/{id}")
     public Mono<ResponseEntity<ApiResponse<Void>>> deleteSetting(
@@ -70,8 +70,8 @@ public class CutoffController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Không tìm thấy thông tin tài khoản nông dân.")))
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Farmer account information not found.")))
                 .flatMap(user -> cutoffSettingService.deleteSetting(user.getUserId(), id))
-                .thenReturn(ResponseEntity.ok(ApiResponse.success("Xóa cấu hình chốt đơn thành công.", null)));
+                .thenReturn(ResponseEntity.ok(ApiResponse.success("Deleted cutoff configuration successfully.", null)));
     }
 }

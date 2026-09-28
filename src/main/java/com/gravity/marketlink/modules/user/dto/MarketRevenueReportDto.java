@@ -14,21 +14,21 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class MarketRevenueReportDto {
 
-    @Schema(description = "Mã chợ", example = "1")
+    @Schema(description = "Market ID", example = "1")
     private Long marketId;
 
-    @Schema(description = "Tên chợ nông sản", example = "Chợ Phiên Nông Sản Ba Vì")
+    @Schema(description = "Farmers market name", example = "Ba Vi Farmers Market")
     private String marketName;
 
-    @Schema(description = "Địa chỉ chợ", example = "Thị trấn Tây Đằng, Ba Vì, Hà Nội")
+    @Schema(description = "Market address", example = "Tay Dang Town, Ba Vi District, Hanoi")
     private String address;
 
-    @Schema(description = "Tổng số đơn hàng phát sinh tại điểm chợ", example = "180")
+    @Schema(description = "Total orders generated at market location", example = "180")
     private Long totalOrders;
 
-    @Schema(description = "Tổng doanh thu tích lũy tại chợ", example = "24500000")
+    @Schema(description = "Cumulative revenue generated at market", example = "24500000")
     private BigDecimal totalRevenue;
 
-    @Schema(description = "Số lượng nông dân đang hoạt động tại chợ", example = "8")
+    @Schema(description = "Number of active farmers at market", example = "8")
     private Long activeFarmersCount;
 }

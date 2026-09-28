@@ -16,25 +16,25 @@ import java.time.LocalTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Lịch họp chợ trong tuần")
+@Schema(description = "Weekly market session schedule")
 public class MarketScheduleDto {
 
-    @Schema(description = "Mã lịch họp chợ", example = "1")
+    @Schema(description = "Schedule ID", example = "1")
     private Long scheduleId;
 
-    @NotNull(message = "Ngày trong tuần không được để trống")
-    @Min(value = 1, message = "Ngày trong tuần từ 1 (Thứ 2) đến 7 (Chủ nhật)")
-    @Max(value = 7, message = "Ngày trong tuần từ 1 (Thứ 2) đến 7 (Chủ nhật)")
-    @Schema(description = "Ngày trong tuần (1: Thứ 2, ..., 6: Thứ 7, 7: Chủ nhật)", example = "6")
+    @NotNull(message = "Day of week cannot be null")
+    @Min(value = 1, message = "Day of week from 1 (Monday) to 7 (Sunday)")
+    @Max(value = 7, message = "Day of week from 1 (Monday) to 7 (Sunday)")
+    @Schema(description = "Day of week (1: Monday ... 7: Sunday)", example = "6")
     private Integer dayOfWeek;
 
-    @NotNull(message = "Giờ mở cửa không được để trống")
+    @NotNull(message = "Opening time cannot be null")
     @JsonFormat(pattern = "HH:mm[:ss]")
-    @Schema(description = "Giờ mở sạp chợ (HH:mm hoặc HH:mm:ss)", example = "06:00")
+    @Schema(description = "Market opening time (HH:mm or HH:mm:ss)", example = "06:00")
     private LocalTime openTime;
 
-    @NotNull(message = "Giờ đóng cửa không được để trống")
+    @NotNull(message = "Closing time cannot be null")
     @JsonFormat(pattern = "HH:mm[:ss]")
-    @Schema(description = "Giờ kết thúc phiên chợ (HH:mm hoặc HH:mm:ss)", example = "12:00")
+    @Schema(description = "Market closing time (HH:mm or HH:mm:ss)", example = "12:00")
     private LocalTime closeTime;
 }

@@ -13,10 +13,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AiChatRequest {
 
-    @NotBlank(message = "Nội dung câu hỏi không được để trống")
-    @Schema(description = "Câu hỏi của người dùng về chợ, nông dân, sản phẩm hoặc giờ mở cửa", example = "Chợ nào mở vào Chủ nhật và có bán rau sạch không?")
+    @NotBlank(message = "Question content cannot be blank")
+    @Schema(description = "User question about markets, farmers, products, or opening hours", example = "Which farmers market opens on Sunday with organic vegetables?")
     private String message;
 
-    @Schema(description = "Tùy chọn: API Key của Google Gemini (nếu để trống hệ thống sẽ dùng cấu hình mặc định trên server)", example = "AIzaSy...")
+    @Schema(description = "Optional: Google Gemini API Key (uses server default if omitted)", example = "AIzaSy...")
     private String apiKey;
 }
