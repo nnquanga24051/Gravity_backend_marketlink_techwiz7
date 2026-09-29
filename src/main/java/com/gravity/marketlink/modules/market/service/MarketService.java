@@ -14,6 +14,7 @@ import com.gravity.marketlink.modules.market.entity.MarketSchedule;
 import com.gravity.marketlink.modules.market.repository.FarmerMarketAssignmentRepository;
 import com.gravity.marketlink.modules.market.repository.MarketRepository;
 import com.gravity.marketlink.modules.market.repository.MarketScheduleRepository;
+import com.gravity.marketlink.modules.notification.service.NotificationService;
 import com.gravity.marketlink.modules.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class MarketService {
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
     private final TransactionalOperator transactionalOperator;
+    private final NotificationService notificationService;
 
     /**
      * 1. Retrieves all active markets (including coordinates for Map Pin, keyword search, city & schedule filtering)
@@ -156,7 +158,7 @@ public class MarketService {
                                 return Mono.error(new IllegalArgumentException("Market is currently inactive"));
                             }
 
-                            return assignmentRepository.findByFarmerIdAndMarketId(user.getUserId(), request.getMarketId())
+                            Mono<FarmerMarketAssignment> saveMono = assignmentRepository.findByFarmerIdAndMarketId(user.getUserId(), request.getMarketId())
                                     .flatMap(existing -> {
                                         if ("ACTIVE".equalsIgnoreCase(existing.getStatus()) || "REGISTERED".equalsIgnoreCase(existing.getStatus())) {
                                             return Mono.<FarmerMarketAssignment>error(new IllegalArgumentException("You have already registered for this market (Status: " + existing.getStatus() + ")"));
@@ -174,6 +176,15 @@ public class MarketService {
                                                     .createdAt(LocalDateTime.now())
                                                     .build())
                                     );
+
+                            return saveMono.flatMap(assignment -> {
+                                String farmerName = (user.getFullName() != null && !user.getFullName().isBlank()) ? user.getFullName() : user.getEmail();
+                                String notifTitle = "New Market Stall Registration";
+                                String notifMsg = String.format("Farmer %s has registered for market '%s'. Please review and assign a stall.",
+                                        farmerName, market.getName());
+                                return notificationService.notifyAdmins(notifTitle, notifMsg, "SYSTEM", market.getMarketId())
+                                        .thenReturn(assignment);
+                            });
                         })
                 );
     }
@@ -381,7 +392,7 @@ public class MarketService {
                                     ? request.getStatus().toUpperCase()
                                     : "ACTIVE";
 
-                            return assignmentRepository.findByFarmerIdAndMarketId(farmer.getUserId(), market.getMarketId())
+                            Mono<FarmerMarketAssignment> saveMono = assignmentRepository.findByFarmerIdAndMarketId(farmer.getUserId(), market.getMarketId())
                                     .flatMap(existing -> {
                                         existing.setStallNumber(request.getStallNumber());
                                         existing.setStatus(targetStatus);
@@ -396,6 +407,14 @@ public class MarketService {
                                                     .createdAt(LocalDateTime.now())
                                                     .build())
                                     );
+
+                            return saveMono.flatMap(assignment -> {
+                                String notifTitle = "Market Stall Assigned 🎉";
+                                String notifMsg = String.format("You have been assigned stall '%s' at market '%s' (Status: %s).",
+                                        request.getStallNumber(), market.getName(), targetStatus);
+                                return notificationService.createNotification(farmer.getUserId(), notifTitle, notifMsg, "SYSTEM", market.getMarketId())
+                                        .thenReturn(assignment);
+                            });
                         })
                 );
     }

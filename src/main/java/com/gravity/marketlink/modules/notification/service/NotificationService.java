@@ -1,6 +1,7 @@
 package com.gravity.marketlink.modules.notification.service;
 
 import com.gravity.marketlink.core.exception.ResourceNotFoundException;
+import com.gravity.marketlink.modules.auth.repository.UserRepository;
 import com.gravity.marketlink.modules.notification.dto.NotificationResponse;
 import com.gravity.marketlink.modules.notification.entity.Notification;
 import com.gravity.marketlink.modules.notification.repository.NotificationRepository;
@@ -24,9 +25,19 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
 
     // Manages real-time SSE push notification channels by userId
     private final Map<Long, Sinks.Many<ServerSentEvent<NotificationResponse>>> userSinks = new ConcurrentHashMap<>();
+
+    /**
+     * Broadcasts notification to all users with role ROLE_ADMIN
+     */
+    public Mono<Void> notifyAdmins(String title, String message, String type, Long referenceId) {
+        return userRepository.findByRoleName("ROLE_ADMIN")
+                .flatMap(admin -> createNotification(admin.getUserId(), title, message, type, referenceId))
+                .then();
+    }
 
     public Flux<NotificationResponse> getUserNotifications(Long userId) {
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId)

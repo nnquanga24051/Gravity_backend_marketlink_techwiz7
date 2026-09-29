@@ -3,6 +3,7 @@ package com.gravity.marketlink.modules.user.service;
 import com.gravity.marketlink.core.exception.ResourceNotFoundException;
 import com.gravity.marketlink.modules.auth.entity.User;
 import com.gravity.marketlink.modules.auth.repository.UserRepository;
+import com.gravity.marketlink.modules.notification.service.NotificationService;
 import com.gravity.marketlink.modules.user.dto.*;
 import com.gravity.marketlink.modules.user.entity.FarmerKycDocument;
 import com.gravity.marketlink.modules.user.entity.FarmerProfile;
@@ -30,6 +31,7 @@ public class KycService {
     private final FarmerProfileRepository farmerProfileRepository;
     private final FarmerKycDocumentRepository farmerKycDocumentRepository;
     private final VerificationAuditLogRepository verificationAuditLogRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public Mono<FarmerKycStatusResponse> submitKyc(Long farmerId, FarmerKycSubmitRequest request) {
@@ -67,6 +69,14 @@ public class KycService {
                                             .build()
                             ))
                             .then(userRepository.updateKycStatus(farmerId, "PENDING", LocalDateTime.now()))
+                            .then(userRepository.findById(farmerId))
+                            .flatMap(u -> {
+                                String farmerName = (u.getFullName() != null && !u.getFullName().isBlank()) ? u.getFullName() : u.getEmail();
+                                String notifTitle = "New KYC Verification Request";
+                                String notifMsg = String.format("Farmer %s (Phone: %s) has submitted KYC identity documents (%d documents). Please review and verify.",
+                                        farmerName, u.getPhoneNumber() != null ? u.getPhoneNumber() : "Not provided", docs.size());
+                                return notificationService.notifyAdmins(notifTitle, notifMsg, "KYC_UPDATE", farmerId);
+                            })
                             .then(getFarmerKycStatus(farmerId));
                 });
     }
@@ -212,6 +222,21 @@ public class KycService {
                         .then(farmerProfileRepository.updateApprovalStatus(farmerId, newIsApproved, LocalDateTime.now()))
                         .then(verificationAuditLogRepository.save(auditLog))
                         .doOnSuccess(saved -> log.info("Admin [{}] executed [{}] KYC for farmer [{}]", adminId, action, farmerId))
+                        .then(Mono.defer(() -> {
+                            String notifTitle;
+                            String notifMsg;
+                            if ("APPROVE".equals(action)) {
+                                notifTitle = "KYC Verification Approved 🎉";
+                                notifMsg = "Congratulations! Your KYC identity verification has been approved. You can now register for market stalls and list your produce.";
+                            } else if ("REJECT".equals(action)) {
+                                notifTitle = "KYC Verification Rejected";
+                                notifMsg = "Your KYC verification has been rejected. Reason: " + (reason.isEmpty() ? "Information does not meet requirements." : reason);
+                            } else {
+                                notifTitle = "KYC Revision Requested";
+                                notifMsg = "The administrator requested you to update your KYC documents. Reason: " + (reason.isEmpty() ? "Additional documents required." : reason);
+                            }
+                            return notificationService.createNotification(farmerId, notifTitle, notifMsg, "KYC_UPDATE", farmerId);
+                        }))
                         .then(getFarmerKycStatus(farmerId)));
     }
 
